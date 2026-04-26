@@ -9,6 +9,12 @@ function cloneDocument(document: MindDocument): MindDocument {
   return structuredClone(document)
 }
 
+function assertPlainTextTitle(title: string): void {
+  if (/[<>]/.test(title) || title.trim().length === 0) {
+    throw new Error('Node title must be non-empty plain text')
+  }
+}
+
 export type AddChildNodeInput = {
   parentId: string
   id: string
@@ -16,6 +22,7 @@ export type AddChildNodeInput = {
 }
 
 export function addChildNode(document: MindDocument, input: AddChildNodeInput): MindDocument {
+  assertPlainTextTitle(input.title)
   const next = cloneDocument(document)
   const parent = findNode(next, input.parentId)
   if (!parent) {
@@ -46,15 +53,14 @@ export type EditNodeTitleInput = {
 }
 
 export function editNodeTitle(document: MindDocument, input: EditNodeTitleInput): MindDocument {
-  if (/[<>]/.test(input.title) || input.title.trim().length === 0) {
-    throw new Error('Node title must be non-empty plain text')
-  }
+  assertPlainTextTitle(input.title)
   const next = cloneDocument(document)
   const node = findNode(next, input.nodeId)
   if (!node) {
     throw new Error(`Node ${input.nodeId} does not exist`)
   }
   node.data.title = input.title
+  assertMindTree(next)
   return next
 }
 
@@ -74,6 +80,7 @@ export function moveNodes(document: MindDocument, input: MoveNodesInput): MindDo
       }
     }
   }
+  assertMindTree(next)
   return next
 }
 
