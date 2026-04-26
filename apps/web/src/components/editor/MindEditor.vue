@@ -185,15 +185,17 @@ onUnmounted(() => {
 <style scoped>
 .mind-editor {
   position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: calc(100vh - 65px);
   min-height: calc(100vh - 65px);
   overflow: hidden;
   background: #f8fafc;
 }
 
 .mind-editor__toolbar {
-  position: absolute;
+  position: relative;
   z-index: 20;
-  top: 16px;
-  left: 16px;
+  padding: 16px;
 }
 </style>
