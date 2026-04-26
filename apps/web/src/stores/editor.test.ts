@@ -247,6 +247,15 @@ describe('editor store', () => {
     expect(store.dirty).toBe(true)
   })
 
+  it('updates document theme to a color theme for persistence', () => {
+    const store = loadedStore()
+
+    store.setDocumentTheme('vivid')
+
+    expect(store.document?.meta.theme).toBe('vivid')
+    expect(store.dirty).toBe(true)
+  })
+
   it('ignores document theme updates before a document is loaded', () => {
     const store = useEditorStore()
 

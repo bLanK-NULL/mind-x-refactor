@@ -31,6 +31,56 @@ describe('mindDocumentSchema', () => {
     expect(parsed.nodes[0].data.title).toBe('Root')
   })
 
+  it('accepts colorful and vivid document themes', () => {
+    for (const theme of ['colorful', 'vivid']) {
+      const parsed = mindDocumentSchema.parse({
+        version: 1,
+        meta: {
+          projectId: 'project-1',
+          title: 'Planning',
+          theme,
+          updatedAt: '2026-04-26T00:00:00.000Z'
+        },
+        viewport: { x: 0, y: 0, zoom: 1 },
+        nodes: [
+          {
+            id: 'node-1',
+            type: 'topic',
+            position: { x: 0, y: 0 },
+            data: { title: 'Root' }
+          }
+        ],
+        edges: []
+      })
+
+      expect(parsed.meta.theme).toBe(theme)
+    }
+  })
+
+  it('rejects unsupported document themes', () => {
+    const result = mindDocumentSchema.safeParse({
+      version: 1,
+      meta: {
+        projectId: 'project-1',
+        title: 'Planning',
+        theme: 'rainbow',
+        updatedAt: '2026-04-26T00:00:00.000Z'
+      },
+      viewport: { x: 0, y: 0, zoom: 1 },
+      nodes: [
+        {
+          id: 'node-1',
+          type: 'topic',
+          position: { x: 0, y: 0 },
+          data: { title: 'Root' }
+        }
+      ],
+      edges: []
+    })
+
+    expect(result.success).toBe(false)
+  })
+
   it('rejects HTML titles', () => {
     const result = mindDocumentSchema.safeParse({
       version: 1,

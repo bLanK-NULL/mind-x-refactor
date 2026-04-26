@@ -45,7 +45,7 @@ export const mindDocumentSchema = z.object({
   meta: z.object({
     projectId: z.string().min(1),
     title: plainTextSchema,
-    theme: z.enum(['light', 'dark']),
+    theme: z.enum(['light', 'dark', 'colorful', 'vivid']),
     updatedAt: z.string().datetime()
   }),
   viewport: viewportSchema,
