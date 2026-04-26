@@ -228,6 +228,33 @@ describe('editor store', () => {
     expect(store.dirty).toBe(true)
   })
 
+  it('updates document theme as an undoable dirty document change', () => {
+    const store = loadedStore()
+
+    store.setDocumentTheme('dark')
+
+    expect(store.document?.meta.theme).toBe('dark')
+    expect(store.dirty).toBe(true)
+    expect(store.canUndo).toBe(true)
+
+    store.undo()
+    expect(store.document?.meta.theme).toBe('light')
+    expect(store.dirty).toBe(false)
+    expect(store.canRedo).toBe(true)
+
+    store.redo()
+    expect(store.document?.meta.theme).toBe('dark')
+    expect(store.dirty).toBe(true)
+  })
+
+  it('ignores document theme updates before a document is loaded', () => {
+    const store = useEditorStore()
+
+    expect(() => store.setDocumentTheme('dark')).not.toThrow()
+    expect(store.document).toBeNull()
+    expect(store.dirty).toBe(false)
+  })
+
   it('compares the current document against a serialized save snapshot', () => {
     const store = loadedStore(
       emptyDocument({

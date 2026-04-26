@@ -1,4 +1,4 @@
-import { mindDocumentSchema, type MindDocument, type Point, type Viewport } from '@mind-x/shared'
+import { mindDocumentSchema, type MindDocument, type Point, type ThemeName, type Viewport } from '@mind-x/shared'
 import {
   addChildNode,
   createHistory,
@@ -40,6 +40,16 @@ function retitleDocument(document: MindDocument, title: string): MindDocument {
   next.meta = {
     ...next.meta,
     title
+  }
+  mindDocumentSchema.parse(next)
+  return next
+}
+
+function rethemeDocument(document: MindDocument, theme: ThemeName): MindDocument {
+  const next = cloneDocument(document)
+  next.meta = {
+    ...next.meta,
+    theme
   }
   mindDocumentSchema.parse(next)
   return next
@@ -189,6 +199,13 @@ export const useEditorStore = defineStore('editor', {
         this.syncHistoryState()
       }
       this.syncDirtyState()
+    },
+    setDocumentTheme(theme: ThemeName): void {
+      if (!this.document || this.document.meta.theme === theme) {
+        return
+      }
+
+      this.commit(rethemeDocument(this.document, theme))
     },
     selectOnly(nodeId: string): void {
       this.selectedNodeIds = compactSelection(this.document, [nodeId])

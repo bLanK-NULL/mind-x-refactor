@@ -157,11 +157,11 @@ function endDrag(event: PointerEvent): void {
   min-width: 140px;
   max-width: 240px;
   padding: 10px 14px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-border-node);
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 6px 18px rgb(15 23 42 / 10%);
-  color: #111827;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-node);
+  color: var(--color-text-strong);
   cursor: grab;
   user-select: none;
 }
@@ -171,8 +171,8 @@ function endDrag(event: PointerEvent): void {
 }
 
 .topic-node--selected {
-  border-color: #1677ff;
-  box-shadow: 0 0 0 3px rgb(22 119 255 / 16%), 0 6px 18px rgb(15 23 42 / 12%);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-node-selected);
 }
 
 .topic-node__title {
@@ -200,7 +200,7 @@ function endDrag(event: PointerEvent): void {
 .topic-node__error {
   align-self: stretch;
   overflow: hidden;
-  color: #b42318;
+  color: var(--color-danger);
   font-size: 11px;
   line-height: 1.2;
   text-overflow: ellipsis;

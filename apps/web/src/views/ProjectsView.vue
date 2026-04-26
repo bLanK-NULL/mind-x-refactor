@@ -4,6 +4,7 @@ import { DeleteOutlined, EditOutlined, LogoutOutlined, PlusOutlined } from '@ant
 import { message, Modal } from 'ant-design-vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import { publishCrossTabEvent, subscribeCrossTabEvents, type CrossTabEvent } from '@/services/crossTab'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
@@ -195,6 +196,7 @@ function formatUpdatedAt(value: string): string {
           </template>
           Create
         </a-button>
+        <ThemeToggle />
         <a-button type="text" @click="logout">
           <template #icon>
             <LogoutOutlined />
@@ -317,12 +319,12 @@ function formatUpdatedAt(value: string): string {
   justify-content: space-between;
   gap: 12px;
   padding: 0 20px;
-  border-bottom: 1px solid #e5ebf0;
+  border-bottom: 1px solid var(--color-border-soft);
 }
 
 .projects-panel__title {
   margin: 0;
-  color: #111827;
+  color: var(--color-text-strong);
   font-size: 16px;
   font-weight: 650;
   line-height: 1.35;
@@ -335,8 +337,8 @@ function formatUpdatedAt(value: string): string {
   place-items: center;
   padding: 0 8px;
   border-radius: 999px;
-  background: #eef2f6;
-  color: #4b5563;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 650;
 }
@@ -358,9 +360,9 @@ function formatUpdatedAt(value: string): string {
   gap: 10px;
   min-height: 112px;
   padding: 16px;
-  border: 1px solid #dbe3ea;
+  border: 1px solid var(--color-border-card);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--color-surface);
   cursor: pointer;
   transition:
     border-color 0.16s ease,
@@ -370,8 +372,8 @@ function formatUpdatedAt(value: string): string {
 
 .project-card:hover,
 .project-card:focus-visible {
-  border-color: #4f7fb8;
-  box-shadow: 0 8px 22px rgb(17 24 39 / 8%);
+  border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-card-hover);
   outline: none;
   transform: translateY(-1px);
 }
@@ -388,7 +390,7 @@ function formatUpdatedAt(value: string): string {
   display: -webkit-box;
   overflow: hidden;
   margin: 0;
-  color: #111827;
+  color: var(--color-text-strong);
   font-size: 15px;
   font-weight: 650;
   line-height: 1.35;
@@ -399,7 +401,7 @@ function formatUpdatedAt(value: string): string {
 
 .project-card__time {
   overflow: hidden;
-  color: #64748b;
+  color: var(--color-text-subtle);
   font-size: 12px;
   line-height: 1.35;
   text-overflow: ellipsis;

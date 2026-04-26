@@ -190,7 +190,7 @@ onUnmounted(() => {
   height: calc(100vh - 65px);
   min-height: calc(100vh - 65px);
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--color-canvas);
 }
 
 .mind-editor__toolbar {

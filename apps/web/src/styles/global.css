@@ -1,12 +1,65 @@
 :root {
-  color: #1f2937;
-  background: #f4f6f8;
+  --color-primary: #1677ff;
+  --color-primary-hover: #4f7fb8;
+  --color-danger: #b42318;
+  --color-text: #1f2937;
+  --color-text-strong: #111827;
+  --color-text-muted: #4b5563;
+  --color-text-subtle: #64748b;
+  --color-bg: #f4f6f8;
+  --color-bg-soft: #eef2f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef2f6;
+  --color-border: #d9e1e8;
+  --color-border-soft: #e5ebf0;
+  --color-border-card: #dbe3ea;
+  --color-border-node: #cbd5e1;
+  --color-canvas: #f8fafc;
+  --color-grid: #e8edf2;
+  --color-edge: #64748b;
+  --shadow-panel: 0 16px 38px rgb(17 24 39 / 8%);
+  --shadow-card-hover: 0 8px 22px rgb(17 24 39 / 8%);
+  --shadow-node: 0 6px 18px rgb(15 23 42 / 10%);
+  --shadow-node-selected: 0 0 0 3px rgb(22 119 255 / 16%), 0 6px 18px rgb(15 23 42 / 12%);
+  --shadow-toolbar: 0 10px 24px rgb(15 23 42 / 12%);
+  --shadow-menu: 0 12px 28px rgb(15 23 42 / 14%);
+  color: var(--color-text);
+  color-scheme: light;
+  background: var(--color-bg);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[theme="dark"] {
+  --color-primary: #6aa7ff;
+  --color-primary-hover: #84b6f4;
+  --color-danger: #ff8a80;
+  --color-text: #d8dee9;
+  --color-text-strong: #f5f7fb;
+  --color-text-muted: #a8b0bd;
+  --color-text-subtle: #94a3b8;
+  --color-bg: #111318;
+  --color-bg-soft: #151923;
+  --color-surface: #1c2128;
+  --color-surface-muted: #252b34;
+  --color-border: #343b47;
+  --color-border-soft: #2c333d;
+  --color-border-card: #394250;
+  --color-border-node: #485566;
+  --color-canvas: #131821;
+  --color-grid: #293241;
+  --color-edge: #93a3b8;
+  --shadow-panel: 0 16px 38px rgb(0 0 0 / 28%);
+  --shadow-card-hover: 0 8px 22px rgb(0 0 0 / 24%);
+  --shadow-node: 0 6px 18px rgb(0 0 0 / 28%);
+  --shadow-node-selected: 0 0 0 3px rgb(106 167 255 / 22%), 0 6px 18px rgb(0 0 0 / 32%);
+  --shadow-toolbar: 0 10px 24px rgb(0 0 0 / 30%);
+  --shadow-menu: 0 12px 28px rgb(0 0 0 / 32%);
+  color-scheme: dark;
 }
 
 * {
@@ -17,6 +70,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  color: var(--color-text);
+  background: var(--color-bg);
 }
 
 button,
@@ -32,7 +87,7 @@ select {
 
 .app-shell {
   min-height: 100vh;
-  background: #f4f6f8;
+  background: var(--color-bg);
 }
 
 .app-header {
@@ -42,13 +97,13 @@ select {
   justify-content: space-between;
   gap: 16px;
   padding: 0 24px;
-  border-bottom: 1px solid #d9e1e8;
-  background: #ffffff;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .app-title {
   margin: 0;
-  color: #111827;
+  color: var(--color-text-strong);
   font-size: 18px;
   font-weight: 650;
   line-height: 1.3;
@@ -61,9 +116,9 @@ select {
 }
 
 .view-panel {
-  border: 1px solid #d9e1e8;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .view-panel__body {
@@ -74,7 +129,7 @@ select {
 
 .view-title {
   margin: 0;
-  color: #111827;
+  color: var(--color-text-strong);
   font-size: 22px;
   font-weight: 650;
   line-height: 1.25;
@@ -83,7 +138,7 @@ select {
 .view-copy {
   max-width: 680px;
   margin: 0;
-  color: #4b5563;
+  color: var(--color-text-muted);
   font-size: 14px;
   line-height: 1.6;
 }

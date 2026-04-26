@@ -4,11 +4,14 @@ import { createApp } from 'vue'
 import 'ant-design-vue/dist/reset.css'
 import App from './App.vue'
 import { setUnauthorizedHandler } from './api/client'
+import { initializeTheme } from './composables/useTheme'
 import router from './router'
 import { useAuthStore } from './stores/auth'
 import './styles/global.css'
 
 const pinia = createPinia()
+
+initializeTheme()
 
 setUnauthorizedHandler(() => {
   useAuthStore(pinia).logout()

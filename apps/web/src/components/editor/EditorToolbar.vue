@@ -115,10 +115,10 @@ const emit = defineEmits<{
   align-items: center;
   gap: 4px;
   padding: 6px;
-  border: 1px solid #d9e1e8;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 10px 24px rgb(15 23 42 / 12%);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-toolbar);
 }
 
 .editor-toolbar__divider {

@@ -92,9 +92,9 @@ onUnmounted(() => {
   height: 100%;
   overflow: hidden;
   background:
-    linear-gradient(#e8edf2 1px, transparent 1px),
-    linear-gradient(90deg, #e8edf2 1px, transparent 1px),
-    #f8fafc;
+    linear-gradient(var(--color-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid) 1px, transparent 1px),
+    var(--color-canvas);
   background-size: 24px 24px;
   cursor: grab;
   touch-action: none;

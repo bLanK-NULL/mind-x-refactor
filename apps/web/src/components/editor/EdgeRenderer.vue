@@ -97,7 +97,7 @@ function getPath(edge: MindEdge): string | null {
 
 .edge-renderer__path {
   fill: none;
-  stroke: #64748b;
+  stroke: var(--color-edge);
   stroke-linecap: round;
   stroke-width: 2;
 }

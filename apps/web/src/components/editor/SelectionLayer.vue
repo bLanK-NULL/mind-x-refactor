@@ -36,7 +36,7 @@ function selectionStyle(node: MindNode) {
 
 .selection-layer__box {
   position: absolute;
-  border: 1px dashed #1677ff;
+  border: 1px dashed var(--color-primary);
   border-radius: 8px;
 }
 </style>

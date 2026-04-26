@@ -35,10 +35,10 @@ const emit = defineEmits<{
   display: grid;
   min-width: 132px;
   padding: 4px;
-  border: 1px solid #d9e1e8;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 12px 28px rgb(15 23 42 / 14%);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-menu);
 }
 
 .editor-context-menu__scrim {

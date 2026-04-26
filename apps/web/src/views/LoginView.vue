@@ -79,16 +79,16 @@ async function submitLogin(): Promise<void> {
   min-height: 100vh;
   place-items: center;
   padding: 24px;
-  background: #eef2f5;
+  background: var(--color-bg-soft);
 }
 
 .login-panel {
   width: min(100%, 380px);
   padding: 28px;
-  border: 1px solid #d7dee6;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 16px 38px rgb(17 24 39 / 8%);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .login-panel__header {
@@ -97,7 +97,7 @@ async function submitLogin(): Promise<void> {
 
 .login-panel h1 {
   margin: 0;
-  color: #111827;
+  color: var(--color-text-strong);
   font-size: 24px;
   font-weight: 700;
   line-height: 1.2;

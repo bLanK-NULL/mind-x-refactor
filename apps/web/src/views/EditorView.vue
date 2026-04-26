@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import type { MindDocument } from '@mind-x/shared'
+import type { MindDocument, ThemeName } from '@mind-x/shared'
 import { ArrowLeftOutlined, LogoutOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import MindEditor from '@/components/editor/MindEditor.vue'
 import { getApiErrorMessage } from '@/api/client'
+import { useTheme } from '@/composables/useTheme'
 import { exportDocumentAsPng } from '@/services/exportPng'
 import { selectFailedSaveDraftDocument } from '@/services/saveFailureDraft'
 import { subscribeCrossTabEvents, type CrossTabEvent } from '@/services/crossTab'
@@ -17,6 +19,7 @@ const auth = useAuthStore()
 const editor = useEditorStore()
 const route = useRoute()
 const router = useRouter()
+const { setTheme } = useTheme()
 const projectId = computed(() => String(route.params.id ?? ''))
 const loadedDocument = ref<MindDocument | null>(null)
 const loading = ref(false)
@@ -60,7 +63,9 @@ async function loadProjectDocument(): Promise<void> {
       return
     }
 
-    loadedDocument.value = draft?.document ?? serverDocument
+    const activeDocument = draft?.document ?? serverDocument
+    setTheme(activeDocument.meta.theme)
+    loadedDocument.value = activeDocument
     await nextTick()
     if (!isEditorViewMounted || requestId !== editorSessionGeneration) {
       return
@@ -91,6 +96,10 @@ async function goBack(): Promise<void> {
 async function logout(): Promise<void> {
   auth.logout()
   await router.replace('/login')
+}
+
+function handleThemeChange(themeName: ThemeName): void {
+  editor.setDocumentTheme(themeName)
 }
 
 async function saveDocument(): Promise<void> {
@@ -202,6 +211,7 @@ async function handleCrossTabEvent(event: CrossTabEvent): Promise<void> {
           </template>
           Logout
         </a-button>
+        <ThemeToggle @change="handleThemeChange" />
       </div>
     </header>
 
