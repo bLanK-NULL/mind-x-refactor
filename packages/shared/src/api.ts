@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { mindDocumentSchema } from './document'
+import { createPlainTextSchema, mindDocumentSchema } from './document.js'
 
 export const userSchema = z.object({
   id: z.string(),
@@ -24,11 +24,11 @@ export const loginResponseSchema = z.object({
 })
 
 export const createProjectRequestSchema = z.object({
-  name: z.string().min(1).max(120)
+  name: createPlainTextSchema(120)
 })
 
 export const renameProjectRequestSchema = z.object({
-  name: z.string().min(1).max(120)
+  name: createPlainTextSchema(120)
 })
 
 export const saveDocumentRequestSchema = z.object({

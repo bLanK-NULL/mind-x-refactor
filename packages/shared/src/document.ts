@@ -1,8 +1,11 @@
 import { z } from 'zod'
 
-const plainTextSchema = z.string().min(1).max(500).refine((value) => !/[<>]/.test(value), {
-  message: 'HTML is not allowed'
-})
+export const createPlainTextSchema = (maxLength = 500) =>
+  z.string().min(1).max(maxLength).refine((value) => !/[<>]/.test(value), {
+    message: 'HTML is not allowed'
+  })
+
+export const plainTextSchema = createPlainTextSchema()
 
 export const pointSchema = z.object({
   x: z.number().finite(),
@@ -57,3 +60,4 @@ export type MindNode = z.infer<typeof mindNodeSchema>
 export type MindEdge = z.infer<typeof mindEdgeSchema>
 export type MindDocument = z.infer<typeof mindDocumentSchema>
 export type ThemeName = MindDocument['meta']['theme']
+export type PlainText = z.infer<typeof plainTextSchema>
