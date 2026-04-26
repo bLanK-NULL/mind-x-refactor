@@ -27,6 +27,27 @@ describe('commands', () => {
     )
   })
 
+  it('rejects an empty child node id', () => {
+    const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
+    doc.nodes.push({ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } })
+
+    expect(() => addChildNode(doc, { parentId: 'root', id: '   ', title: 'Child' })).toThrow(
+      'Node id must be non-empty'
+    )
+  })
+
+  it('rejects a duplicate child node id', () => {
+    const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
+    doc.nodes.push(
+      { id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } },
+      { id: 'child', type: 'topic', position: { x: 250, y: 20 }, data: { title: 'Existing' } }
+    )
+
+    expect(() => addChildNode(doc, { parentId: 'root', id: 'child', title: 'Child' })).toThrow(
+      'Node child already exists'
+    )
+  })
+
   it('edits a node title as plain text', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push({ id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } })
@@ -90,5 +111,27 @@ describe('commands', () => {
 
     expect(result.nodes.map((node) => node.id)).toEqual(['root', 'leaf'])
     expect(getParentId(result, 'leaf')).toBe('root')
+  })
+
+  it('deletes a root and promotes children to roots without moving them', () => {
+    const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
+    doc.nodes.push(
+      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+      { id: 'left', type: 'topic', position: { x: 240, y: -72 }, data: { title: 'Left' } },
+      { id: 'right', type: 'topic', position: { x: 240, y: 72 }, data: { title: 'Right' } }
+    )
+    doc.edges.push(
+      { id: 'root->left', source: 'root', target: 'left', type: 'mind-parent' },
+      { id: 'root->right', source: 'root', target: 'right', type: 'mind-parent' }
+    )
+
+    const result = deleteNodePromoteChildren(doc, { nodeId: 'root' })
+
+    expect(result.nodes.map((node) => ({ id: node.id, position: node.position }))).toEqual([
+      { id: 'left', position: { x: 240, y: -72 } },
+      { id: 'right', position: { x: 240, y: 72 } }
+    ])
+    expect(getParentId(result, 'left')).toBeNull()
+    expect(getParentId(result, 'right')).toBeNull()
   })
 })

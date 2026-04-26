@@ -22,6 +22,12 @@ export type AddChildNodeInput = {
 }
 
 export function addChildNode(document: MindDocument, input: AddChildNodeInput): MindDocument {
+  if (input.id.trim().length === 0) {
+    throw new Error('Node id must be non-empty')
+  }
+  if (findNode(document, input.id)) {
+    throw new Error(`Node ${input.id} already exists`)
+  }
   assertPlainTextTitle(input.title)
   const next = cloneDocument(document)
   const parent = findNode(next, input.parentId)
