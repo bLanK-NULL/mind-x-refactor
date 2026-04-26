@@ -7,6 +7,7 @@ import { useRoute, useRouter } from 'vue-router'
 import MindEditor from '@/components/editor/MindEditor.vue'
 import { getApiErrorMessage } from '@/api/client'
 import { exportDocumentAsPng } from '@/services/exportPng'
+import { selectFailedSaveDraftDocument } from '@/services/saveFailureDraft'
 import { subscribeCrossTabEvents, type CrossTabEvent } from '@/services/crossTab'
 import { getLocalDraft, loadServerDocument, saveLocalDraft, saveServerDocument } from '@/services/syncService'
 import { useAuthStore } from '@/stores/auth'
@@ -120,12 +121,21 @@ async function saveDocument(): Promise<void> {
     }
   } catch (error) {
     try {
-      const draftDocument =
-        editor.hasDocumentSnapshot(documentSnapshotJson) || !editor.document ? document : editor.document
+      const isCurrentProject = isEditorViewMounted && id === projectId.value
+      const draftDocument = selectFailedSaveDraftDocument({
+        capturedDocument: document,
+        currentDocument: editor.document,
+        isCurrentProject,
+        snapshotStillCurrent: editor.hasDocumentSnapshot(documentSnapshotJson)
+      })
       await saveLocalDraft(id, draftDocument)
-      message.warning('Saved local draft')
+      if (isCurrentProject) {
+        message.warning('Saved local draft')
+      }
     } catch {
-      message.error(getApiErrorMessage(error))
+      if (isEditorViewMounted && id === projectId.value) {
+        message.error(getApiErrorMessage(error))
+      }
     }
   } finally {
     saving.value = false

@@ -235,6 +235,28 @@ describe('editor store', () => {
     expect(store.dirty).toBe(true)
   })
 
+  it('keeps external project renames through undo and redo on a dirty document', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+      })
+    )
+    store.editNodeTitle('root', 'Unsaved root')
+
+    store.updateDocumentTitle('Renamed Project')
+    store.undo()
+
+    expect(store.document?.meta.title).toBe('Renamed Project')
+    expect(store.document?.nodes[0].data.title).toBe('Root')
+    expect(store.dirty).toBe(false)
+
+    store.redo()
+
+    expect(store.document?.meta.title).toBe('Renamed Project')
+    expect(store.document?.nodes[0].data.title).toBe('Unsaved root')
+    expect(store.dirty).toBe(true)
+  })
+
   it('does not mutate state when undo or redo is invoked at the history boundary', () => {
     const store = loadedStore()
     store.addRootTopic({ id: 'root', title: 'Root topic' })

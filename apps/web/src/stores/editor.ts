@@ -35,6 +35,16 @@ function cloneDocument(document: MindDocument): MindDocument {
   return JSON.parse(JSON.stringify(toRaw(document))) as MindDocument
 }
 
+function retitleDocument(document: MindDocument, title: string): MindDocument {
+  const next = cloneDocument(document)
+  next.meta = {
+    ...next.meta,
+    title
+  }
+  mindDocumentSchema.parse(next)
+  return next
+}
+
 export function serializeMindDocument(document: MindDocument | null): string | null {
   return document ? JSON.stringify(toRaw(document)) : null
 }
@@ -60,6 +70,30 @@ function compactSelection(document: MindDocument | null, selectedNodeIds: string
 
   const nodeIds = new Set(document.nodes.map((node) => node.id))
   return selectedNodeIds.filter((nodeId) => nodeIds.has(nodeId))
+}
+
+function retitleHistory(history: History<MindDocument>, title: string): History<MindDocument> {
+  let originalIndex = 0
+  while (history.canUndo()) {
+    history.undo()
+    originalIndex += 1
+  }
+
+  const entries = [retitleDocument(history.current(), title)]
+  while (history.canRedo()) {
+    entries.push(retitleDocument(history.redo(), title))
+  }
+
+  const nextHistory = createHistory(entries[0])
+  for (const entry of entries.slice(1)) {
+    nextHistory.push(entry)
+  }
+
+  for (let currentIndex = entries.length - 1; currentIndex > originalIndex; currentIndex -= 1) {
+    nextHistory.undo()
+  }
+
+  return nextHistory
 }
 
 export const useEditorStore = defineStore('editor', {
@@ -132,16 +166,17 @@ export const useEditorStore = defineStore('editor', {
       }
 
       const wasDirty = this.dirty
-      const next = cloneDocument(this.document)
-      next.meta = {
-        ...next.meta,
-        title
-      }
-      mindDocumentSchema.parse(next)
+      const next = retitleDocument(this.document, title)
       this.document = next
+      if (this.cleanDocumentJson !== null) {
+        const cleanDocument = JSON.parse(this.cleanDocumentJson) as MindDocument
+        this.cleanDocumentJson = serializeMindDocument(retitleDocument(cleanDocument, title))
+      }
       if (!wasDirty) {
         this.cleanDocumentJson = serializeMindDocument(next)
         this.history = markRaw(createHistory(next))
+      } else if (this.history) {
+        this.history = markRaw(retitleHistory(this.history, title))
         this.syncHistoryState()
       }
       this.syncDirtyState()
