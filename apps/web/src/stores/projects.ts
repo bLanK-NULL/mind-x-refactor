@@ -22,6 +22,21 @@ type ProjectsState = {
 
 let fetchSequence = 0
 
+function getUpdatedAtTime(project: ProjectSummaryDto): number {
+  const time = Date.parse(project.updatedAt)
+  return Number.isNaN(time) ? 0 : time
+}
+
+function sortProjectsByUpdatedAt(projects: ProjectSummaryDto[]): ProjectSummaryDto[] {
+  return projects
+    .map((project, index) => ({ index, project }))
+    .sort((left, right) => {
+      const updatedAtDifference = getUpdatedAtTime(right.project) - getUpdatedAtTime(left.project)
+      return updatedAtDifference === 0 ? left.index - right.index : updatedAtDifference
+    })
+    .map(({ project }) => project)
+}
+
 export const useProjectsStore = defineStore('projects', {
   state: (): ProjectsState => ({
     actionError: null,
@@ -33,6 +48,17 @@ export const useProjectsStore = defineStore('projects', {
     renamingIds: {}
   }),
   actions: {
+    upsertProjectSummary(project: ProjectSummaryDto): void {
+      const nextProjects = [...this.projects]
+      const index = nextProjects.findIndex((existingProject) => existingProject.id === project.id)
+      if (index >= 0) {
+        nextProjects.splice(index, 1, project)
+      } else {
+        nextProjects.unshift(project)
+      }
+
+      this.projects = sortProjectsByUpdatedAt(nextProjects)
+    },
     async fetchProjects(): Promise<void> {
       const requestId = ++fetchSequence
       this.loading = true
@@ -60,7 +86,7 @@ export const useProjectsStore = defineStore('projects', {
 
       try {
         const { data } = await apiClient.post<ProjectResponse>('/projects', { name })
-        this.projects.unshift(data.project)
+        this.upsertProjectSummary(data.project)
         this.actionError = null
         return data.project
       } catch (error) {
@@ -76,10 +102,7 @@ export const useProjectsStore = defineStore('projects', {
 
       try {
         const { data } = await apiClient.patch<ProjectResponse>(`/projects/${encodeURIComponent(id)}`, { name })
-        const index = this.projects.findIndex((project) => project.id === id)
-        if (index >= 0) {
-          this.projects.splice(index, 1, data.project)
-        }
+        this.upsertProjectSummary(data.project)
         this.actionError = null
         return data.project
       } catch (error) {

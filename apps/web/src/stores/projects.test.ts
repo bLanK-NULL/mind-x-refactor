@@ -146,13 +146,14 @@ describe('projects store', () => {
     expect(store.actionError).toBeNull()
   })
 
-  it('renames a project by replacing the matching summary and returning it', async () => {
+  it('renames a project by replacing, sorting, and returning the fresh summary', async () => {
+    const olderProject = project({ updatedAt: '2026-01-01T00:00:00.000Z' })
+    const otherProject = project({ id: 'project-2', name: 'Other Project', updatedAt: '2026-01-02T00:00:00.000Z' })
     const renamedProject = project({ name: 'Renamed Project', updatedAt: '2026-01-03T00:00:00.000Z' })
-    const otherProject = project({ id: 'project-2', name: 'Other Project' })
     mockedApiClient.patch.mockResolvedValueOnce({ data: { project: renamedProject } })
 
     const store = useProjectsStore()
-    store.projects = [project(), otherProject]
+    store.projects = [otherProject, olderProject]
 
     await expect(store.renameProject('project-1', 'Renamed Project')).resolves.toEqual(renamedProject)
     expect(mockedApiClient.patch).toHaveBeenCalledWith('/projects/project-1', { name: 'Renamed Project' })

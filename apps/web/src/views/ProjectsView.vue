@@ -148,7 +148,7 @@ async function handleCrossTabEvent(event: CrossTabEvent): Promise<void> {
       return
     }
 
-    projects.projects.splice(index, 1, event.project)
+    projects.upsertProjectSummary(event.project)
     return
   }
 
