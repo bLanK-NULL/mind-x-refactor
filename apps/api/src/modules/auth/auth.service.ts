@@ -16,6 +16,8 @@ type AuthTokenPayload = JwtPayload & {
   username: string
 }
 
+export const DUMMY_PASSWORD_HASH = '$2a$12$yav5dP29d8qy6UDxPZ.z5OOfjWr1Wrzxio6yVRbDZ33l2JqHpv3DK'
+
 function invalidCredentialsError(): HttpError {
   return new HttpError(401, 'UNAUTHORIZED', 'Invalid username or password')
 }
@@ -31,12 +33,8 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   )) as [UserRow[], unknown]
   const user = rows[0]
 
-  if (user === undefined) {
-    throw invalidCredentialsError()
-  }
-
-  const passwordMatches = await verifyPassword(credentials.password, user.password_hash)
-  if (!passwordMatches) {
+  const passwordMatches = await verifyPassword(credentials.password, user?.password_hash ?? DUMMY_PASSWORD_HASH)
+  if (user === undefined || !passwordMatches) {
     throw invalidCredentialsError()
   }
 

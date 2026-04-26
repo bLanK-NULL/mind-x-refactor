@@ -3,6 +3,7 @@ import { Readable, Writable } from 'node:stream'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { createApp } from '../../app.js'
 import { seedUsers } from '../../db/seed.js'
+import { DUMMY_PASSWORD_HASH } from './auth.service.js'
 import { hashPassword } from './password.js'
 
 const mockPool = vi.hoisted(() => ({
@@ -10,9 +11,20 @@ const mockPool = vi.hoisted(() => ({
   execute: vi.fn()
 }))
 
+const mockVerifyPassword = vi.hoisted(() => vi.fn())
+
 vi.mock('../../db/pool.js', () => ({
   pool: mockPool
 }))
+
+vi.mock('./password.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./password.js')>()
+
+  return {
+    ...original,
+    verifyPassword: mockVerifyPassword
+  }
+})
 
 type ResponseSnapshot = {
   body: unknown
@@ -98,6 +110,7 @@ describe('auth routes', () => {
   beforeEach(() => {
     mockPool.execute.mockReset()
     mockPool.end.mockReset()
+    mockVerifyPassword.mockReset()
   })
 
   it('logs in with valid credentials and returns a signed token with user data', async () => {
@@ -105,6 +118,7 @@ describe('auth routes', () => {
     mockPool.execute.mockResolvedValueOnce([
       [{ id: '00000000-0000-4000-8000-000000000001', username: 'blank', password_hash: passwordHash }]
     ])
+    mockVerifyPassword.mockResolvedValueOnce(true)
 
     const response = await requestApp('/api/auth/login', {
       body: { password: '123456', username: 'blank' },
@@ -117,10 +131,12 @@ describe('auth routes', () => {
     })
     expect(response.body).toHaveProperty('token')
     expect(mockPool.execute).toHaveBeenCalledWith(expect.stringContaining('WHERE username = ?'), ['blank'])
+    expect(mockVerifyPassword).toHaveBeenCalledWith('123456', passwordHash)
   })
 
   it('rejects invalid credentials with a normalized unauthorized error', async () => {
     mockPool.execute.mockResolvedValueOnce([[]])
+    mockVerifyPassword.mockResolvedValueOnce(false)
 
     await expect(
       requestApp('/api/auth/login', {
@@ -136,6 +152,33 @@ describe('auth routes', () => {
       },
       status: 401
     })
+    expect(mockVerifyPassword).toHaveBeenCalledWith('wrong', DUMMY_PASSWORD_HASH)
+  })
+
+  it('verifies a password hash before rejecting both unknown users and bad passwords', async () => {
+    const passwordHash = await hashPassword('123456')
+    mockVerifyPassword.mockResolvedValue(false)
+
+    mockPool.execute.mockResolvedValueOnce([[]])
+    await expect(
+      requestApp('/api/auth/login', {
+        body: { password: 'wrong', username: 'missing' },
+        method: 'POST'
+      })
+    ).resolves.toMatchObject({ status: 401 })
+
+    mockPool.execute.mockResolvedValueOnce([
+      [{ id: '00000000-0000-4000-8000-000000000001', username: 'blank', password_hash: passwordHash }]
+    ])
+    await expect(
+      requestApp('/api/auth/login', {
+        body: { password: 'wrong', username: 'blank' },
+        method: 'POST'
+      })
+    ).resolves.toMatchObject({ status: 401 })
+
+    expect(mockVerifyPassword).toHaveBeenNthCalledWith(1, 'wrong', DUMMY_PASSWORD_HASH)
+    expect(mockVerifyPassword).toHaveBeenNthCalledWith(2, 'wrong', passwordHash)
   })
 
   it('returns the current user for a valid bearer token', async () => {
@@ -143,6 +186,7 @@ describe('auth routes', () => {
     mockPool.execute.mockResolvedValueOnce([
       [{ id: '00000000-0000-4000-8000-000000000001', username: 'blank', password_hash: passwordHash }]
     ])
+    mockVerifyPassword.mockResolvedValueOnce(true)
     const loginResponse = await requestApp('/api/auth/login', {
       body: { password: '123456', username: 'blank' },
       method: 'POST'
