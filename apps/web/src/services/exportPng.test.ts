@@ -28,6 +28,7 @@ describe('exportPng', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     Object.defineProperty(globalThis, 'document', {
       configurable: true,
@@ -83,6 +84,7 @@ describe('exportPng', () => {
   })
 
   it('renders the document export root from the document bounds origin and triggers a PNG download', async () => {
+    vi.useFakeTimers()
     const click = vi.fn()
     const appendChild = vi.fn()
     const removeChild = vi.fn()
@@ -128,6 +130,8 @@ describe('exportPng', () => {
     expect(click).toHaveBeenCalled()
     expect(appendChild).toHaveBeenCalledWith(link)
     expect(removeChild).toHaveBeenCalledWith(link)
+    expect(revokeObjectURL).not.toHaveBeenCalled()
+    vi.runOnlyPendingTimers()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mind-map')
   })
 

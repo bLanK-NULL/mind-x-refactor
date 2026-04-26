@@ -22,7 +22,7 @@ function selectionStyle(node: MindNode) {
 </script>
 
 <template>
-  <div class="selection-layer" aria-hidden="true">
+  <div class="selection-layer" aria-hidden="true" data-html2canvas-ignore="true">
     <div v-for="node in selectedNodes" :key="node.id" class="selection-layer__box" :style="selectionStyle(node)" />
   </div>
 </template>

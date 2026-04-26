@@ -2,7 +2,7 @@ import type { MindDocument } from '@mind-x/shared'
 import { createEmptyDocument } from '@mind-x/mind-engine'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useEditorStore } from './editor'
+import { serializeMindDocument, useEditorStore } from './editor'
 
 function emptyDocument(overrides: Partial<MindDocument> = {}): MindDocument {
   return {
@@ -195,6 +195,23 @@ describe('editor store', () => {
     expect(store.dirty).toBe(false)
 
     store.editNodeTitle('root', 'Renamed again')
+    expect(store.dirty).toBe(true)
+  })
+
+  it('compares the current document against a serialized save snapshot', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+      })
+    )
+    const saveSnapshot = serializeMindDocument(store.document)
+
+    expect(saveSnapshot).toBeTypeOf('string')
+    expect(store.hasDocumentSnapshot(saveSnapshot ?? '')).toBe(true)
+
+    store.editNodeTitle('root', 'Edited while save in flight')
+
+    expect(store.hasDocumentSnapshot(saveSnapshot ?? '')).toBe(false)
     expect(store.dirty).toBe(true)
   })
 

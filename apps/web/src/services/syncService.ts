@@ -25,7 +25,7 @@ export async function saveServerDocument(projectId: string, document: MindDocume
   const validDocument = mindDocumentSchema.parse(document)
   const { data } = await apiClient.put<DocumentResponse>(documentUrl(projectId), { document: validDocument })
   const savedDocument = mindDocumentSchema.parse(data.document)
-  await clearLocalDraft(projectId)
+  await clearLocalDraftBestEffort(projectId, 'Unable to clear local draft after server save')
   return savedDocument
 }
 
@@ -39,14 +39,21 @@ export async function saveLocalDraft(projectId: string, document: MindDocument):
 }
 
 export async function getLocalDraft(projectId: string): Promise<LocalDraft | null> {
-  const rawDraft = await draftsStore.getItem<unknown>(projectId)
+  let rawDraft: unknown
+  try {
+    rawDraft = await draftsStore.getItem<unknown>(projectId)
+  } catch (error) {
+    console.warn('Unable to read local draft', error)
+    return null
+  }
+
   if (rawDraft === null) {
     return null
   }
 
   const draft = parseLocalDraft(rawDraft)
   if (draft === null) {
-    await clearLocalDraft(projectId)
+    await clearLocalDraftBestEffort(projectId, 'Unable to clear corrupt local draft')
   }
 
   return draft
@@ -54,6 +61,14 @@ export async function getLocalDraft(projectId: string): Promise<LocalDraft | nul
 
 export async function clearLocalDraft(projectId: string): Promise<void> {
   await draftsStore.removeItem(projectId)
+}
+
+async function clearLocalDraftBestEffort(projectId: string, warning: string): Promise<void> {
+  try {
+    await clearLocalDraft(projectId)
+  } catch (error) {
+    console.warn(warning, error)
+  }
 }
 
 function documentUrl(projectId: string): string {

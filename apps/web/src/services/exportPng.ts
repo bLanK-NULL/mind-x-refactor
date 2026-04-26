@@ -89,7 +89,7 @@ async function downloadCanvas(canvas: HTMLCanvasElement, filename: string): Prom
     })
     const url = URL.createObjectURL(blob)
     triggerDownload(url, filename)
-    URL.revokeObjectURL(url)
+    revokeObjectUrlSoon(url)
     return
   }
 
@@ -103,6 +103,16 @@ function triggerDownload(url: string, filename: string): void {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+}
+
+function revokeObjectUrlSoon(url: string): void {
+  const setTimeoutFn = globalThis.window?.setTimeout ?? globalThis.setTimeout
+  if (setTimeoutFn) {
+    setTimeoutFn(() => URL.revokeObjectURL(url), 0)
+    return
+  }
+
+  URL.revokeObjectURL(url)
 }
 
 function nodeWidth(node: MindNode): number {

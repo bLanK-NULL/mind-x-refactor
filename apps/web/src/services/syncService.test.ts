@@ -69,6 +69,20 @@ describe('syncService', () => {
     expect(localForageMock.store.removeItem).toHaveBeenCalledWith('project/one')
   })
 
+  it('returns the saved server document when post-save draft cleanup fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const savedDocument = document({ meta: { ...document().meta, title: 'Saved' } })
+    localForageMock.store.removeItem.mockRejectedValueOnce(new Error('storage unavailable'))
+    mockedApiClient.put.mockResolvedValueOnce({ data: { document: savedDocument } })
+    const { saveServerDocument } = await import('./syncService')
+
+    await expect(saveServerDocument('project/one', document())).resolves.toEqual(savedDocument)
+
+    expect(localForageMock.store.removeItem).toHaveBeenCalledWith('project/one')
+    expect(warn).toHaveBeenCalledWith('Unable to clear local draft after server save', expect.any(Error))
+    warn.mockRestore()
+  })
+
   it('stores and retrieves a validated local draft', async () => {
     const draftDocument = document()
     localForageMock.store.getItem.mockResolvedValueOnce({
@@ -96,6 +110,30 @@ describe('syncService', () => {
     await expect(getLocalDraft('project/one')).resolves.toBeNull()
 
     expect(localForageMock.store.removeItem).toHaveBeenCalledWith('project/one')
+  })
+
+  it('returns null when reading a local draft fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    localForageMock.store.getItem.mockRejectedValueOnce(new Error('read failed'))
+    const { getLocalDraft } = await import('./syncService')
+
+    await expect(getLocalDraft('project/one')).resolves.toBeNull()
+
+    expect(warn).toHaveBeenCalledWith('Unable to read local draft', expect.any(Error))
+    warn.mockRestore()
+  })
+
+  it('returns null when corrupt local draft cleanup fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    localForageMock.store.getItem.mockResolvedValueOnce({ document: { broken: true }, savedAt: 'not-a-date' })
+    localForageMock.store.removeItem.mockRejectedValueOnce(new Error('remove failed'))
+    const { getLocalDraft } = await import('./syncService')
+
+    await expect(getLocalDraft('project/one')).resolves.toBeNull()
+
+    expect(localForageMock.store.removeItem).toHaveBeenCalledWith('project/one')
+    expect(warn).toHaveBeenCalledWith('Unable to clear corrupt local draft', expect.any(Error))
+    warn.mockRestore()
   })
 
   it('explicitly clears a local draft', async () => {

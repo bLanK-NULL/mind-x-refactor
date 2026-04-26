@@ -35,7 +35,7 @@ function cloneDocument(document: MindDocument): MindDocument {
   return JSON.parse(JSON.stringify(toRaw(document))) as MindDocument
 }
 
-function serializeDocument(document: MindDocument | null): string | null {
+export function serializeMindDocument(document: MindDocument | null): string | null {
   return document ? JSON.stringify(toRaw(document)) : null
 }
 
@@ -82,13 +82,13 @@ export const useEditorStore = defineStore('editor', {
       this.historyCanRedo = this.history?.canRedo() ?? false
     },
     syncDirtyState(): void {
-      this.dirty = serializeDocument(this.document) !== this.cleanDocumentJson
+      this.dirty = serializeMindDocument(this.document) !== this.cleanDocumentJson
     },
     load(document: MindDocument): void {
       const next = cloneDocument(document)
       this.document = next
       this.selectedNodeIds = []
-      this.cleanDocumentJson = serializeDocument(next)
+      this.cleanDocumentJson = serializeMindDocument(next)
       this.syncDirtyState()
       this.history = markRaw(createHistory(next))
       this.syncHistoryState()
@@ -106,8 +106,8 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      const currentJson = this.history ? serializeDocument(this.history.current()) : null
-      const nextJson = serializeDocument(this.document)
+      const currentJson = this.history ? serializeMindDocument(this.history.current()) : null
+      const nextJson = serializeMindDocument(this.document)
       if (currentJson === nextJson) {
         this.syncDirtyState()
         this.syncHistoryState()
@@ -120,8 +120,11 @@ export const useEditorStore = defineStore('editor', {
       this.commitCurrentDocument()
     },
     markClean(): void {
-      this.cleanDocumentJson = serializeDocument(this.document)
+      this.cleanDocumentJson = serializeMindDocument(this.document)
       this.syncDirtyState()
+    },
+    hasDocumentSnapshot(snapshotJson: string): boolean {
+      return serializeMindDocument(this.document) === snapshotJson
     },
     updateDocumentTitle(title: string): void {
       if (!this.document) {
@@ -137,7 +140,7 @@ export const useEditorStore = defineStore('editor', {
       mindDocumentSchema.parse(next)
       this.document = next
       if (!wasDirty) {
-        this.cleanDocumentJson = serializeDocument(next)
+        this.cleanDocumentJson = serializeMindDocument(next)
         this.history = markRaw(createHistory(next))
         this.syncHistoryState()
       }

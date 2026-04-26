@@ -10,7 +10,7 @@ import { exportDocumentAsPng } from '@/services/exportPng'
 import { subscribeCrossTabEvents, type CrossTabEvent } from '@/services/crossTab'
 import { getLocalDraft, loadServerDocument, saveLocalDraft, saveServerDocument } from '@/services/syncService'
 import { useAuthStore } from '@/stores/auth'
-import { useEditorStore } from '@/stores/editor'
+import { serializeMindDocument, useEditorStore } from '@/stores/editor'
 
 const auth = useAuthStore()
 const editor = useEditorStore()
@@ -98,7 +98,12 @@ async function saveDocument(): Promise<void> {
   }
 
   const id = projectId.value
-  const document = editor.document
+  const documentSnapshotJson = serializeMindDocument(editor.document)
+  if (documentSnapshotJson === null) {
+    return
+  }
+
+  const document = JSON.parse(documentSnapshotJson) as MindDocument
   saving.value = true
   try {
     const savedDocument = await saveServerDocument(id, document)
@@ -106,12 +111,18 @@ async function saveDocument(): Promise<void> {
       return
     }
 
-    loadedDocument.value = savedDocument
-    editor.load(savedDocument)
-    message.success('Document saved')
+    if (editor.hasDocumentSnapshot(documentSnapshotJson)) {
+      loadedDocument.value = savedDocument
+      editor.load(savedDocument)
+      message.success('Document saved')
+    } else {
+      message.info('Saved; newer edits remain unsaved')
+    }
   } catch (error) {
     try {
-      await saveLocalDraft(id, document)
+      const draftDocument =
+        editor.hasDocumentSnapshot(documentSnapshotJson) || !editor.document ? document : editor.document
+      await saveLocalDraft(id, draftDocument)
       message.warning('Saved local draft')
     } catch {
       message.error(getApiErrorMessage(error))
