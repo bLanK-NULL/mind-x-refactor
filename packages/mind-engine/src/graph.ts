@@ -31,6 +31,11 @@ export function createParentEdge(source: string, target: string): MindEdge {
 export function assertMindTree(document: MindDocument): void {
   const nodeIds = new Set(document.nodes.map((node) => node.id))
   const parentCountByNode = new Map<string, number>()
+  const childIdsByNode = new Map<string, string[]>()
+
+  for (const nodeId of nodeIds) {
+    childIdsByNode.set(nodeId, [])
+  }
 
   for (const edge of document.edges) {
     if (!nodeIds.has(edge.source)) {
@@ -39,12 +44,38 @@ export function assertMindTree(document: MindDocument): void {
     if (!nodeIds.has(edge.target)) {
       throw new Error(`Edge ${edge.id} target ${edge.target} does not exist`)
     }
+    if (edge.source === edge.target) {
+      throw new Error(`Node ${edge.source} cannot be its own parent`)
+    }
     parentCountByNode.set(edge.target, (parentCountByNode.get(edge.target) ?? 0) + 1)
+    childIdsByNode.get(edge.source)?.push(edge.target)
   }
 
   for (const [nodeId, parentCount] of parentCountByNode.entries()) {
     if (parentCount > 1) {
       throw new Error(`Node ${nodeId} has more than one parent`)
     }
+  }
+
+  const visitStateByNode = new Map<string, 'visiting' | 'visited'>()
+
+  function visit(nodeId: string): void {
+    const visitState = visitStateByNode.get(nodeId)
+    if (visitState === 'visiting') {
+      throw new Error(`Cycle detected at node ${nodeId}`)
+    }
+    if (visitState === 'visited') {
+      return
+    }
+
+    visitStateByNode.set(nodeId, 'visiting')
+    for (const childId of childIdsByNode.get(nodeId) ?? []) {
+      visit(childId)
+    }
+    visitStateByNode.set(nodeId, 'visited')
+  }
+
+  for (const nodeId of nodeIds) {
+    visit(nodeId)
   }
 }
