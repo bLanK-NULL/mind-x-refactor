@@ -35,8 +35,30 @@ describe('theme controller', () => {
   it('accepts only supported theme names', () => {
     expect(isThemeName('light')).toBe(true)
     expect(isThemeName('dark')).toBe(true)
+    expect(isThemeName('colorful')).toBe(true)
+    expect(isThemeName('vivid')).toBe(true)
     expect(isThemeName('night')).toBe(false)
     expect(isThemeName(null)).toBe(false)
+  })
+
+  it('sets colorful and vivid themes directly with matching Ant Design primary colors', () => {
+    const root = new FakeThemeRoot()
+    const storage = new FakeThemeStorage()
+    const controller = createThemeController({ root, storage })
+
+    controller.setTheme('colorful')
+
+    expect(controller.currentTheme.value).toBe('colorful')
+    expect(root.attributes.get('theme')).toBe('colorful')
+    expect(storage.items.get('mind-x-theme')).toBe('colorful')
+    expect(controller.antDesignTheme.value.token?.colorPrimary).toBe('#2563eb')
+
+    controller.setTheme('vivid')
+
+    expect(controller.currentTheme.value).toBe('vivid')
+    expect(root.attributes.get('theme')).toBe('vivid')
+    expect(storage.items.get('mind-x-theme')).toBe('vivid')
+    expect(controller.antDesignTheme.value.token?.colorPrimary).toBe('#c026d3')
   })
 
   it('initializes from a stored dark theme and applies it to the root element', () => {

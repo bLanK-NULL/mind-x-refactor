@@ -4,9 +4,21 @@ import { theme as antTheme } from 'ant-design-vue'
 import { computed, readonly, ref } from 'vue'
 
 const THEME_STORAGE_KEY = 'mind-x-theme'
+
+export const THEME_NAMES = ['light', 'dark', 'colorful', 'vivid'] as const satisfies readonly ThemeName[]
+
+export const THEME_LABELS: Record<ThemeName, string> = {
+  colorful: 'Colorful',
+  dark: 'Dark',
+  light: 'Light',
+  vivid: 'Vivid'
+}
+
 const COLOR_PRIMARY_BY_THEME: Record<ThemeName, string> = {
+  colorful: '#2563eb',
   dark: '#6aa7ff',
-  light: '#1677ff'
+  light: '#1677ff',
+  vivid: '#c026d3'
 }
 
 type ThemeRoot = Pick<HTMLElement, 'setAttribute'>
@@ -22,7 +34,7 @@ export type SetThemeOptions = {
 }
 
 export function isThemeName(value: unknown): value is ThemeName {
-  return value === 'light' || value === 'dark'
+  return typeof value === 'string' && (THEME_NAMES as readonly string[]).includes(value)
 }
 
 function getBrowserRoot(): ThemeRoot | null {
