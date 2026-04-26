@@ -11,47 +11,60 @@ type ProjectResponse = {
 }
 
 type ProjectsState = {
+  actionError: string | null
   creating: boolean
   deletingIds: Record<string, boolean>
-  error: string | null
+  loadError: string | null
   loading: boolean
   projects: ProjectSummaryDto[]
   renamingIds: Record<string, boolean>
 }
 
+let fetchSequence = 0
+
 export const useProjectsStore = defineStore('projects', {
   state: (): ProjectsState => ({
+    actionError: null,
     creating: false,
     deletingIds: {},
-    error: null,
+    loadError: null,
     loading: false,
     projects: [],
     renamingIds: {}
   }),
   actions: {
     async fetchProjects(): Promise<void> {
+      const requestId = ++fetchSequence
       this.loading = true
-      this.error = null
+      this.loadError = null
 
       try {
         const { data } = await apiClient.get<ProjectsResponse>('/projects')
-        this.projects = data.projects
+        if (requestId === fetchSequence) {
+          this.projects = data.projects
+          this.loadError = null
+        }
       } catch (error) {
-        this.error = getApiErrorMessage(error)
+        if (requestId === fetchSequence) {
+          this.loadError = getApiErrorMessage(error)
+        }
       } finally {
-        this.loading = false
+        if (requestId === fetchSequence) {
+          this.loading = false
+        }
       }
     },
     async createProject(name: string): Promise<ProjectSummaryDto> {
       this.creating = true
-      this.error = null
+      this.actionError = null
 
       try {
         const { data } = await apiClient.post<ProjectResponse>('/projects', { name })
         this.projects.unshift(data.project)
+        this.actionError = null
         return data.project
       } catch (error) {
-        this.error = getApiErrorMessage(error)
+        this.actionError = getApiErrorMessage(error)
         throw error
       } finally {
         this.creating = false
@@ -59,7 +72,7 @@ export const useProjectsStore = defineStore('projects', {
     },
     async renameProject(id: string, name: string): Promise<ProjectSummaryDto> {
       this.renamingIds[id] = true
-      this.error = null
+      this.actionError = null
 
       try {
         const { data } = await apiClient.patch<ProjectResponse>(`/projects/${encodeURIComponent(id)}`, { name })
@@ -67,9 +80,10 @@ export const useProjectsStore = defineStore('projects', {
         if (index >= 0) {
           this.projects.splice(index, 1, data.project)
         }
+        this.actionError = null
         return data.project
       } catch (error) {
-        this.error = getApiErrorMessage(error)
+        this.actionError = getApiErrorMessage(error)
         throw error
       } finally {
         delete this.renamingIds[id]
@@ -77,13 +91,14 @@ export const useProjectsStore = defineStore('projects', {
     },
     async deleteProject(id: string): Promise<void> {
       this.deletingIds[id] = true
-      this.error = null
+      this.actionError = null
 
       try {
         await apiClient.delete(`/projects/${encodeURIComponent(id)}`)
         this.projects = this.projects.filter((project) => project.id !== id)
+        this.actionError = null
       } catch (error) {
-        this.error = getApiErrorMessage(error)
+        this.actionError = getApiErrorMessage(error)
         throw error
       } finally {
         delete this.deletingIds[id]

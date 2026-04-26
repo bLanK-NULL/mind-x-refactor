@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { publishCrossTabEvent, subscribeCrossTabEvents, type CrossTabEvent } from './crossTab'
+import type { ProjectSummaryDto } from '@mind-x/shared'
+import { publishCrossTabEvent, resetCrossTabChannelForTests, subscribeCrossTabEvents, type CrossTabEvent } from './crossTab'
 
 type Listener = (message: MessageEvent<CrossTabEvent>) => void
 
@@ -27,6 +28,10 @@ class FakeBroadcastChannel {
     }
   }
 
+  close(): void {
+    this.listeners.clear()
+  }
+
   postMessage(message: CrossTabEvent): void {
     this.postedMessages.push(message)
   }
@@ -41,10 +46,12 @@ class FakeBroadcastChannel {
 
 describe('cross-tab project events', () => {
   beforeEach(() => {
+    resetCrossTabChannelForTests()
     FakeBroadcastChannel.instances = []
   })
 
   afterEach(() => {
+    resetCrossTabChannelForTests()
     vi.unstubAllGlobals()
   })
 
@@ -62,13 +69,19 @@ describe('cross-tab project events', () => {
   it('publishes, subscribes, and unsubscribes with BroadcastChannel', () => {
     vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
     const handler = vi.fn()
+    const renamedProject: ProjectSummaryDto = {
+      createdAt: '2026-01-01T00:00:00.000Z',
+      id: 'project-1',
+      name: 'Renamed',
+      updatedAt: '2026-01-03T00:00:00.000Z'
+    }
 
     const unsubscribe = subscribeCrossTabEvents(handler)
-    publishCrossTabEvent({ projectId: 'project-1', name: 'Renamed', type: 'project:renamed' })
+    publishCrossTabEvent({ project: renamedProject, type: 'project:renamed' })
 
     const channel = FakeBroadcastChannel.instances[0]
     expect(channel.name).toBe('mind-x')
-    expect(channel.postedMessages).toEqual([{ projectId: 'project-1', name: 'Renamed', type: 'project:renamed' }])
+    expect(channel.postedMessages).toEqual([{ project: renamedProject, type: 'project:renamed' }])
 
     channel.emit({ projectId: 'project-1', type: 'project:deleted' })
     expect(handler).toHaveBeenCalledWith({ projectId: 'project-1', type: 'project:deleted' })

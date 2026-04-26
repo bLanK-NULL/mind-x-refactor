@@ -1,6 +1,8 @@
+import type { ProjectSummaryDto } from '@mind-x/shared'
+
 export type CrossTabEvent =
   | { type: 'projects:refresh' }
-  | { name: string; projectId: string; type: 'project:renamed' }
+  | { project: ProjectSummaryDto; type: 'project:renamed' }
   | { projectId: string; type: 'project:deleted' }
 
 type CrossTabHandler = (event: CrossTabEvent) => void
@@ -11,6 +13,11 @@ let channel: BroadcastChannel | null | undefined
 
 export function publishCrossTabEvent(event: CrossTabEvent): void {
   getChannel()?.postMessage(event)
+}
+
+export function resetCrossTabChannelForTests(): void {
+  channel?.close()
+  channel = undefined
 }
 
 export function subscribeCrossTabEvents(handler: CrossTabHandler): () => void {

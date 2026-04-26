@@ -15,6 +15,7 @@ const newProjectName = ref('Untitled Mind Map')
 const renameOpen = ref(false)
 const renameName = ref('')
 const renameTarget = ref<ProjectSummaryDto | null>(null)
+const confirmingDeleteIds = ref<Record<string, boolean>>({})
 
 const trimmedNewProjectName = computed(() => newProjectName.value.trim())
 const trimmedRenameName = computed(() => renameName.value.trim())
@@ -23,8 +24,8 @@ const renameLoading = computed(() => {
   return projectId === undefined ? false : projects.renamingIds[projectId] === true
 })
 const renameDisabled = computed(() => trimmedRenameName.value.length === 0 || renameLoading.value)
-const showProjectsError = computed(() => projects.error !== null && projects.projects.length === 0 && !projects.loading)
-const showEmptyProjects = computed(() => projects.error === null && projects.projects.length === 0 && !projects.loading)
+const showProjectsError = computed(() => projects.loadError !== null && projects.projects.length === 0 && !projects.loading)
+const showEmptyProjects = computed(() => projects.loadError === null && projects.projects.length === 0 && !projects.loading)
 
 let isProjectsViewMounted = false
 let unsubscribeCrossTabEvents: () => void = () => {}
@@ -42,8 +43,8 @@ onUnmounted(() => {
 
 async function loadProjects(): Promise<void> {
   await projects.fetchProjects()
-  if (isProjectsViewMounted && projects.error !== null) {
-    message.error(projects.error)
+  if (isProjectsViewMounted && projects.loadError !== null) {
+    message.error(projects.loadError)
   }
 }
 
@@ -63,7 +64,7 @@ async function createProject(): Promise<void> {
     newProjectName.value = ''
     await openProject(project)
   } catch {
-    message.error(projects.error ?? 'Unable to create project')
+    message.error(projects.actionError ?? 'Unable to create project')
   }
 }
 
@@ -86,19 +87,23 @@ async function submitRename(): Promise<void> {
   try {
     const renamedProject = await projects.renameProject(project.id, trimmedRenameName.value)
     publishCrossTabEvent({
-      name: renamedProject.name,
-      projectId: renamedProject.id,
+      project: renamedProject,
       type: 'project:renamed'
     })
     renameOpen.value = false
     renameTarget.value = null
     message.success('Project renamed')
   } catch {
-    message.error(projects.error ?? 'Unable to rename project')
+    message.error(projects.actionError ?? 'Unable to rename project')
   }
 }
 
 function confirmDelete(project: ProjectSummaryDto): void {
+  if (confirmingDeleteIds.value[project.id] === true || projects.deletingIds[project.id] === true) {
+    return
+  }
+
+  confirmingDeleteIds.value[project.id] = true
   Modal.confirm({
     centered: true,
     content: project.name,
@@ -111,8 +116,13 @@ function confirmDelete(project: ProjectSummaryDto): void {
         publishCrossTabEvent({ projectId: project.id, type: 'project:deleted' })
         message.success('Project deleted')
       } catch {
-        message.error(projects.error ?? 'Unable to delete project')
+        message.error(projects.actionError ?? 'Unable to delete project')
+      } finally {
+        delete confirmingDeleteIds.value[project.id]
       }
+    },
+    onCancel() {
+      delete confirmingDeleteIds.value[project.id]
     }
   })
 }
@@ -128,8 +138,8 @@ async function handleCrossTabEvent(event: CrossTabEvent): Promise<void> {
   }
 
   if (event.type === 'project:renamed') {
-    const project = projects.projects.find((item) => item.id === event.projectId)
-    if (project === undefined) {
+    const index = projects.projects.findIndex((item) => item.id === event.project.id)
+    if (index < 0) {
       await loadProjects()
       return
     }
@@ -138,7 +148,7 @@ async function handleCrossTabEvent(event: CrossTabEvent): Promise<void> {
       return
     }
 
-    project.name = event.name
+    projects.projects.splice(index, 1, event.project)
     return
   }
 
@@ -205,7 +215,7 @@ function formatUpdatedAt(value: string): string {
           <a-spin :spinning="projects.loading">
             <a-result
               v-if="showProjectsError"
-              :sub-title="projects.error ?? 'Please try again.'"
+              :sub-title="projects.loadError ?? 'Please try again.'"
               status="error"
               title="Unable to load projects"
             >
@@ -250,6 +260,7 @@ function formatUpdatedAt(value: string): string {
                   </a-tooltip>
                   <a-tooltip title="Delete">
                     <a-button
+                      :disabled="confirmingDeleteIds[project.id] === true || projects.deletingIds[project.id] === true"
                       :loading="projects.deletingIds[project.id] === true"
                       aria-label="Delete project"
                       danger
