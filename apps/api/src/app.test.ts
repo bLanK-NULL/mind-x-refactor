@@ -1,11 +1,19 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Readable, Writable } from 'node:stream'
-import { describe, expect, it } from 'vitest'
+import type Router from '@koa/router'
+import { z } from 'zod'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from './app.js'
+import { HttpError } from './shared/http-error.js'
 
 type ResponseSnapshot = {
   body: unknown
   status: number
+}
+
+type RequestOptions = {
+  configureRouter?: (router: Router) => void
+  method?: string
 }
 
 class MockResponse extends Writable {
@@ -54,10 +62,10 @@ class MockResponse extends Writable {
   }
 }
 
-async function requestApp(path: string): Promise<ResponseSnapshot> {
-  const app = createApp()
+async function requestApp(path: string, options: RequestOptions = {}): Promise<ResponseSnapshot> {
+  const app = createApp({ configureRouter: options.configureRouter })
   const req = Readable.from([]) as IncomingMessage
-  req.method = 'GET'
+  req.method = options.method ?? 'GET'
   req.url = path
   req.headers = { host: 'localhost' }
 
@@ -68,6 +76,10 @@ async function requestApp(path: string): Promise<ResponseSnapshot> {
 }
 
 describe('createApp', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('serves the API health route', async () => {
     await expect(requestApp('/api/health')).resolves.toEqual({
       body: { status: 'ok' },
@@ -84,6 +96,87 @@ describe('createApp', () => {
         }
       },
       status: 404
+    })
+  })
+
+  it('returns JSON for method mismatches', async () => {
+    await expect(requestApp('/api/health', { method: 'POST' })).resolves.toEqual({
+      body: {
+        error: {
+          code: 'METHOD_NOT_ALLOWED',
+          message: 'Method not allowed'
+        }
+      },
+      status: 405
+    })
+  })
+
+  it('returns JSON for HttpError routes', async () => {
+    await expect(
+      requestApp('/api/conflict', {
+        configureRouter: (router) => {
+          router.get('/conflict', () => {
+            throw new HttpError(409, 'CONFLICT', 'Name already exists', { field: 'name' })
+          })
+        }
+      })
+    ).resolves.toEqual({
+      body: {
+        error: {
+          code: 'CONFLICT',
+          details: { field: 'name' },
+          message: 'Name already exists'
+        }
+      },
+      status: 409
+    })
+  })
+
+  it('returns JSON for ZodError routes', async () => {
+    await expect(
+      requestApp('/api/invalid', {
+        configureRouter: (router) => {
+          router.get('/invalid', () => {
+            z.object({ name: z.string().min(1) }).parse({ name: '' })
+          })
+        }
+      })
+    ).resolves.toMatchObject({
+      body: {
+        error: {
+          code: 'VALIDATION_ERROR',
+          details: {
+            fieldErrors: {
+              name: ['String must contain at least 1 character(s)']
+            },
+            formErrors: []
+          },
+          message: 'Request validation failed'
+        }
+      },
+      status: 422
+    })
+  })
+
+  it('returns JSON for unknown errors', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    await expect(
+      requestApp('/api/crash', {
+        configureRouter: (router) => {
+          router.get('/crash', () => {
+            throw new Error('boom')
+          })
+        }
+      })
+    ).resolves.toEqual({
+      body: {
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Internal server error'
+        }
+      },
+      status: 500
     })
   })
 })
