@@ -1,6 +1,6 @@
 import type { LoginResponse, UserDto } from '@mind-x/shared'
 import { defineStore } from 'pinia'
-import { apiClient, clearStoredToken, getApiErrorMessage, readStoredToken, writeStoredToken } from '@/api/client'
+import { apiClient, clearStoredToken, getApiErrorMessage, isUnauthorizedError, readStoredToken, writeStoredToken } from '@/api/client'
 
 type AuthState = {
   error: string | null
@@ -44,7 +44,9 @@ export const useAuthStore = defineStore('auth', {
         this.user = data.user
       } catch (error) {
         this.error = getApiErrorMessage(error)
-        this.logout()
+        if (isUnauthorizedError(error)) {
+          this.logout()
+        }
       } finally {
         this.loading = false
       }
@@ -55,11 +57,15 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const { data } = await apiClient.post<LoginResponse>('/auth/login', { password, username })
+        if (!writeStoredToken(data.token)) {
+          this.error = 'Unable to save session'
+          throw new Error(this.error)
+        }
+
         this.token = data.token
         this.user = data.user
-        writeStoredToken(data.token)
       } catch (error) {
-        this.error = getApiErrorMessage(error)
+        this.error = this.error ?? getApiErrorMessage(error)
         throw error
       } finally {
         this.loading = false

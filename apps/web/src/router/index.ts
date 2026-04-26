@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import EditorView from '@/views/EditorView.vue'
 import LoginView from '@/views/LoginView.vue'
 import ProjectsView from '@/views/ProjectsView.vue'
+import { sanitizeRedirect } from './redirect'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -60,8 +61,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.name === 'login' && auth.isAuthenticated) {
-    const redirect = typeof to.query.redirect === 'string' ? to.query.redirect : '/projects'
-    return redirect
+    return sanitizeRedirect(to.query.redirect)
   }
 
   return true

@@ -3,6 +3,7 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { sanitizeRedirect } from '@/router/redirect'
 import { useAuthStore } from '@/stores/auth'
 
 type LoginFormState = {
@@ -14,15 +15,14 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const formState = reactive<LoginFormState>({
-  password: '123456',
-  username: 'blank'
+  password: '',
+  username: ''
 })
 
 async function submitLogin(): Promise<void> {
   try {
     await auth.login(formState.username, formState.password)
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/projects'
-    await router.replace(redirect)
+    await router.replace(sanitizeRedirect(route.query.redirect))
   } catch {
     message.error(auth.error ?? 'Unable to sign in')
   }
