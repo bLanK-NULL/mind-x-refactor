@@ -1,13 +1,22 @@
 <script setup lang="ts">
 import { ArrowLeftOutlined, LogoutOutlined } from '@ant-design/icons-vue'
+import { createEmptyDocument } from '@mind-x/mind-engine'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import MindEditor from '@/components/editor/MindEditor.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => String(route.params.id ?? ''))
+const provisionalDocument = computed(() =>
+  createEmptyDocument({
+    projectId: projectId.value || 'unknown-project',
+    title: 'Untitled mind map',
+    now: new Date().toISOString()
+  })
+)
 
 async function goBack(): Promise<void> {
   await router.push('/projects')
@@ -39,13 +48,8 @@ async function logout(): Promise<void> {
       </div>
     </header>
 
-    <main class="app-main">
-      <section class="view-panel" aria-labelledby="editor-title">
-        <div class="view-panel__body">
-          <h2 id="editor-title" class="view-title">Mind Map Editor</h2>
-          <p class="view-copy">Editor workspace placeholder for project {{ projectId }}.</p>
-        </div>
-      </section>
+    <main class="editor-main">
+      <MindEditor :document="provisionalDocument" @save="() => undefined" />
     </main>
   </div>
 </template>
@@ -56,5 +60,9 @@ async function logout(): Promise<void> {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.editor-main {
+  min-height: calc(100vh - 65px);
 }
 </style>

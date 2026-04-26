@@ -11,8 +11,9 @@
     "test": "vitest run src"
   },
   "dependencies": {
-    "@mind-x/shared": "0.1.0",
     "@ant-design/icons-vue": "^7.0.1",
+    "@mind-x/mind-engine": "^0.1.0",
+    "@mind-x/shared": "0.1.0",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.7.9",
     "d3-selection": "^3.0.0",
@@ -24,6 +25,8 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@types/d3-selection": "^3.0.11",
+    "@types/d3-zoom": "^3.0.8",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/tsconfig": "^0.7.0",
     "vite": "^6.0.5",
