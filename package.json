@@ -10,8 +10,8 @@
   "scripts": {
     "dev:api": "npm run dev -w apps/api",
     "dev:web": "npm run dev -w apps/web",
-    "build": "tsc -b packages/shared packages/mind-engine",
-    "typecheck": "tsc -b packages/shared packages/mind-engine",
+    "build": "tsc -b packages/shared packages/mind-engine apps/api",
+    "typecheck": "tsc -b packages/shared packages/mind-engine apps/api",
     "test": "vitest run",
     "test:engine": "npm run test -w packages/mind-engine",
     "test:api": "npm run test -w apps/api"
