@@ -4,6 +4,7 @@ import bodyParser from 'koa-bodyparser'
 import { HttpError } from './shared/http-error.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { requestLogger } from './middleware/request-logger.js'
+import { createApiRouter } from './routes.js'
 
 type CreateAppOptions = {
   configureRouter?: (router: Router) => void
@@ -11,11 +12,7 @@ type CreateAppOptions = {
 
 export function createApp(options: CreateAppOptions = {}): Koa {
   const app = new Koa()
-  const router = new Router({ prefix: '/api' })
-
-  router.get('/health', (ctx) => {
-    ctx.body = { status: 'ok' }
-  })
+  const router = createApiRouter()
 
   options.configureRouter?.(router)
 
