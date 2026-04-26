@@ -1,2 +1,6 @@
+export * from './commands.js'
 export * from './documentFactory.js'
 export * from './graph.js'
+export * from './history.js'
+export * from './selection.js'
+export * from './viewport.js'
