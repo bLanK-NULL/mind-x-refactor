@@ -5,8 +5,10 @@ import { HttpError } from '../../shared/http-error.js'
 import {
   deleteProject,
   findProject,
+  findProjectSummary,
   insertProject,
   listProjects,
+  StoredProjectDocumentError,
   type ProjectSummaryRecord,
   updateProjectDocument,
   updateProjectName
@@ -51,7 +53,12 @@ export async function renameProject(userId: string, projectId: string, name: str
   }
 
   if (affectedRows === 0) {
-    throw projectNotFoundError()
+    const project = await findProjectSummary(userId, projectId)
+    if (project === null) {
+      throw projectNotFoundError()
+    }
+
+    return toProjectSummaryDto(project)
   }
 
   return getExistingProjectSummary(userId, projectId)
@@ -65,7 +72,7 @@ export async function removeProject(userId: string, projectId: string): Promise<
 }
 
 export async function getDocument(userId: string, projectId: string): Promise<MindDocument> {
-  const project = await findProject(userId, projectId)
+  const project = await getExistingProject(userId, projectId)
   if (project === null) {
     throw projectNotFoundError()
   }
@@ -80,19 +87,33 @@ export async function saveDocument(userId: string, projectId: string, document: 
 
   const affectedRows = await updateProjectDocument({ document, projectId, userId })
   if (affectedRows === 0) {
-    throw projectNotFoundError()
+    const project = await findProjectSummary(userId, projectId)
+    if (project === null) {
+      throw projectNotFoundError()
+    }
   }
 
   return document
 }
 
 async function getExistingProjectSummary(userId: string, projectId: string): Promise<ProjectSummaryDto> {
-  const project = await findProject(userId, projectId)
+  const project = await findProjectSummary(userId, projectId)
   if (project === null) {
     throw projectNotFoundError()
   }
 
   return toProjectSummaryDto(project)
+}
+
+async function getExistingProject(userId: string, projectId: string) {
+  try {
+    return await findProject(userId, projectId)
+  } catch (error) {
+    if (error instanceof StoredProjectDocumentError) {
+      throw storedProjectDocumentInvalidError()
+    }
+    throw error
+  }
 }
 
 function toProjectSummaryDto(project: ProjectSummaryRecord): ProjectSummaryDto {
@@ -112,11 +133,15 @@ function projectNotFoundError(): HttpError {
   return new HttpError(404, 'NOT_FOUND', 'Project not found')
 }
 
+function storedProjectDocumentInvalidError(): HttpError {
+  return new HttpError(500, 'INTERNAL_ERROR', 'Stored project document is invalid')
+}
+
 function isDuplicateEntryError(error: unknown): error is MysqlError {
   if (!(error instanceof Error)) {
     return false
   }
 
   const mysqlError = error as MysqlError
-  return mysqlError.code === 'ER_DUP_ENTRY' || mysqlError.errno === 1062 || /duplicate/i.test(mysqlError.message)
+  return mysqlError.code === 'ER_DUP_ENTRY' || mysqlError.errno === 1062 || /\bduplicate entry\b/i.test(mysqlError.message)
 }

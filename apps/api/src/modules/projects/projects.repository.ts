@@ -14,6 +14,13 @@ export type ProjectRecord = ProjectSummaryRecord & {
   userId: string
 }
 
+export class StoredProjectDocumentError extends Error {
+  constructor(cause: unknown) {
+    super('Stored project document is invalid', { cause })
+    this.name = 'StoredProjectDocumentError'
+  }
+}
+
 type ProjectSummaryRow = RowDataPacket & {
   created_at: Date | string
   id: string
@@ -74,6 +81,21 @@ export async function findProject(userId: string, projectId: string): Promise<Pr
   return row === undefined ? null : toProjectRecord(row)
 }
 
+export async function findProjectSummary(userId: string, projectId: string): Promise<ProjectSummaryRecord | null> {
+  const [rows] = await pool.execute<ProjectSummaryRow[]>(
+    [
+      'SELECT id, name, created_at, updated_at',
+      'FROM projects',
+      'WHERE user_id = ? AND id = ?',
+      'LIMIT 1'
+    ].join(' '),
+    [userId, projectId]
+  )
+
+  const row = rows[0]
+  return row === undefined ? null : toProjectSummaryRecord(row)
+}
+
 export async function insertProject(input: InsertProjectInput): Promise<void> {
   await pool.execute<ResultSetHeader>(
     'INSERT INTO projects (id, user_id, name, document_json) VALUES (?, ?, ?, ?)',
@@ -126,8 +148,12 @@ function toProjectRecord(row: ProjectRow): ProjectRecord {
 }
 
 function parseDocumentJson(value: MindDocument | string): MindDocument {
-  const parsed = typeof value === 'string' ? JSON.parse(value) : value
-  return mindDocumentSchema.parse(parsed)
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    return mindDocumentSchema.parse(parsed)
+  } catch (error) {
+    throw new StoredProjectDocumentError(error)
+  }
 }
 
 function toDate(value: Date | string): Date {

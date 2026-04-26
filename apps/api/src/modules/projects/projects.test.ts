@@ -8,6 +8,7 @@ import { signAuthToken } from '../auth/auth.service.js'
 import {
   deleteProject,
   findProject,
+  findProjectSummary,
   insertProject,
   listProjects,
   updateProjectDocument,
@@ -167,6 +168,9 @@ function installProjectStore(): StoredProject[] {
       if (projects.some((item) => item.user_id === userId && item.id !== projectId && item.name === name)) {
         throw duplicateEntryError()
       }
+      if (project.name === name) {
+        return [{ affectedRows: 0 }]
+      }
       project.name = name
       project.updated_at = new Date('2026-04-26T12:05:00.000Z')
       return [{ affectedRows: 1 }]
@@ -176,6 +180,9 @@ function installProjectStore(): StoredProject[] {
       const [documentJson, userId, projectId] = params as [string, string, string]
       const project = projects.find((item) => item.user_id === userId && item.id === projectId)
       if (project === undefined) {
+        return [{ affectedRows: 0 }]
+      }
+      if (project.document_json === documentJson) {
         return [{ affectedRows: 0 }]
       }
       project.document_json = documentJson
@@ -339,6 +346,119 @@ describe('project routes', () => {
     })
   })
 
+  it('treats same-name project renames as successful no-op updates', async () => {
+    installProjectStore()
+    const headers = authHeaders()
+    const createResponse = await requestApp('/api/projects', {
+      body: { name: 'Alpha' },
+      headers,
+      method: 'POST'
+    })
+    const projectId = (createResponse.body as { project: { id: string } }).project.id
+
+    await expect(
+      requestApp(`/api/projects/${projectId}`, {
+        body: { name: 'Alpha' },
+        headers,
+        method: 'PATCH'
+      })
+    ).resolves.toMatchObject({
+      body: { project: { id: projectId, name: 'Alpha' } },
+      status: 200
+    })
+  })
+
+  it('renames projects without parsing stored documents', async () => {
+    const projects = installProjectStore()
+    const headers = authHeaders()
+    const createResponse = await requestApp('/api/projects', {
+      body: { name: 'Alpha' },
+      headers,
+      method: 'POST'
+    })
+    const projectId = (createResponse.body as { project: { id: string } }).project.id
+    const project = projects.find((item) => item.id === projectId)
+    expect(project).toBeDefined()
+    project!.document_json = '{'
+
+    await expect(
+      requestApp(`/api/projects/${projectId}`, {
+        body: { name: 'Beta' },
+        headers,
+        method: 'PATCH'
+      })
+    ).resolves.toMatchObject({
+      body: { project: { id: projectId, name: 'Beta' } },
+      status: 200
+    })
+  })
+
+  it('treats unchanged document saves as successful no-op updates', async () => {
+    installProjectStore()
+    const headers = authHeaders()
+    const createResponse = await requestApp('/api/projects', {
+      body: { name: 'Alpha' },
+      headers,
+      method: 'POST'
+    })
+    const projectId = (createResponse.body as { project: { id: string } }).project.id
+    const document = createEmptyDocument({
+      now: '2026-04-26T12:00:00.000Z',
+      projectId,
+      title: 'Alpha'
+    })
+
+    await requestApp(`/api/projects/${projectId}/document`, {
+      body: { document },
+      headers,
+      method: 'PUT'
+    })
+
+    await expect(
+      requestApp(`/api/projects/${projectId}/document`, {
+        body: { document },
+        headers,
+        method: 'PUT'
+      })
+    ).resolves.toEqual({
+      body: { document },
+      status: 200
+    })
+  })
+
+  it('returns JSON not found responses for unknown nested project routes', async () => {
+    installProjectStore()
+
+    await expect(requestApp('/api/projects/project-1/nope', { headers: authHeaders() })).resolves.toEqual({
+      body: {
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Route not found'
+        }
+      },
+      status: 404
+    })
+  })
+
+  it('keeps JSON method mismatch responses for project routes', async () => {
+    installProjectStore()
+
+    await expect(
+      requestApp('/api/projects/project-1/document', {
+        headers: authHeaders(),
+        method: 'PATCH'
+      })
+    ).resolves.toEqual({
+      body: {
+        error: {
+          code: 'METHOD_NOT_ALLOWED',
+          message: 'Method not allowed'
+        }
+      },
+      status: 405
+    })
+  })
+
   it('returns validation errors for invalid project names', async () => {
     installProjectStore()
 
@@ -390,6 +510,30 @@ describe('project routes', () => {
       status: 422
     })
   })
+
+  it('returns a clean error when stored project documents are invalid', async () => {
+    const projects = installProjectStore()
+    const headers = authHeaders()
+    const createResponse = await requestApp('/api/projects', {
+      body: { name: 'Alpha' },
+      headers,
+      method: 'POST'
+    })
+    const projectId = (createResponse.body as { project: { id: string } }).project.id
+    const project = projects.find((item) => item.id === projectId)
+    expect(project).toBeDefined()
+    project!.document_json = '{'
+
+    await expect(requestApp(`/api/projects/${projectId}/document`, { headers })).resolves.toEqual({
+      body: {
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Stored project document is invalid'
+        }
+      },
+      status: 500
+    })
+  })
 })
 
 describe('projects repository', () => {
@@ -419,6 +563,16 @@ describe('projects repository', () => {
           }
         ]
       ])
+      .mockResolvedValueOnce([
+        [
+          {
+            created_at: new Date('2026-04-26T12:00:00.000Z'),
+            id: 'project-1',
+            name: 'Alpha',
+            updated_at: new Date('2026-04-26T12:05:00.000Z')
+          }
+        ]
+      ])
       .mockResolvedValueOnce([{ affectedRows: 1 }])
       .mockResolvedValueOnce([{ affectedRows: 1 }])
       .mockResolvedValueOnce([{ affectedRows: 1 }])
@@ -426,12 +580,14 @@ describe('projects repository', () => {
 
     await listProjects('user-1')
     const found = await findProject('user-1', 'project-1')
+    const foundSummary = await findProjectSummary('user-1', 'project-1')
     await insertProject({ document, id: 'project-1', name: 'Alpha', userId: 'user-1' })
     await updateProjectName({ name: 'Beta', projectId: 'project-1', userId: 'user-1' })
     await updateProjectDocument({ document, projectId: 'project-1', userId: 'user-1' })
     await deleteProject('user-1', 'project-1')
 
     expect(found?.document).toEqual(document)
+    expect(foundSummary).toMatchObject({ id: 'project-1', name: 'Alpha' })
     expect(mockPool.execute).toHaveBeenNthCalledWith(
       1,
       expect.stringMatching(/WHERE user_id = \? ORDER BY updated_at DESC/),
@@ -444,21 +600,26 @@ describe('projects repository', () => {
     )
     expect(mockPool.execute).toHaveBeenNthCalledWith(
       3,
+      expect.stringMatching(/SELECT id, name, created_at, updated_at FROM projects WHERE user_id = \? AND id = \? LIMIT 1/),
+      ['user-1', 'project-1']
+    )
+    expect(mockPool.execute).toHaveBeenNthCalledWith(
+      4,
       expect.stringMatching(/INSERT INTO projects .* VALUES \(\?, \?, \?, \?\)/s),
       ['project-1', 'user-1', 'Alpha', JSON.stringify(document)]
     )
     expect(mockPool.execute).toHaveBeenNthCalledWith(
-      4,
+      5,
       expect.stringMatching(/UPDATE projects SET name = \? WHERE user_id = \? AND id = \?/),
       ['Beta', 'user-1', 'project-1']
     )
     expect(mockPool.execute).toHaveBeenNthCalledWith(
-      5,
+      6,
       expect.stringMatching(/UPDATE projects SET document_json = \? WHERE user_id = \? AND id = \?/),
       [JSON.stringify(document), 'user-1', 'project-1']
     )
     expect(mockPool.execute).toHaveBeenNthCalledWith(
-      6,
+      7,
       expect.stringMatching(/DELETE FROM projects WHERE user_id = \? AND id = \?/),
       ['user-1', 'project-1']
     )
@@ -493,5 +654,22 @@ describe('projects repository', () => {
 
     await expect(findProject('user-1', 'project-1')).resolves.toMatchObject({ document })
     await expect(findProject('user-1', 'project-1')).resolves.toMatchObject({ document })
+  })
+
+  it('rejects invalid stored documents with a storage-specific error', async () => {
+    mockPool.execute.mockResolvedValueOnce([
+      [
+        {
+          created_at: new Date('2026-04-26T12:00:00.000Z'),
+          document_json: '{',
+          id: 'project-1',
+          name: 'Alpha',
+          updated_at: new Date('2026-04-26T12:05:00.000Z'),
+          user_id: 'user-1'
+        }
+      ]
+    ])
+
+    await expect(findProject('user-1', 'project-1')).rejects.toThrow('Stored project document is invalid')
   })
 })

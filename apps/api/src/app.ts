@@ -20,19 +20,21 @@ export function createApp(options: CreateAppOptions = {}): Koa {
   app.use(requestLogger)
   app.use(bodyParser())
   app.use(router.routes())
+  app.use(async (ctx, next) => {
+    await next()
+
+    if (ctx.status !== 404 || ctx.body !== undefined) {
+      return
+    }
+
+    throw new HttpError(404, 'NOT_FOUND', 'Route not found')
+  })
   app.use(
     router.allowedMethods({
       throw: true,
       methodNotAllowed: () => new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method not allowed')
     })
   )
-  app.use((ctx) => {
-    if (ctx.matched?.length) {
-      return
-    }
-
-    throw new HttpError(404, 'NOT_FOUND', 'Route not found')
-  })
 
   app.on('error', (error) => {
     console.error(error)
