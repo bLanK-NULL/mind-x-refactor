@@ -4,6 +4,8 @@
 
 Add a theme switcher to the web app with at least one dark theme. The implementation must follow the requested pattern of changing the `theme` attribute on the `html` element and pairing that attribute with CSS custom properties.
 
+This work also completes the original refactor acceptance criterion that the editor supports a theme switch. The existing document contract already includes `MindDocument.meta.theme: 'light' | 'dark'`, so the editor theme must stay aligned with that field instead of living only as an application preference.
+
 ## Chosen Approach
 
 Use `html[theme]` plus CSS variables for custom application styles, and wrap the Vue app with Ant Design Vue `ConfigProvider` so Ant Design components switch with the same mode.
@@ -13,12 +15,22 @@ This gives the app one source of truth for the selected theme while keeping exis
 ## Architecture
 
 - Add a small theme module in `apps/web/src/composables/useTheme.ts`.
-- Store the current mode as `light` or `dark`.
+- Reuse the existing shared `ThemeName` type from `@mind-x/shared`.
+- Store the current application mode as `light` or `dark`.
 - Apply the mode with `document.documentElement.setAttribute('theme', mode)`.
-- Persist the user choice in `localStorage`.
+- Persist the latest application choice in `localStorage` for non-editor pages and app startup.
 - Expose a computed Ant Design Vue theme config that uses `theme.defaultAlgorithm` for light mode and `theme.darkAlgorithm` for dark mode.
 - Update `App.vue` to wrap `RouterView` in `a-config-provider`.
 - Add a reusable `ThemeToggle.vue` button and place it in authenticated page headers.
+- Add an editor-store action for updating `document.meta.theme`.
+
+## Data Flow
+
+- App startup reads the stored theme preference and applies it to `html[theme]`.
+- Projects and other non-document pages switch the application preference only.
+- When an editor document loads, `document.meta.theme` becomes the active application theme for that editor session.
+- When the theme is toggled while an editor document is open, the app updates `document.meta.theme`, marks the document dirty through the existing editor dirty-state flow, and applies the same mode to `html[theme]`.
+- Saving the editor document persists the selected theme through the existing document save endpoint.
 
 ## Styling
 
