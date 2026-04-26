@@ -82,7 +82,7 @@ describe('exportPng', () => {
     expect(html2canvasMock).not.toHaveBeenCalled()
   })
 
-  it('renders the editor root and triggers a PNG download', async () => {
+  it('renders the document export root from the document bounds origin and triggers a PNG download', async () => {
     const click = vi.fn()
     const appendChild = vi.fn()
     const removeChild = vi.fn()
@@ -104,7 +104,7 @@ describe('exportPng', () => {
       exportDocumentAsPng({
         document: document({
           meta: { ...document().meta, title: 'Project/One' },
-          nodes: [{ data: { title: 'Root' }, id: 'root', position: { x: 0, y: 0 }, type: 'topic' }]
+          nodes: [{ data: { title: 'Root' }, id: 'root', position: { x: 120, y: 80 }, type: 'topic' }]
         }),
         root
       })
@@ -113,16 +113,45 @@ describe('exportPng', () => {
     expect(html2canvasMock).toHaveBeenCalledWith(root, {
       backgroundColor: '#ffffff',
       height: 104,
+      onclone: expect.any(Function),
       scale: 2,
       width: 228,
-      x: 0,
-      y: 0
+      x: 96,
+      y: 56
     })
+    const options = html2canvasMock.mock.calls[0]?.[1]
+    const clonedRoot = { style: { transform: 'translate(50px, 20px) scale(0.5)' } } as HTMLElement
+    options.onclone(globalThis.document, clonedRoot)
+    expect(clonedRoot.style.transform).toBe('none')
     expect(link.download).toBe('Project-One.png')
     expect(link.href).toBe('blob:mind-map')
     expect(click).toHaveBeenCalled()
     expect(appendChild).toHaveBeenCalledWith(link)
     expect(removeChild).toHaveBeenCalledWith(link)
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mind-map')
+  })
+
+  it('uses negative bounds origins when exporting documents with negative-positioned nodes', async () => {
+    const canvas = {
+      toBlob: vi.fn((callback: BlobCallback) => callback(new Blob(['png'], { type: 'image/png' })))
+    }
+    const root = {} as HTMLElement
+
+    html2canvasMock.mockResolvedValueOnce(canvas)
+    vi.stubGlobal('document', {
+      body: { appendChild: vi.fn(), removeChild: vi.fn() },
+      createElement: vi.fn(() => ({ click: vi.fn(), download: '', href: '' }))
+    })
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:mind-map'), revokeObjectURL: vi.fn() })
+
+    const { exportDocumentAsPng } = await import('./exportPng')
+    await exportDocumentAsPng({
+      document: document({
+        nodes: [{ data: { title: 'Root' }, id: 'root', position: { x: -40, y: -12 }, type: 'topic' }]
+      }),
+      root
+    })
+
+    expect(html2canvasMock).toHaveBeenCalledWith(root, expect.objectContaining({ x: -64, y: -36 }))
   })
 })

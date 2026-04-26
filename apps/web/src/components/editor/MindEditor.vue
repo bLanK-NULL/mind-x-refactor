@@ -20,6 +20,7 @@ const emit = defineEmits<{
 
 const editor = useEditorStore()
 const editorRootRef = ref<HTMLElement | null>(null)
+const viewportPaneRef = ref<{ getExportRoot: () => HTMLElement | null } | null>(null)
 const contextMenu = reactive({
   selectionActions: false,
   visible: false,
@@ -62,11 +63,12 @@ function save(): void {
 }
 
 function exportPng(): void {
-  if (!editorRootRef.value || !editor.document) {
+  const exportRoot = viewportPaneRef.value?.getExportRoot()
+  if (!exportRoot || !editor.document) {
     return
   }
 
-  emit('exportPng', editorRootRef.value, editor.document)
+  emit('exportPng', exportRoot, editor.document)
 }
 
 function closeContextMenu(): void {
@@ -150,6 +152,7 @@ onUnmounted(() => {
 
     <ViewportPane
       v-if="documentState"
+      ref="viewportPaneRef"
       :viewport="documentState.viewport"
       @contextmenu.prevent="openContextMenu"
       @viewport-change="editor.setViewport"

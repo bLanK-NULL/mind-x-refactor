@@ -63,10 +63,13 @@ export async function exportDocumentAsPng(input: ExportPngInput): Promise<string
   const canvas = await html2canvas(input.root, {
     backgroundColor: EXPORT_BACKGROUND,
     height: bounds.height,
+    onclone: (_clonedDocument, clonedRoot) => {
+      clonedRoot.style.transform = 'none'
+    },
     scale: 2,
     width: bounds.width,
-    x: 0,
-    y: 0
+    x: bounds.minX - EXPORT_PADDING,
+    y: bounds.minY - EXPORT_PADDING
   })
   const filename = createPngFilename(input.document.meta.title)
   await downloadCanvas(canvas, filename)

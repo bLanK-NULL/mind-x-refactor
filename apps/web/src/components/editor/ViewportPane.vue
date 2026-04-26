@@ -14,6 +14,7 @@ const emit = defineEmits<{
 }>()
 
 const paneRef = ref<HTMLDivElement | null>(null)
+const contentRef = ref<HTMLDivElement | null>(null)
 let paneSelection: Selection<HTMLDivElement, unknown, null, undefined> | null = null
 let zoomBehavior: ZoomBehavior<HTMLDivElement, unknown> | null = null
 let applyingExternalTransform = false
@@ -31,6 +32,12 @@ function applyViewport(viewport: Viewport): void {
   paneSelection.call(zoomBehavior.transform, zoomIdentity.translate(viewport.x, viewport.y).scale(viewport.zoom))
   applyingExternalTransform = false
 }
+
+function getExportRoot(): HTMLElement | null {
+  return contentRef.value
+}
+
+defineExpose({ getExportRoot })
 
 onMounted(() => {
   if (!paneRef.value) {
@@ -72,7 +79,7 @@ onUnmounted(() => {
 
 <template>
   <div ref="paneRef" class="viewport-pane">
-    <div class="viewport-pane__content" :style="contentStyle">
+    <div ref="contentRef" class="viewport-pane__content" :style="contentStyle">
       <slot />
     </div>
   </div>
