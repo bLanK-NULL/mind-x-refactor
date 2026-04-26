@@ -20,6 +20,7 @@ const emit = defineEmits<{
 const editor = useEditorStore()
 const editorRootRef = ref<HTMLElement | null>(null)
 const contextMenu = reactive({
+  selectionActions: false,
   visible: false,
   x: 0,
   y: 0
@@ -48,7 +49,7 @@ function moveNode(nodeId: string, delta: Point): void {
   if (!editor.selectedNodeIds.includes(nodeId)) {
     editor.selectOnly(nodeId)
   }
-  editor.moveSelectedByScreenDelta(delta)
+  editor.previewMoveSelectedByScreenDelta(delta)
 }
 
 function save(): void {
@@ -65,6 +66,16 @@ function closeContextMenu(): void {
 
 function openContextMenu(event: MouseEvent): void {
   const bounds = editorRootRef.value?.getBoundingClientRect()
+  const nodeElement =
+    event.target instanceof Element ? event.target.closest<HTMLElement>('[data-editor-node]') : null
+  const nodeId = nodeElement?.dataset.editorNodeId
+  if (nodeId) {
+    editor.selectOnly(nodeId)
+  } else {
+    editor.clearSelection()
+  }
+
+  contextMenu.selectionActions = Boolean(nodeId)
   contextMenu.x = event.clientX - (bounds?.left ?? 0)
   contextMenu.y = event.clientY - (bounds?.top ?? 0)
   contextMenu.visible = true
@@ -139,14 +150,15 @@ onUnmounted(() => {
         :nodes="documentState.nodes"
         :selected-node-ids="editor.selectedNodeIds"
         @drag="moveNode"
+        @drag-end="editor.finishInteraction"
         @edit="editor.editNodeTitle"
         @select="editor.selectOnly"
       />
     </ViewportPane>
 
     <EditorContextMenu
-      :can-add-child="hasSelection"
-      :can-delete="hasSelection"
+      :can-add-child="contextMenu.selectionActions && hasSelection"
+      :can-delete="contextMenu.selectionActions && hasSelection"
       :visible="contextMenu.visible"
       :x="contextMenu.x"
       :y="contextMenu.y"

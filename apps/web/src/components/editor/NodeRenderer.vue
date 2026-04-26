@@ -9,6 +9,7 @@ defineProps<{
 
 const emit = defineEmits<{
   drag: [nodeId: string, delta: Point]
+  dragEnd: []
   edit: [nodeId: string, title: string]
   select: [nodeId: string]
 }>()
@@ -21,6 +22,7 @@ const emit = defineEmits<{
     :node="node"
     :selected="selectedNodeIds.includes(node.id)"
     @drag="(nodeId, delta) => emit('drag', nodeId, delta)"
+    @drag-end="emit('dragEnd')"
     @edit="(nodeId, title) => emit('edit', nodeId, title)"
     @select="emit('select', $event)"
   />

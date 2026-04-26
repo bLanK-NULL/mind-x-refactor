@@ -96,6 +96,28 @@ describe('editor store', () => {
     expect(store.document?.nodes[0].position).toEqual({ x: 15, y: -5 })
   })
 
+  it('previews repeated drag moves as one undoable history entry when the interaction ends', () => {
+    const document = emptyDocument({
+      nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+    })
+    const store = loadedStore(document)
+    store.selectOnly('root')
+
+    store.previewMoveSelectedByScreenDelta({ x: 5, y: 0 })
+    store.previewMoveSelectedByScreenDelta({ x: 10, y: -4 })
+    store.previewMoveSelectedByScreenDelta({ x: -3, y: 6 })
+
+    expect(store.document?.nodes[0].position).toEqual({ x: 22, y: 22 })
+    expect(store.canUndo).toBe(false)
+
+    store.finishInteraction()
+
+    expect(store.canUndo).toBe(true)
+    store.undo()
+    expect(store.document?.nodes[0].position).toEqual({ x: 10, y: 20 })
+    expect(store.canRedo).toBe(true)
+  })
+
   it('deletes selected nodes and clears stale selection without crashing on root deletion', () => {
     const store = loadedStore()
     store.addRootTopic({ id: 'root', title: 'Root topic' })
@@ -148,6 +170,34 @@ describe('editor store', () => {
     expect(store.canRedo).toBe(false)
   })
 
+  it('tracks dirty state against the loaded document and explicit clean marks', () => {
+    const document = emptyDocument({
+      nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+    })
+    const store = loadedStore(document)
+
+    store.undo()
+    store.redo()
+    expect(store.dirty).toBe(false)
+
+    store.editNodeTitle('root', 'Renamed root')
+    expect(store.dirty).toBe(true)
+
+    store.undo()
+    expect(store.document?.nodes[0].data.title).toBe('Root')
+    expect(store.dirty).toBe(false)
+
+    store.redo()
+    expect(store.document?.nodes[0].data.title).toBe('Renamed root')
+    expect(store.dirty).toBe(true)
+
+    store.markClean()
+    expect(store.dirty).toBe(false)
+
+    store.editNodeTitle('root', 'Renamed again')
+    expect(store.dirty).toBe(true)
+  })
+
   it('does not mutate state when undo or redo is invoked at the history boundary', () => {
     const store = loadedStore()
     store.addRootTopic({ id: 'root', title: 'Root topic' })
@@ -193,5 +243,29 @@ describe('editor store', () => {
     expect(store.document?.viewport).toEqual({ x: 40, y: 50, zoom: 1.5 })
     expect(store.dirty).toBe(true)
     expect(store.canUndo).toBe(false)
+  })
+
+  it('rejects invalid root topics without mutating the document', () => {
+    const store = loadedStore()
+
+    expect(() => store.addRootTopic({ id: '   ', title: 'Root topic' })).toThrow('Node id must be non-empty')
+    expect(() => store.addRootTopic({ id: 'root', title: '<b>Root</b>' })).toThrow(
+      'Node title must be non-empty plain text'
+    )
+
+    expect(store.document?.nodes).toEqual([])
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
+  })
+
+  it('rejects invalid title edits without mutating the document', () => {
+    const store = loadedStore()
+    store.addRootTopic({ id: 'root', title: 'Root topic' })
+    store.markClean()
+
+    expect(() => store.editNodeTitle('root', '<img src=x>')).toThrow('Node title must be non-empty plain text')
+
+    expect(store.document?.nodes[0].data.title).toBe('Root topic')
+    expect(store.dirty).toBe(false)
   })
 })

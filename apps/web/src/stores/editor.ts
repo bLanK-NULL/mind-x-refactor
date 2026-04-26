@@ -1,4 +1,4 @@
-import type { MindDocument, Point, Viewport } from '@mind-x/shared'
+import { mindDocumentSchema, type MindDocument, type Point, type Viewport } from '@mind-x/shared'
 import {
   addChildNode,
   createHistory,
@@ -20,6 +20,7 @@ type AddChildTopicInput = AddTopicInput & {
 }
 
 type EditorState = {
+  cleanDocumentJson: string | null
   dirty: boolean
   document: MindDocument | null
   history: History<MindDocument> | null
@@ -34,9 +35,22 @@ function cloneDocument(document: MindDocument): MindDocument {
   return JSON.parse(JSON.stringify(toRaw(document))) as MindDocument
 }
 
+function serializeDocument(document: MindDocument | null): string | null {
+  return document ? JSON.stringify(toRaw(document)) : null
+}
+
 function createNodeId(): string {
   generatedNodeSequence += 1
   return `node-${generatedNodeSequence}`
+}
+
+function assertTopicInput(id: string, title: string): void {
+  if (id.trim().length === 0) {
+    throw new Error('Node id must be non-empty')
+  }
+  if (/[<>]/.test(title) || title.trim().length === 0) {
+    throw new Error('Node title must be non-empty plain text')
+  }
 }
 
 function compactSelection(document: MindDocument | null, selectedNodeIds: string[]): string[] {
@@ -50,6 +64,7 @@ function compactSelection(document: MindDocument | null, selectedNodeIds: string
 
 export const useEditorStore = defineStore('editor', {
   state: (): EditorState => ({
+    cleanDocumentJson: null,
     dirty: false,
     document: null,
     history: null,
@@ -66,11 +81,15 @@ export const useEditorStore = defineStore('editor', {
       this.historyCanUndo = this.history?.canUndo() ?? false
       this.historyCanRedo = this.history?.canRedo() ?? false
     },
+    syncDirtyState(): void {
+      this.dirty = serializeDocument(this.document) !== this.cleanDocumentJson
+    },
     load(document: MindDocument): void {
       const next = cloneDocument(document)
       this.document = next
       this.selectedNodeIds = []
-      this.dirty = false
+      this.cleanDocumentJson = serializeDocument(next)
+      this.syncDirtyState()
       this.history = markRaw(createHistory(next))
       this.syncHistoryState()
     },
@@ -79,8 +98,30 @@ export const useEditorStore = defineStore('editor', {
       this.document = next
       this.history?.push(next)
       this.selectedNodeIds = compactSelection(next, this.selectedNodeIds)
-      this.dirty = true
+      this.syncDirtyState()
       this.syncHistoryState()
+    },
+    commitCurrentDocument(): void {
+      if (!this.document) {
+        return
+      }
+
+      const currentJson = this.history ? serializeDocument(this.history.current()) : null
+      const nextJson = serializeDocument(this.document)
+      if (currentJson === nextJson) {
+        this.syncDirtyState()
+        this.syncHistoryState()
+        return
+      }
+
+      this.commit(this.document)
+    },
+    finishInteraction(): void {
+      this.commitCurrentDocument()
+    },
+    markClean(): void {
+      this.cleanDocumentJson = serializeDocument(this.document)
+      this.syncDirtyState()
     },
     selectOnly(nodeId: string): void {
       this.selectedNodeIds = compactSelection(this.document, [nodeId])
@@ -97,14 +138,17 @@ export const useEditorStore = defineStore('editor', {
       }
 
       const id = input.id ?? createNodeId()
+      const title = input.title ?? 'New topic'
+      assertTopicInput(id, title)
       const next = cloneDocument(this.document)
       next.nodes.push({
         id,
         type: 'topic',
         position: { x: 0, y: 0 },
         size: { width: 180, height: 56 },
-        data: { title: input.title ?? 'New topic' }
+        data: { title }
       })
+      mindDocumentSchema.parse(next)
       this.selectedNodeIds = [id]
       this.commit(next)
       return id
@@ -151,6 +195,25 @@ export const useEditorStore = defineStore('editor', {
       const zoom = this.document.viewport.zoom || 1
       this.moveSelectedByWorldDelta({ x: delta.x / zoom, y: delta.y / zoom })
     },
+    previewMoveSelectedByWorldDelta(delta: Point): void {
+      if (!this.document || this.selectedNodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
+        return
+      }
+
+      const next = moveNodes(cloneDocument(this.document), { nodeIds: this.selectedNodeIds, delta })
+      this.document = next
+      this.selectedNodeIds = compactSelection(next, this.selectedNodeIds)
+      this.syncDirtyState()
+      this.syncHistoryState()
+    },
+    previewMoveSelectedByScreenDelta(delta: Point): void {
+      if (!this.document) {
+        return
+      }
+
+      const zoom = this.document.viewport.zoom || 1
+      this.previewMoveSelectedByWorldDelta({ x: delta.x / zoom, y: delta.y / zoom })
+    },
     deleteSelected(): void {
       if (!this.document || this.selectedNodeIds.length === 0) {
         return
@@ -173,7 +236,7 @@ export const useEditorStore = defineStore('editor', {
 
       this.document = this.history.undo()
       this.selectedNodeIds = compactSelection(this.document, this.selectedNodeIds)
-      this.dirty = true
+      this.syncDirtyState()
       this.syncHistoryState()
     },
     redo(): void {
@@ -183,7 +246,7 @@ export const useEditorStore = defineStore('editor', {
 
       this.document = this.history.redo()
       this.selectedNodeIds = compactSelection(this.document, this.selectedNodeIds)
-      this.dirty = true
+      this.syncDirtyState()
       this.syncHistoryState()
     },
     setViewport(viewport: Viewport): void {
@@ -195,7 +258,7 @@ export const useEditorStore = defineStore('editor', {
         ...this.document,
         viewport: { ...viewport }
       }
-      this.dirty = true
+      this.syncDirtyState()
     }
   }
 })

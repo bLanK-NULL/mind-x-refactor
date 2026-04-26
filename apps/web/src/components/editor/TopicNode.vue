@@ -9,12 +9,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   drag: [nodeId: string, delta: Point]
+  dragEnd: []
   edit: [nodeId: string, title: string]
   select: [nodeId: string]
 }>()
 
 const editing = ref(false)
 const draftTitle = ref(props.node.data.title)
+const editError = ref('')
 const titleInputRef = ref<HTMLInputElement | null>(null)
 const draggingPointerId = ref<number | null>(null)
 const lastPointer = ref<Point | null>(null)
@@ -36,24 +38,42 @@ watch(
 
 async function startEditing(): Promise<void> {
   editing.value = true
+  editError.value = ''
   draftTitle.value = props.node.data.title
   await nextTick()
   titleInputRef.value?.focus()
   titleInputRef.value?.select()
 }
 
-function commitEdit(): void {
+function validateTitle(title: string): string {
+  if (title.length === 0 || /[<>]/.test(title)) {
+    return 'Use non-empty plain text.'
+  }
+  return ''
+}
+
+async function commitEdit(): Promise<void> {
   const title = draftTitle.value.trim()
-  editing.value = false
+  const error = validateTitle(title)
+  if (error) {
+    editError.value = error
+    await nextTick()
+    titleInputRef.value?.focus()
+    return
+  }
+
+  editError.value = ''
   if (title.length > 0 && title !== props.node.data.title) {
     emit('edit', props.node.id, title)
   } else {
     draftTitle.value = props.node.data.title
   }
+  editing.value = false
 }
 
 function cancelEdit(): void {
   editing.value = false
+  editError.value = ''
   draftTitle.value = props.node.data.title
 }
 
@@ -91,6 +111,7 @@ function endDrag(event: PointerEvent): void {
   event.stopPropagation()
   draggingPointerId.value = null
   lastPointer.value = null
+  emit('dragEnd')
 }
 </script>
 
@@ -98,6 +119,7 @@ function endDrag(event: PointerEvent): void {
   <div
     class="topic-node"
     data-editor-node
+    :data-editor-node-id="node.id"
     :class="{ 'topic-node--selected': selected }"
     :style="nodeStyle"
     @dblclick.stop="startEditing"
@@ -106,17 +128,21 @@ function endDrag(event: PointerEvent): void {
     @pointermove="onPointerMove"
     @pointerup="endDrag"
   >
-    <input
-      v-if="editing"
-      ref="titleInputRef"
-      v-model="draftTitle"
-      class="topic-node__input"
-      maxlength="120"
-      @blur="commitEdit"
-      @keydown.enter.prevent="commitEdit"
-      @keydown.esc.prevent="cancelEdit"
-      @pointerdown.stop
-    />
+    <template v-if="editing">
+      <input
+        ref="titleInputRef"
+        v-model="draftTitle"
+        :aria-invalid="editError.length > 0"
+        class="topic-node__input"
+        maxlength="120"
+        @blur="commitEdit"
+        @input="editError = ''"
+        @keydown.enter.prevent="commitEdit"
+        @keydown.esc.prevent="cancelEdit"
+        @pointerdown.stop
+      />
+      <span v-if="editError" class="topic-node__error">{{ editError }}</span>
+    </template>
     <span v-else class="topic-node__title">{{ node.data.title }}</span>
   </div>
 </template>
@@ -125,7 +151,9 @@ function endDrag(event: PointerEvent): void {
 .topic-node {
   position: absolute;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   min-width: 140px;
   max-width: 240px;
   padding: 10px 14px;
@@ -167,5 +195,15 @@ function endDrag(event: PointerEvent): void {
   color: inherit;
   font-size: 14px;
   font-weight: 650;
+}
+
+.topic-node__error {
+  align-self: stretch;
+  overflow: hidden;
+  color: #b42318;
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
