@@ -23,21 +23,26 @@ const renameLoading = computed(() => {
   return projectId === undefined ? false : projects.renamingIds[projectId] === true
 })
 const renameDisabled = computed(() => trimmedRenameName.value.length === 0 || renameLoading.value)
+const showProjectsError = computed(() => projects.error !== null && projects.projects.length === 0 && !projects.loading)
+const showEmptyProjects = computed(() => projects.error === null && projects.projects.length === 0 && !projects.loading)
 
+let isProjectsViewMounted = false
 let unsubscribeCrossTabEvents: () => void = () => {}
 
-onMounted(async () => {
-  await loadProjects()
+onMounted(() => {
+  isProjectsViewMounted = true
   unsubscribeCrossTabEvents = subscribeCrossTabEvents(handleCrossTabEvent)
+  void loadProjects()
 })
 
 onUnmounted(() => {
+  isProjectsViewMounted = false
   unsubscribeCrossTabEvents()
 })
 
 async function loadProjects(): Promise<void> {
   await projects.fetchProjects()
-  if (projects.error !== null) {
+  if (isProjectsViewMounted && projects.error !== null) {
     message.error(projects.error)
   }
 }
@@ -113,6 +118,10 @@ function confirmDelete(project: ProjectSummaryDto): void {
 }
 
 async function handleCrossTabEvent(event: CrossTabEvent): Promise<void> {
+  if (!isProjectsViewMounted) {
+    return
+  }
+
   if (event.type === 'projects:refresh') {
     await loadProjects()
     return
@@ -125,7 +134,15 @@ async function handleCrossTabEvent(event: CrossTabEvent): Promise<void> {
       return
     }
 
+    if (!isProjectsViewMounted) {
+      return
+    }
+
     project.name = event.name
+    return
+  }
+
+  if (!isProjectsViewMounted) {
     return
   }
 
@@ -186,7 +203,18 @@ function formatUpdatedAt(value: string): string {
 
         <div class="projects-panel__body">
           <a-spin :spinning="projects.loading">
-            <a-empty v-if="projects.projects.length === 0 && !projects.loading" description="No projects" />
+            <a-result
+              v-if="showProjectsError"
+              :sub-title="projects.error ?? 'Please try again.'"
+              status="error"
+              title="Unable to load projects"
+            >
+              <template #extra>
+                <a-button type="primary" @click="loadProjects">Retry</a-button>
+              </template>
+            </a-result>
+
+            <a-empty v-else-if="showEmptyProjects" description="No projects" />
 
             <div v-else class="project-grid">
               <article
