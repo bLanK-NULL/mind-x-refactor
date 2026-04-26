@@ -57,6 +57,36 @@ describe('editor store', () => {
     expect(store.canUndo).toBe(true)
   })
 
+  it('generates a child id that does not collide with loaded node ids', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [
+          {
+            data: { title: 'Root topic' },
+            id: 'node-1',
+            position: { x: 0, y: 0 },
+            size: { height: 56, width: 180 },
+            type: 'topic'
+          },
+          {
+            data: { title: 'Existing child' },
+            id: 'node-2',
+            position: { x: 260, y: 0 },
+            size: { height: 56, width: 180 },
+            type: 'topic'
+          }
+        ],
+        edges: [{ id: 'node-1->node-2', source: 'node-1', target: 'node-2', type: 'mind-parent' }]
+      })
+    )
+    store.selectOnly('node-1')
+
+    const childId = store.addChildTopic({ title: 'New child' })
+
+    expect(childId).toBe('node-3')
+    expect(store.document?.nodes.map((node) => node.id)).toEqual(['node-1', 'node-2', 'node-3'])
+  })
+
   it('refuses to add another root when the document already has nodes', () => {
     const store = loadedStore()
     store.addRootTopic({ id: 'root', title: 'Root topic' })
@@ -302,6 +332,26 @@ describe('editor store', () => {
     expect(store.document?.viewport).toEqual({ x: 40, y: 50, zoom: 1.5 })
     expect(store.dirty).toBe(true)
     expect(store.canUndo).toBe(false)
+  })
+
+  it('keeps the current viewport when undoing and redoing content changes', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+      })
+    )
+    store.editNodeTitle('root', 'Renamed root')
+    store.setViewport({ x: 40, y: 50, zoom: 1.5 })
+
+    store.undo()
+
+    expect(store.document?.nodes[0].data.title).toBe('Root')
+    expect(store.document?.viewport).toEqual({ x: 40, y: 50, zoom: 1.5 })
+
+    store.redo()
+
+    expect(store.document?.nodes[0].data.title).toBe('Renamed root')
+    expect(store.document?.viewport).toEqual({ x: 40, y: 50, zoom: 1.5 })
   })
 
   it('rejects invalid root topics without mutating the document', () => {

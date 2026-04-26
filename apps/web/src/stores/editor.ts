@@ -49,9 +49,18 @@ export function serializeMindDocument(document: MindDocument | null): string | n
   return document ? JSON.stringify(toRaw(document)) : null
 }
 
-function createNodeId(): string {
-  generatedNodeSequence += 1
+function createNodeId(document: MindDocument): string {
+  const existingNodeIds = new Set(document.nodes.map((node) => node.id))
+
+  do {
+    generatedNodeSequence += 1
+  } while (existingNodeIds.has(`node-${generatedNodeSequence}`))
+
   return `node-${generatedNodeSequence}`
+}
+
+function preserveViewport(document: MindDocument, viewport: Viewport | undefined): MindDocument {
+  return viewport ? { ...document, viewport: { ...viewport } } : document
 }
 
 function assertTopicInput(id: string, title: string): void {
@@ -195,7 +204,7 @@ export const useEditorStore = defineStore('editor', {
         return null
       }
 
-      const id = input.id ?? createNodeId()
+      const id = input.id ?? createNodeId(this.document)
       const title = input.title ?? 'New topic'
       assertTopicInput(id, title)
       const next = cloneDocument(this.document)
@@ -221,7 +230,7 @@ export const useEditorStore = defineStore('editor', {
         return null
       }
 
-      const id = input.id ?? createNodeId()
+      const id = input.id ?? createNodeId(this.document)
       const next = addChildNode(cloneDocument(this.document), {
         parentId,
         id,
@@ -292,7 +301,8 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      this.document = this.history.undo()
+      const currentViewport = this.document?.viewport
+      this.document = preserveViewport(this.history.undo(), currentViewport)
       this.selectedNodeIds = compactSelection(this.document, this.selectedNodeIds)
       this.syncDirtyState()
       this.syncHistoryState()
@@ -302,7 +312,8 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      this.document = this.history.redo()
+      const currentViewport = this.document?.viewport
+      this.document = preserveViewport(this.history.redo(), currentViewport)
       this.selectedNodeIds = compactSelection(this.document, this.selectedNodeIds)
       this.syncDirtyState()
       this.syncHistoryState()
