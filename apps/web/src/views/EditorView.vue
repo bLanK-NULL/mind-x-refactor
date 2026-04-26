@@ -25,7 +25,7 @@ const saving = ref(false)
 const exporting = ref(false)
 
 let isEditorViewMounted = false
-let loadSequence = 0
+let editorSessionGeneration = 0
 let unsubscribeCrossTabEvents: () => void = () => {}
 
 onMounted(() => {
@@ -47,7 +47,7 @@ watch(projectId, () => {
 
 async function loadProjectDocument(): Promise<void> {
   const id = projectId.value
-  const requestId = ++loadSequence
+  const requestId = ++editorSessionGeneration
   loading.value = true
   loadError.value = null
   loadedDocument.value = null
@@ -56,13 +56,13 @@ async function loadProjectDocument(): Promise<void> {
   try {
     const serverDocument = await loadServerDocument(id)
     const draft = await getLocalDraft(id)
-    if (!isEditorViewMounted || requestId !== loadSequence) {
+    if (!isEditorViewMounted || requestId !== editorSessionGeneration) {
       return
     }
 
     loadedDocument.value = draft?.document ?? serverDocument
     await nextTick()
-    if (!isEditorViewMounted || requestId !== loadSequence) {
+    if (!isEditorViewMounted || requestId !== editorSessionGeneration) {
       return
     }
 
@@ -74,11 +74,11 @@ async function loadProjectDocument(): Promise<void> {
       editor.load(serverDocument)
     }
   } catch (error) {
-    if (isEditorViewMounted && requestId === loadSequence) {
+    if (isEditorViewMounted && requestId === editorSessionGeneration) {
       loadError.value = getApiErrorMessage(error)
     }
   } finally {
-    if (isEditorViewMounted && requestId === loadSequence) {
+    if (isEditorViewMounted && requestId === editorSessionGeneration) {
       loading.value = false
     }
   }
@@ -99,6 +99,7 @@ async function saveDocument(): Promise<void> {
   }
 
   const id = projectId.value
+  const saveSessionGeneration = editorSessionGeneration
   const documentSnapshotJson = serializeMindDocument(editor.document)
   if (documentSnapshotJson === null) {
     return
@@ -108,7 +109,9 @@ async function saveDocument(): Promise<void> {
   saving.value = true
   try {
     const savedDocument = await saveServerDocument(id, document)
-    if (!isEditorViewMounted || id !== projectId.value) {
+    const saveSessionStillCurrent =
+      isEditorViewMounted && id === projectId.value && saveSessionGeneration === editorSessionGeneration
+    if (!saveSessionStillCurrent) {
       return
     }
 
@@ -122,18 +125,20 @@ async function saveDocument(): Promise<void> {
   } catch (error) {
     try {
       const isCurrentProject = isEditorViewMounted && id === projectId.value
+      const saveSessionStillCurrent = isCurrentProject && saveSessionGeneration === editorSessionGeneration
       const draftDocument = selectFailedSaveDraftDocument({
         capturedDocument: document,
         currentDocument: editor.document,
         isCurrentProject,
+        saveSessionStillCurrent,
         snapshotStillCurrent: editor.hasDocumentSnapshot(documentSnapshotJson)
       })
       await saveLocalDraft(id, draftDocument)
-      if (isCurrentProject) {
+      if (saveSessionStillCurrent) {
         message.warning('Saved local draft')
       }
     } catch {
-      if (isEditorViewMounted && id === projectId.value) {
+      if (isEditorViewMounted && id === projectId.value && saveSessionGeneration === editorSessionGeneration) {
         message.error(getApiErrorMessage(error))
       }
     }

@@ -20,6 +20,22 @@ describe('saveFailureDraft', () => {
       capturedDocument,
       currentDocument,
       isCurrentProject: false,
+      saveSessionStillCurrent: false,
+      snapshotStillCurrent: false
+    })
+
+    expect(draftDocument).toBe(capturedDocument)
+  })
+
+  it('uses the captured save snapshot after navigation returns to the same project with a newer editor session', () => {
+    const capturedDocument = document('project-a', 'Unsaved Project A')
+    const currentDocument = document('project-a', 'Reloaded Project A')
+
+    const draftDocument = selectFailedSaveDraftDocument({
+      capturedDocument,
+      currentDocument,
+      isCurrentProject: true,
+      saveSessionStillCurrent: false,
       snapshotStillCurrent: false
     })
 
@@ -34,6 +50,7 @@ describe('saveFailureDraft', () => {
       capturedDocument,
       currentDocument,
       isCurrentProject: true,
+      saveSessionStillCurrent: true,
       snapshotStillCurrent: false
     })
 
