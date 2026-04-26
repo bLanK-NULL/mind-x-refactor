@@ -167,7 +167,7 @@ export const useEditorStore = defineStore('editor', {
       this.commit(next)
     },
     undo(): void {
-      if (!this.history) {
+      if (!this.history?.canUndo()) {
         return
       }
 
@@ -177,7 +177,7 @@ export const useEditorStore = defineStore('editor', {
       this.syncHistoryState()
     },
     redo(): void {
-      if (!this.history) {
+      if (!this.history?.canRedo()) {
         return
       }
 

@@ -129,6 +129,62 @@ describe('editor store', () => {
     expect(store.canRedo).toBe(false)
   })
 
+  it('keeps a freshly loaded clean document unchanged when undo and redo are unavailable', () => {
+    const document = emptyDocument({
+      nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+    })
+    const store = loadedStore(document)
+    store.selectOnly('root')
+    const loadedDocument = store.document
+    const loadedSelection = [...store.selectedNodeIds]
+
+    store.undo()
+    store.redo()
+
+    expect(store.document).toBe(loadedDocument)
+    expect(store.selectedNodeIds).toEqual(loadedSelection)
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
+    expect(store.canRedo).toBe(false)
+  })
+
+  it('does not mutate state when undo or redo is invoked at the history boundary', () => {
+    const store = loadedStore()
+    store.addRootTopic({ id: 'root', title: 'Root topic' })
+
+    store.undo()
+    expect(store.document?.nodes).toEqual([])
+    expect(store.canUndo).toBe(false)
+    expect(store.canRedo).toBe(true)
+    const afterBoundaryUndoDocument = store.document
+    const afterBoundaryUndoSelection = [...store.selectedNodeIds]
+    const afterBoundaryUndoDirty = store.dirty
+
+    store.undo()
+
+    expect(store.document).toBe(afterBoundaryUndoDocument)
+    expect(store.selectedNodeIds).toEqual(afterBoundaryUndoSelection)
+    expect(store.dirty).toBe(afterBoundaryUndoDirty)
+    expect(store.canUndo).toBe(false)
+    expect(store.canRedo).toBe(true)
+
+    store.redo()
+    expect(store.document?.nodes.map((node) => node.id)).toEqual(['root'])
+    expect(store.canUndo).toBe(true)
+    expect(store.canRedo).toBe(false)
+    const afterBoundaryRedoDocument = store.document
+    const afterBoundaryRedoSelection = [...store.selectedNodeIds]
+    const afterBoundaryRedoDirty = store.dirty
+
+    store.redo()
+
+    expect(store.document).toBe(afterBoundaryRedoDocument)
+    expect(store.selectedNodeIds).toEqual(afterBoundaryRedoSelection)
+    expect(store.dirty).toBe(afterBoundaryRedoDirty)
+    expect(store.canUndo).toBe(true)
+    expect(store.canRedo).toBe(false)
+  })
+
   it('updates viewport and marks dirty without adding undo history', () => {
     const store = loadedStore()
 

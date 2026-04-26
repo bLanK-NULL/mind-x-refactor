@@ -3,6 +3,7 @@ import type { Viewport } from '@mind-x/shared'
 import { select, type Selection } from 'd3-selection'
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomBehavior } from 'd3-zoom'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { allowsViewportGesture } from './viewportGestureFilter'
 
 const props = defineProps<{
   viewport: Viewport
@@ -20,15 +21,6 @@ let applyingExternalTransform = false
 const contentStyle = computed(() => ({
   transform: `translate(${props.viewport.x}px, ${props.viewport.y}px) scale(${props.viewport.zoom})`
 }))
-
-function allowsViewportGesture(event: Event): boolean {
-  const target = event.target
-  if (!(target instanceof Element)) {
-    return true
-  }
-
-  return !target.closest('[data-editor-node], .editor-toolbar, .editor-context-menu, input, textarea, button')
-}
 
 function applyViewport(viewport: Viewport): void {
   if (!paneSelection || !zoomBehavior) {
