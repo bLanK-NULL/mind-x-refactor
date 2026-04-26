@@ -14,6 +14,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  exportPng: [root: HTMLElement, document: MindDocument]
   save: [document: MindDocument]
 }>()
 
@@ -58,6 +59,14 @@ function save(): void {
   }
 
   emit('save', editor.document)
+}
+
+function exportPng(): void {
+  if (!editorRootRef.value || !editor.document) {
+    return
+  }
+
+  emit('exportPng', editorRootRef.value, editor.document)
 }
 
 function closeContextMenu(): void {
@@ -132,6 +141,7 @@ onUnmounted(() => {
         @add-child="addChild"
         @add-topic="addTopic"
         @delete="editor.deleteSelected"
+        @export-png="exportPng"
         @redo="editor.redo"
         @save="save"
         @undo="editor.undo"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   DeleteOutlined,
+  DownloadOutlined,
   PlusOutlined,
   RedoOutlined,
   SaveOutlined,
@@ -20,6 +21,7 @@ const emit = defineEmits<{
   addChild: []
   addTopic: []
   delete: []
+  exportPng: []
   redo: []
   save: []
   undo: []
@@ -88,6 +90,19 @@ const emit = defineEmits<{
       <a-button :disabled="!hasDocument || !dirty" aria-label="Save" shape="circle" type="text" @click="emit('save')">
         <template #icon>
           <SaveOutlined />
+        </template>
+      </a-button>
+    </a-tooltip>
+    <a-tooltip title="Export PNG">
+      <a-button
+        :disabled="!hasDocument || !hasNodes"
+        aria-label="Export PNG"
+        shape="circle"
+        type="text"
+        @click="emit('exportPng')"
+      >
+        <template #icon>
+          <DownloadOutlined />
         </template>
       </a-button>
     </a-tooltip>

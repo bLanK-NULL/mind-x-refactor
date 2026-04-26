@@ -123,6 +123,26 @@ export const useEditorStore = defineStore('editor', {
       this.cleanDocumentJson = serializeDocument(this.document)
       this.syncDirtyState()
     },
+    updateDocumentTitle(title: string): void {
+      if (!this.document) {
+        return
+      }
+
+      const wasDirty = this.dirty
+      const next = cloneDocument(this.document)
+      next.meta = {
+        ...next.meta,
+        title
+      }
+      mindDocumentSchema.parse(next)
+      this.document = next
+      if (!wasDirty) {
+        this.cleanDocumentJson = serializeDocument(next)
+        this.history = markRaw(createHistory(next))
+        this.syncHistoryState()
+      }
+      this.syncDirtyState()
+    },
     selectOnly(nodeId: string): void {
       this.selectedNodeIds = compactSelection(this.document, [nodeId])
     },
