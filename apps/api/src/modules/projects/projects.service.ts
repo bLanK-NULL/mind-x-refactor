@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { createEmptyDocument } from '@mind-x/mind-engine'
+import { assertMindTree, createEmptyDocument } from '@mind-x/mind-engine'
 import type { MindDocument, ProjectSummaryDto } from '@mind-x/shared'
 import { HttpError } from '../../shared/http-error.js'
 import {
@@ -83,6 +83,20 @@ export async function getDocument(userId: string, projectId: string): Promise<Mi
 export async function saveDocument(userId: string, projectId: string, document: MindDocument): Promise<MindDocument> {
   if (document.meta.projectId !== projectId) {
     throw new HttpError(422, 'VALIDATION_ERROR', 'Document projectId must match route project id')
+  }
+
+  const existingProject = await findProjectSummary(userId, projectId)
+  if (existingProject === null) {
+    throw projectNotFoundError()
+  }
+
+  try {
+    assertMindTree(document)
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new HttpError(422, 'VALIDATION_ERROR', 'Document graph is invalid')
+    }
+    throw error
   }
 
   const affectedRows = await updateProjectDocument({ document, projectId, userId })

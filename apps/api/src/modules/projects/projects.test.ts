@@ -122,6 +122,28 @@ function duplicateEntryError(): Error & { code: string; errno: number } {
   return Object.assign(new Error('Duplicate entry'), { code: 'ER_DUP_ENTRY', errno: 1062 })
 }
 
+function withDanglingEdge(document: MindDocument): MindDocument {
+  return {
+    ...document,
+    nodes: [
+      {
+        data: { title: 'Root' },
+        id: 'root',
+        position: { x: 0, y: 0 },
+        type: 'topic'
+      }
+    ],
+    edges: [
+      {
+        id: 'root->missing',
+        source: 'root',
+        target: 'missing-node',
+        type: 'mind-parent'
+      }
+    ]
+  }
+}
+
 function installProjectStore(): StoredProject[] {
   const projects: StoredProject[] = []
 
@@ -508,6 +530,69 @@ describe('project routes', () => {
         }
       },
       status: 422
+    })
+  })
+
+  it('rejects saving malformed graph documents without persisting them', async () => {
+    installProjectStore()
+    const headers = authHeaders()
+    const createResponse = await requestApp('/api/projects', {
+      body: { name: 'Alpha' },
+      headers,
+      method: 'POST'
+    })
+    const projectId = (createResponse.body as { project: { id: string } }).project.id
+    const loadBeforeResponse = await requestApp(`/api/projects/${projectId}/document`, { headers })
+    const originalDocument = (loadBeforeResponse.body as { document: MindDocument }).document
+    const invalidDocument = withDanglingEdge(originalDocument)
+
+    await expect(
+      requestApp(`/api/projects/${projectId}/document`, {
+        body: { document: invalidDocument },
+        headers,
+        method: 'PUT'
+      })
+    ).resolves.toEqual({
+      body: {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Document graph is invalid'
+        }
+      },
+      status: 422
+    })
+
+    await expect(requestApp(`/api/projects/${projectId}/document`, { headers })).resolves.toEqual({
+      body: { document: originalDocument },
+      status: 200
+    })
+  })
+
+  it('returns not found when saving malformed graph documents for unknown projects', async () => {
+    installProjectStore()
+    const projectId = 'missing-project'
+    const document = withDanglingEdge(
+      createEmptyDocument({
+        now: '2026-04-26T12:00:00.000Z',
+        projectId,
+        title: 'Alpha'
+      })
+    )
+
+    await expect(
+      requestApp(`/api/projects/${projectId}/document`, {
+        body: { document },
+        headers: authHeaders(),
+        method: 'PUT'
+      })
+    ).resolves.toEqual({
+      body: {
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Project not found'
+        }
+      },
+      status: 404
     })
   })
 
