@@ -29,12 +29,6 @@ Run the full frontend + API + MySQL stack in Docker:
 docker compose -f docker/compose.dev.yml up
 ```
 
-In another terminal, seed the local users:
-
-```bash
-docker compose -f docker/compose.dev.yml exec api npm run db:seed -w apps/api
-```
-
 Open `http://localhost:5173`.
 
 Development ports:
@@ -44,6 +38,8 @@ Development ports:
 - MySQL: `localhost:3307`
 
 The development web container runs Vite and proxies `/api` to the API container.
+
+The Compose stack automatically runs the idempotent `seed` service before starting the API, so the seed accounts are available on a fresh clone and after volume resets.
 
 If a host port is already in use, override it when starting Compose:
 
@@ -71,12 +67,6 @@ Run the API, MySQL, and nginx-served Vue app with `/api` proxied to the API serv
 docker compose -f docker/compose.prod.yml up
 ```
 
-In another terminal, seed the local users:
-
-```bash
-docker compose -f docker/compose.prod.yml exec api node apps/api/dist/db/seed.js
-```
-
 Open `http://localhost:8080`.
 
 Production-like ports:
@@ -85,6 +75,8 @@ Production-like ports:
 - API and MySQL are only exposed inside the Compose network.
 
 The production-like Compose file includes local default secrets for smoke testing only. Replace `JWT_SECRET`, `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`, and related database values before adapting this setup for real deployment.
+
+The production-like stack also runs the idempotent `seed` service before starting the API.
 
 If `8080` is already in use, override it when starting Compose:
 
@@ -141,11 +133,9 @@ For full Docker smoke checks:
 
 ```bash
 docker compose -f docker/compose.dev.yml up --build
-docker compose -f docker/compose.dev.yml exec api npm run db:seed -w apps/api
 curl http://localhost:3000/api/health
 
 docker compose -f docker/compose.prod.yml up --build
-docker compose -f docker/compose.prod.yml exec api node apps/api/dist/db/seed.js
 curl http://localhost:8080/api/health
 ```
 
