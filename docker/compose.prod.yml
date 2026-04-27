@@ -1,5 +1,9 @@
 name: mind-x-refactor-prod
 
+x-prod-api-build: &prod-api-build
+  context: ..
+  dockerfile: docker/api.Dockerfile
+
 services:
   mysql:
     image: mysql:8.4
@@ -21,7 +25,7 @@ services:
       start_period: 20s
 
   seed:
-    image: mind-x-refactor-prod-api
+    build: *prod-api-build
     restart: "no"
     command: node apps/api/dist/db/seed.js
     environment:
@@ -38,9 +42,7 @@ services:
 
   api:
     image: mind-x-refactor-prod-api
-    build:
-      context: ..
-      dockerfile: docker/api.Dockerfile
+    build: *prod-api-build
     restart: unless-stopped
     environment:
       NODE_ENV: production
