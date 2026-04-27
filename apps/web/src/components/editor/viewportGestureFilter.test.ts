@@ -48,16 +48,18 @@ describe('viewport gesture filter', () => {
     expect(allowsViewportGesture(eventFor('wheel', { ctrlKey: true }))).toBe(true)
   })
 
-  it('excludes editor controls, nodes, context menus, inputs, and buttons', () => {
+  it('excludes editor controls, nodes, context menus, inspectors, inputs, and buttons', () => {
     const toolbar = new TestElement(['.editor-toolbar'])
     const toolbarButton = new TestElement(['button'], toolbar)
     const node = new TestElement(['[data-editor-node]'])
     const contextMenu = new TestElement(['.editor-context-menu'])
     const control = new TestElement(['[data-editor-control]'])
+    const inspector = new TestElement(['.inspector-panel'])
 
     expect(allowsViewportGesture(eventFor('mousedown', { target: toolbarButton as unknown as EventTarget }))).toBe(false)
     expect(allowsViewportGesture(eventFor('mousedown', { target: node as unknown as EventTarget }))).toBe(false)
     expect(allowsViewportGesture(eventFor('mousedown', { target: contextMenu as unknown as EventTarget }))).toBe(false)
+    expect(allowsViewportGesture(eventFor('mousedown', { target: inspector as unknown as EventTarget }))).toBe(false)
     expect(allowsViewportGesture(eventFor('mousedown', { target: new TestElement(['input']) as unknown as EventTarget }))).toBe(false)
     expect(allowsViewportGesture(eventFor('mousedown', { target: new TestElement(['button']) as unknown as EventTarget }))).toBe(false)
     expect(allowsViewportGesture(eventFor('mousedown', { target: control as unknown as EventTarget }))).toBe(false)

@@ -5,9 +5,11 @@ type ZoomFilterEvent = Event & {
 
 const EXCLUDED_VIEWPORT_TARGETS = [
   '[data-editor-node]',
+  '[data-editor-edge]',
   '[data-editor-control]',
   '.editor-toolbar',
   '.editor-context-menu',
+  '.inspector-panel',
   'input',
   'textarea',
   'button',

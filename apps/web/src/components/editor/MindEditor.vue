@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import type { MindDocument, Point } from '@mind-x/shared'
+import type { MindDocument, MindEdge, MindEdgeComponent, Point } from '@mind-x/shared'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useEditorStore } from '@/stores/editor'
+import { getEdgeComponent } from './edgeComponents'
+import EdgeInspector from './EdgeInspector.vue'
 import EdgeRenderer from './EdgeRenderer.vue'
 import EditorContextMenu from './EditorContextMenu.vue'
 import EditorToolbar from './EditorToolbar.vue'
+import InspectorPanel from './InspectorPanel.vue'
 import NodeRenderer from './NodeRenderer.vue'
 import SelectionLayer from './SelectionLayer.vue'
 import ViewportPane from './ViewportPane.vue'
@@ -32,6 +35,13 @@ const documentState = computed(() => editor.document)
 const hasDocument = computed(() => documentState.value !== null)
 const hasNodes = computed(() => (documentState.value?.nodes.length ?? 0) > 0)
 const hasSelection = computed(() => editor.selectedNodeIds.length > 0)
+const selectedEdge = computed<MindEdge | null>(() => {
+  if (!documentState.value || !editor.selectedEdgeId) {
+    return null
+  }
+
+  return documentState.value.edges.find((edge) => edge.id === editor.selectedEdgeId) ?? null
+})
 
 watch(
   () => props.document,
@@ -92,6 +102,33 @@ function openContextMenu(event: MouseEvent): void {
   contextMenu.visible = true
 }
 
+function selectEdge(edgeId: string): void {
+  closeContextMenu()
+  editor.selectEdge(edgeId)
+}
+
+function clearSelectionFromCanvas(event: PointerEvent): void {
+  const target = event.target
+  if (!(target instanceof Element)) {
+    editor.clearSelection()
+    return
+  }
+
+  if (target.closest('[data-editor-node], [data-editor-edge], [data-editor-control], .editor-toolbar, .editor-context-menu')) {
+    return
+  }
+
+  editor.clearSelection()
+}
+
+function setSelectedEdgeComponent(component: MindEdgeComponent): void {
+  editor.setSelectedEdgeComponent(component)
+}
+
+function deleteSelectedEdgeFromInspector(): void {
+  editor.deleteSelected()
+}
+
 function addChildFromContextMenu(): void {
   addChild()
   closeContextMenu()
@@ -111,6 +148,7 @@ function onKeydown(event: KeyboardEvent): void {
     event.preventDefault()
     addChild()
   } else if (event.key === 'Delete' || event.key === 'Backspace') {
+    event.preventDefault()
     editor.deleteSelected()
   } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && event.shiftKey) {
     event.preventDefault()
@@ -155,9 +193,15 @@ onUnmounted(() => {
       ref="viewportPaneRef"
       :viewport="documentState.viewport"
       @contextmenu.prevent="openContextMenu"
+      @pointerdown="clearSelectionFromCanvas"
       @viewport-change="editor.setViewport"
     >
-      <EdgeRenderer :edges="documentState.edges" :nodes="documentState.nodes" />
+      <EdgeRenderer
+        :edges="documentState.edges"
+        :nodes="documentState.nodes"
+        :selected-edge-id="editor.selectedEdgeId"
+        @select="selectEdge"
+      />
       <SelectionLayer :nodes="documentState.nodes" :selected-node-ids="editor.selectedNodeIds" />
       <NodeRenderer
         :nodes="documentState.nodes"
@@ -168,6 +212,14 @@ onUnmounted(() => {
         @select="editor.selectOnly"
       />
     </ViewportPane>
+
+    <InspectorPanel v-if="selectedEdge" title="Edge" @close="editor.clearSelection">
+      <EdgeInspector
+        :component="getEdgeComponent(selectedEdge)"
+        @component-change="setSelectedEdgeComponent"
+        @delete="deleteSelectedEdgeFromInspector"
+      />
+    </InspectorPanel>
 
     <EditorContextMenu
       :can-add-child="contextMenu.selectionActions && hasSelection"
