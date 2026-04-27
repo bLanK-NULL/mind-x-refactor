@@ -12,21 +12,21 @@ const emit = defineEmits<{
   delete: []
 }>()
 
-function onComponentChange(event: Event): void {
-  const target = event.target as HTMLInputElement
-  emit('componentChange', target.value as MindEdgeComponent)
+function onComponentChange(component: MindEdgeComponent): void {
+  emit('componentChange', component)
 }
 </script>
 
 <template>
   <section class="edge-inspector" aria-label="Edge inspector">
-    <label class="edge-inspector__label">Edge component</label>
+    <label id="edge-inspector-component-label" class="edge-inspector__label">Edge component</label>
     <a-radio-group
       class="edge-inspector__components"
+      aria-labelledby="edge-inspector-component-label"
       :value="component"
       button-style="solid"
       size="small"
-      @change="onComponentChange"
+      @update:value="onComponentChange"
     >
       <a-radio-button v-for="option in EDGE_COMPONENT_OPTIONS" :key="option.value" :value="option.value">
         {{ option.label }}

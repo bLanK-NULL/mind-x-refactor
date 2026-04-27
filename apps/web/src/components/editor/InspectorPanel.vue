@@ -40,10 +40,23 @@ function endDrag(event: PointerEvent): void {
     return
   }
 
-  draggingPointerId.value = null
-  lastPointer.value = null
+  const target = event.currentTarget as HTMLElement
+  if (target.hasPointerCapture(event.pointerId)) {
+    target.releasePointerCapture(event.pointerId)
+  }
+
+  cleanupDrag(event)
   event.preventDefault()
   event.stopPropagation()
+}
+
+function cleanupDrag(event: PointerEvent): void {
+  if (draggingPointerId.value !== event.pointerId) {
+    return
+  }
+
+  draggingPointerId.value = null
+  lastPointer.value = null
 }
 </script>
 
@@ -55,15 +68,25 @@ function endDrag(event: PointerEvent): void {
     @click.stop
     @pointerdown.stop
   >
-    <header
-      class="inspector-panel__header"
-      @pointercancel="endDrag"
-      @pointerdown="startDrag"
-      @pointermove="moveDrag"
-      @pointerup="endDrag"
-    >
-      <h2 class="inspector-panel__title">{{ title }}</h2>
-      <a-button aria-label="Close inspector" shape="circle" size="small" type="text" @click="emit('close')">
+    <header class="inspector-panel__header">
+      <div
+        class="inspector-panel__drag-handle"
+        @lostpointercapture="cleanupDrag"
+        @pointercancel="endDrag"
+        @pointerdown="startDrag"
+        @pointermove="moveDrag"
+        @pointerup="endDrag"
+      >
+        <h2 class="inspector-panel__title">{{ title }}</h2>
+      </div>
+      <a-button
+        aria-label="Close inspector"
+        shape="circle"
+        size="small"
+        type="text"
+        @click="emit('close')"
+        @pointerdown.stop
+      >
         <template #icon>
           <CloseOutlined />
         </template>
@@ -96,11 +119,16 @@ function endDrag(event: PointerEvent): void {
   gap: 8px;
   padding: 8px 8px 8px 12px;
   border-bottom: 1px solid var(--color-border-soft);
+}
+
+.inspector-panel__drag-handle {
+  flex: 1;
+  min-width: 0;
   cursor: grab;
   user-select: none;
 }
 
-.inspector-panel__header:active {
+.inspector-panel__drag-handle:active {
   cursor: grabbing;
 }
 
