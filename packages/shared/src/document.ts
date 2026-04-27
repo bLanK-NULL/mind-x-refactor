@@ -17,6 +17,10 @@ export const sizeSchema = z.object({
   height: z.number().positive()
 })
 
+export const edgeComponentSchema = z.enum(['plain', 'dashed', 'arrow', 'dashed-arrow'])
+
+export const edgeDirectionSchema = z.literal('source-target')
+
 export const viewportSchema = z.object({
   x: z.number().finite(),
   y: z.number().finite(),
@@ -37,7 +41,13 @@ export const mindEdgeSchema = z.object({
   id: z.string().min(1),
   source: z.string().min(1),
   target: z.string().min(1),
-  type: z.literal('mind-parent')
+  type: z.literal('mind-parent'),
+  component: edgeComponentSchema.optional(),
+  data: z
+    .object({
+      direction: edgeDirectionSchema.optional()
+    })
+    .optional()
 })
 
 export const mindDocumentSchema = z.object({
@@ -58,6 +68,9 @@ export type Size = z.infer<typeof sizeSchema>
 export type Viewport = z.infer<typeof viewportSchema>
 export type MindNode = z.infer<typeof mindNodeSchema>
 export type MindEdge = z.infer<typeof mindEdgeSchema>
+export type MindEdgeComponent = z.infer<typeof edgeComponentSchema>
+export type MindEdgeDirection = z.infer<typeof edgeDirectionSchema>
+export const DEFAULT_EDGE_COMPONENT: MindEdgeComponent = 'plain'
 export type MindDocument = z.infer<typeof mindDocumentSchema>
 export type ThemeName = MindDocument['meta']['theme']
 export type PlainText = z.infer<typeof plainTextSchema>

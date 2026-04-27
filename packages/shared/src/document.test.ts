@@ -128,6 +128,98 @@ describe('mindDocumentSchema', () => {
 
     expect(result.success).toBe(false)
   })
+
+  it('accepts all supported edge components and reserved direction data', () => {
+    for (const component of ['plain', 'dashed', 'arrow', 'dashed-arrow']) {
+      const parsed = mindDocumentSchema.parse({
+        version: 1,
+        meta: {
+          projectId: 'project-1',
+          title: 'Planning',
+          theme: 'light',
+          updatedAt: '2026-04-26T00:00:00.000Z'
+        },
+        viewport: { x: 0, y: 0, zoom: 1 },
+        nodes: [
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+        ],
+        edges: [
+          {
+            id: `root->child-${component}`,
+            source: 'root',
+            target: 'child',
+            type: 'mind-parent',
+            component,
+            data: { direction: 'source-target' }
+          }
+        ]
+      })
+
+      expect(parsed.edges[0].component).toBe(component)
+      expect(parsed.edges[0].data?.direction).toBe('source-target')
+    }
+  })
+
+  it('accepts an edge without a component for existing documents', () => {
+    const parsed = mindDocumentSchema.parse({
+      version: 1,
+      meta: {
+        projectId: 'project-1',
+        title: 'Planning',
+        theme: 'light',
+        updatedAt: '2026-04-26T00:00:00.000Z'
+      },
+      viewport: { x: 0, y: 0, zoom: 1 },
+      nodes: [
+        { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+        { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+      ],
+      edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent' }]
+    })
+
+    expect(parsed.edges[0].component).toBeUndefined()
+  })
+
+  it('rejects unsupported edge components and directions', () => {
+    const baseDocument = {
+      version: 1,
+      meta: {
+        projectId: 'project-1',
+        title: 'Planning',
+        theme: 'light',
+        updatedAt: '2026-04-26T00:00:00.000Z'
+      },
+      viewport: { x: 0, y: 0, zoom: 1 },
+      nodes: [
+        { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+        { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+      ]
+    }
+
+    expect(
+      mindDocumentSchema.safeParse({
+        ...baseDocument,
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'zigzag' }]
+      }).success
+    ).toBe(false)
+
+    expect(
+      mindDocumentSchema.safeParse({
+        ...baseDocument,
+        edges: [
+          {
+            id: 'root->child',
+            source: 'root',
+            target: 'child',
+            type: 'mind-parent',
+            component: 'arrow',
+            data: { direction: 'target-source' }
+          }
+        ]
+      }).success
+    ).toBe(false)
+  })
 })
 
 describe('project request schemas', () => {
