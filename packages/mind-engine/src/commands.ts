@@ -1,4 +1,10 @@
-import type { MindDocument, Point } from '@mind-x/shared'
+import {
+  DEFAULT_EDGE_COMPONENT,
+  type MindDocument,
+  type MindEdge,
+  type MindEdgeComponent,
+  type Point
+} from '@mind-x/shared'
 import { assertMindTree, createParentEdge, findNode, getChildIds, getParentId } from './graph.js'
 
 const DEFAULT_NODE_WIDTH = 160
@@ -7,6 +13,16 @@ const SIBLING_GAP_Y = 72
 
 function cloneDocument(document: MindDocument): MindDocument {
   return structuredClone(document)
+}
+
+function getEdgeComponent(edge: MindEdge): MindEdgeComponent {
+  return edge.component ?? DEFAULT_EDGE_COMPONENT
+}
+
+function getNewChildEdgeComponent(document: MindDocument, parentId: string): MindEdgeComponent {
+  const childEdges = document.edges.filter((edge) => edge.source === parentId)
+  const latestChildEdge = childEdges.at(-1)
+  return latestChildEdge ? getEdgeComponent(latestChildEdge) : DEFAULT_EDGE_COMPONENT
 }
 
 function assertPlainTextTitle(title: string): void {
@@ -41,6 +57,7 @@ export function addChildNode(document: MindDocument, input: AddChildNodeInput): 
     x: parent.position.x + parentWidth + CHILD_GAP_X,
     y: parent.position.y + childCount * SIBLING_GAP_Y
   }
+  const component = getNewChildEdgeComponent(next, input.parentId)
 
   next.nodes.push({
     id: input.id,
@@ -48,7 +65,7 @@ export function addChildNode(document: MindDocument, input: AddChildNodeInput): 
     position,
     data: { title: input.title }
   })
-  next.edges.push(createParentEdge(input.parentId, input.id))
+  next.edges.push(createParentEdge(input.parentId, input.id, { component }))
   assertMindTree(next)
   return next
 }
@@ -90,6 +107,39 @@ export function moveNodes(document: MindDocument, input: MoveNodesInput): MindDo
   return next
 }
 
+export type SetEdgeComponentInput = {
+  edgeId: string
+  component: MindEdgeComponent
+}
+
+export function setEdgeComponent(document: MindDocument, input: SetEdgeComponentInput): MindDocument {
+  const next = cloneDocument(document)
+  const edge = next.edges.find((candidate) => candidate.id === input.edgeId)
+  if (!edge) {
+    throw new Error(`Edge ${input.edgeId} does not exist`)
+  }
+
+  edge.component = input.component
+  assertMindTree(next)
+  return next
+}
+
+export type DeleteEdgeInput = {
+  edgeId: string
+}
+
+export function deleteEdgeDetachChild(document: MindDocument, input: DeleteEdgeInput): MindDocument {
+  const next = cloneDocument(document)
+  const edge = next.edges.find((candidate) => candidate.id === input.edgeId)
+  if (!edge) {
+    throw new Error(`Edge ${input.edgeId} does not exist`)
+  }
+
+  next.edges = next.edges.filter((candidate) => candidate.id !== input.edgeId)
+  assertMindTree(next)
+  return next
+}
+
 export type DeleteNodeInput = {
   nodeId: string
 }
@@ -103,13 +153,18 @@ export function deleteNodePromoteChildren(document: MindDocument, input: DeleteN
 
   const parentId = getParentId(next, input.nodeId)
   const childIds = getChildIds(next, input.nodeId)
+  const componentByChildId = new Map(
+    next.edges
+      .filter((edge) => edge.source === input.nodeId)
+      .map((edge) => [edge.target, getEdgeComponent(edge)])
+  )
 
   next.nodes = next.nodes.filter((candidate) => candidate.id !== input.nodeId)
   next.edges = next.edges.filter((edge) => edge.source !== input.nodeId && edge.target !== input.nodeId)
 
   if (parentId) {
     for (const childId of childIds) {
-      next.edges.push(createParentEdge(parentId, childId))
+      next.edges.push(createParentEdge(parentId, childId, { component: componentByChildId.get(childId) }))
     }
   }
 
