@@ -26,7 +26,7 @@ This is the mind-x 2.0 core refactor.
 Run the full frontend + API + MySQL stack in Docker:
 
 ```bash
-docker compose -f docker/compose.dev.yml up --build
+docker compose -f docker/compose.dev.yml up
 ```
 
 In another terminal, seed the local users:
@@ -48,15 +48,27 @@ The development web container runs Vite and proxies `/api` to the API container.
 If a host port is already in use, override it when starting Compose:
 
 ```bash
-WEB_HOST_PORT=5174 API_HOST_PORT=3001 MYSQL_HOST_PORT=3308 docker compose -f docker/compose.dev.yml up --build
+WEB_HOST_PORT=5174 API_HOST_PORT=3001 MYSQL_HOST_PORT=3308 docker compose -f docker/compose.dev.yml up
+```
+
+Use `--build` when starting for the first time, after dependency changes, or after Dockerfile changes:
+
+```bash
+docker compose -f docker/compose.dev.yml up --build
+```
+
+To rebuild the images without starting containers:
+
+```bash
+docker compose -f docker/compose.dev.yml build
 ```
 
 ## Production-Like Docker Run
 
-Build the API, build the Vue app, serve the frontend through nginx, and proxy `/api` to the API service:
+Run the API, MySQL, and nginx-served Vue app with `/api` proxied to the API service:
 
 ```bash
-docker compose -f docker/compose.prod.yml up --build
+docker compose -f docker/compose.prod.yml up
 ```
 
 In another terminal, seed the local users:
@@ -77,7 +89,19 @@ The production-like Compose file includes local default secrets for smoke testin
 If `8080` is already in use, override it when starting Compose:
 
 ```bash
-WEB_HOST_PORT=8081 docker compose -f docker/compose.prod.yml up --build
+WEB_HOST_PORT=8081 docker compose -f docker/compose.prod.yml up
+```
+
+Use `--build` when starting for the first time, after dependency changes, or after Dockerfile changes:
+
+```bash
+docker compose -f docker/compose.prod.yml up --build
+```
+
+To rebuild the images without starting containers:
+
+```bash
+docker compose -f docker/compose.prod.yml build
 ```
 
 Seed accounts:
