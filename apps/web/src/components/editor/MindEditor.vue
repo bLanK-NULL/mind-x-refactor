@@ -8,6 +8,7 @@ import EdgeRenderer from './EdgeRenderer.vue'
 import EditorContextMenu from './EditorContextMenu.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import InspectorPanel from './InspectorPanel.vue'
+import { isTextEditingTarget } from './keyboardTargets'
 import NodeRenderer from './NodeRenderer.vue'
 import SelectionLayer from './SelectionLayer.vue'
 import ViewportPane from './ViewportPane.vue'
@@ -35,6 +36,7 @@ const documentState = computed(() => editor.document)
 const hasDocument = computed(() => documentState.value !== null)
 const hasNodes = computed(() => (documentState.value?.nodes.length ?? 0) > 0)
 const hasSelection = computed(() => editor.selectedNodeIds.length > 0)
+const hasDeletableSelection = computed(() => hasSelection.value || editor.selectedEdgeId !== null)
 const selectedEdge = computed<MindEdge | null>(() => {
   if (!documentState.value || !editor.selectedEdgeId) {
     return null
@@ -140,7 +142,7 @@ function deleteFromContextMenu(): void {
 }
 
 function onKeydown(event: KeyboardEvent): void {
-  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+  if (isTextEditingTarget(event.target)) {
     return
   }
 
@@ -176,6 +178,7 @@ onUnmounted(() => {
         :can-undo="editor.canUndo"
         :dirty="editor.dirty"
         :has-document="hasDocument"
+        :has-deletable-selection="hasDeletableSelection"
         :has-nodes="hasNodes"
         :has-selection="hasSelection"
         @add-child="addChild"

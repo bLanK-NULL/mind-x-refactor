@@ -13,6 +13,7 @@ defineProps<{
   canUndo: boolean
   dirty: boolean
   hasDocument: boolean
+  hasDeletableSelection: boolean
   hasNodes: boolean
   hasSelection: boolean
 }>()
@@ -74,7 +75,7 @@ const emit = defineEmits<{
     <a-divider class="editor-toolbar__divider" type="vertical" />
     <a-tooltip title="Delete">
       <a-button
-        :disabled="!hasSelection"
+        :disabled="!hasDeletableSelection"
         aria-label="Delete"
         danger
         shape="circle"
