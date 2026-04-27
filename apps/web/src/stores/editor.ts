@@ -1,10 +1,20 @@
-import { mindDocumentSchema, type MindDocument, type Point, type ThemeName, type Viewport } from '@mind-x/shared'
+import {
+  DEFAULT_EDGE_COMPONENT,
+  mindDocumentSchema,
+  type MindDocument,
+  type MindEdgeComponent,
+  type Point,
+  type ThemeName,
+  type Viewport
+} from '@mind-x/shared'
 import {
   addChildNode,
   createHistory,
+  deleteEdgeDetachChild,
   deleteNodePromoteChildren,
   editNodeTitle,
   moveNodes,
+  setEdgeComponent,
   type History
 } from '@mind-x/mind-engine'
 import { defineStore } from 'pinia'
@@ -26,6 +36,7 @@ type EditorState = {
   history: History<MindDocument> | null
   historyCanRedo: boolean
   historyCanUndo: boolean
+  selectedEdgeId: string | null
   selectedNodeIds: string[]
 }
 
@@ -91,6 +102,14 @@ function compactSelection(document: MindDocument | null, selectedNodeIds: string
   return selectedNodeIds.filter((nodeId) => nodeIds.has(nodeId))
 }
 
+function compactSelectedEdge(document: MindDocument | null, selectedEdgeId: string | null): string | null {
+  if (!document || !selectedEdgeId) {
+    return null
+  }
+
+  return document.edges.some((edge) => edge.id === selectedEdgeId) ? selectedEdgeId : null
+}
+
 function retitleHistory(history: History<MindDocument>, title: string): History<MindDocument> {
   let originalIndex = 0
   while (history.canUndo()) {
@@ -123,6 +142,7 @@ export const useEditorStore = defineStore('editor', {
     history: null,
     historyCanRedo: false,
     historyCanUndo: false,
+    selectedEdgeId: null,
     selectedNodeIds: []
   }),
   getters: {
@@ -141,6 +161,7 @@ export const useEditorStore = defineStore('editor', {
       const next = cloneDocument(document)
       this.document = next
       this.selectedNodeIds = []
+      this.selectedEdgeId = null
       this.cleanDocumentJson = serializeMindDocument(next)
       this.syncDirtyState()
       this.history = markRaw(createHistory(next))
@@ -151,6 +172,7 @@ export const useEditorStore = defineStore('editor', {
       this.document = next
       this.history?.push(next)
       this.selectedNodeIds = compactSelection(next, this.selectedNodeIds)
+      this.selectedEdgeId = compactSelectedEdge(next, this.selectedEdgeId)
       this.syncDirtyState()
       this.syncHistoryState()
     },
@@ -209,12 +231,21 @@ export const useEditorStore = defineStore('editor', {
     },
     selectOnly(nodeId: string): void {
       this.selectedNodeIds = compactSelection(this.document, [nodeId])
+      this.selectedEdgeId = null
     },
     setSelection(nodeIds: string[]): void {
       this.selectedNodeIds = compactSelection(this.document, [...nodeIds])
+      this.selectedEdgeId = null
+    },
+    selectEdge(edgeId: string): void {
+      this.selectedEdgeId = compactSelectedEdge(this.document, edgeId)
+      if (this.selectedEdgeId) {
+        this.selectedNodeIds = []
+      }
     },
     clearSelection(): void {
       this.selectedNodeIds = []
+      this.selectedEdgeId = null
     },
     addRootTopic(input: AddTopicInput = {}): string | null {
       if (!this.document || this.document.nodes.length > 0) {
@@ -234,6 +265,7 @@ export const useEditorStore = defineStore('editor', {
       })
       mindDocumentSchema.parse(next)
       this.selectedNodeIds = [id]
+      this.selectedEdgeId = null
       this.commit(next)
       return id
     },
@@ -254,6 +286,7 @@ export const useEditorStore = defineStore('editor', {
         title: input.title ?? 'New topic'
       })
       this.selectedNodeIds = [id]
+      this.selectedEdgeId = null
       this.commit(next)
       return id
     },
@@ -287,6 +320,7 @@ export const useEditorStore = defineStore('editor', {
       const next = moveNodes(cloneDocument(this.document), { nodeIds: this.selectedNodeIds, delta })
       this.document = next
       this.selectedNodeIds = compactSelection(next, this.selectedNodeIds)
+      this.selectedEdgeId = compactSelectedEdge(next, this.selectedEdgeId)
       this.syncDirtyState()
       this.syncHistoryState()
     },
@@ -298,8 +332,47 @@ export const useEditorStore = defineStore('editor', {
       const zoom = this.document.viewport.zoom || 1
       this.previewMoveSelectedByWorldDelta({ x: delta.x / zoom, y: delta.y / zoom })
     },
+    setSelectedEdgeComponent(component: MindEdgeComponent): void {
+      if (!this.document || !this.selectedEdgeId) {
+        return
+      }
+
+      const selectedEdge = this.document.edges.find((edge) => edge.id === this.selectedEdgeId)
+      if (!selectedEdge) {
+        this.selectedEdgeId = null
+        return
+      }
+
+      if ((selectedEdge.component ?? DEFAULT_EDGE_COMPONENT) === component) {
+        return
+      }
+
+      this.commit(
+        setEdgeComponent(cloneDocument(this.document), {
+          edgeId: this.selectedEdgeId,
+          component
+        })
+      )
+    },
     deleteSelected(): void {
-      if (!this.document || this.selectedNodeIds.length === 0) {
+      if (!this.document) {
+        return
+      }
+
+      if (this.selectedEdgeId) {
+        const edgeId = this.selectedEdgeId
+        if (!this.document.edges.some((edge) => edge.id === edgeId)) {
+          this.selectedEdgeId = null
+          return
+        }
+
+        this.selectedEdgeId = null
+        this.selectedNodeIds = []
+        this.commit(deleteEdgeDetachChild(cloneDocument(this.document), { edgeId }))
+        return
+      }
+
+      if (this.selectedNodeIds.length === 0) {
         return
       }
 
@@ -311,6 +384,7 @@ export const useEditorStore = defineStore('editor', {
       }
 
       this.selectedNodeIds = compactSelection(next, this.selectedNodeIds)
+      this.selectedEdgeId = compactSelectedEdge(next, this.selectedEdgeId)
       this.commit(next)
     },
     undo(): void {
@@ -321,6 +395,7 @@ export const useEditorStore = defineStore('editor', {
       const currentViewport = this.document?.viewport
       this.document = preserveViewport(this.history.undo(), currentViewport)
       this.selectedNodeIds = compactSelection(this.document, this.selectedNodeIds)
+      this.selectedEdgeId = compactSelectedEdge(this.document, this.selectedEdgeId)
       this.syncDirtyState()
       this.syncHistoryState()
     },
@@ -332,6 +407,7 @@ export const useEditorStore = defineStore('editor', {
       const currentViewport = this.document?.viewport
       this.document = preserveViewport(this.history.redo(), currentViewport)
       this.selectedNodeIds = compactSelection(this.document, this.selectedNodeIds)
+      this.selectedEdgeId = compactSelectedEdge(this.document, this.selectedEdgeId)
       this.syncDirtyState()
       this.syncHistoryState()
     },

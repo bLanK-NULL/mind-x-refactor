@@ -51,10 +51,146 @@ describe('editor store', () => {
       { id: 'root', title: 'Root topic' },
       { id: 'child', title: 'Child topic' }
     ])
-    expect(store.document?.edges).toEqual([{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent' }])
+    expect(store.document?.edges).toEqual([
+      { id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'plain' }
+    ])
     expect(store.selectedNodeIds).toEqual(['child'])
     expect(store.dirty).toBe(true)
     expect(store.canUndo).toBe(true)
+  })
+
+  it('keeps edge and node selection mutually exclusive', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+        ],
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'plain' }]
+      })
+    )
+
+    store.selectEdge('root->child')
+
+    expect(store.selectedEdgeId).toBe('root->child')
+    expect(store.selectedNodeIds).toEqual([])
+
+    store.selectOnly('root')
+
+    expect(store.selectedEdgeId).toBeNull()
+    expect(store.selectedNodeIds).toEqual(['root'])
+
+    store.selectEdge('root->child')
+    store.setSelection(['root', 'child'])
+
+    expect(store.selectedEdgeId).toBeNull()
+    expect(store.selectedNodeIds).toEqual(['root', 'child'])
+  })
+
+  it('updates a selected edge component as an undoable dirty change', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+        ],
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'plain' }]
+      })
+    )
+
+    store.selectEdge('root->child')
+    store.setSelectedEdgeComponent('dashed-arrow')
+
+    expect(store.document?.edges[0].component).toBe('dashed-arrow')
+    expect(store.selectedEdgeId).toBe('root->child')
+    expect(store.dirty).toBe(true)
+    expect(store.canUndo).toBe(true)
+
+    store.undo()
+
+    expect(store.document?.edges[0].component).toBe('plain')
+    expect(store.selectedEdgeId).toBe('root->child')
+    expect(store.dirty).toBe(false)
+  })
+
+  it('ignores selected edge component updates when the effective component is unchanged', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+        ],
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'plain' }]
+      })
+    )
+
+    store.selectEdge('root->child')
+    store.setSelectedEdgeComponent('plain')
+
+    expect(store.document?.edges[0].component).toBe('plain')
+    expect(store.selectedEdgeId).toBe('root->child')
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
+  })
+
+  it('deletes a selected edge and leaves the child node as a root', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } },
+          { id: 'leaf', type: 'topic', position: { x: 480, y: 0 }, data: { title: 'Leaf' } }
+        ],
+        edges: [
+          { id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'arrow' },
+          { id: 'child->leaf', source: 'child', target: 'leaf', type: 'mind-parent', component: 'dashed' }
+        ]
+      })
+    )
+
+    store.selectEdge('root->child')
+    store.deleteSelected()
+
+    expect(store.document?.edges).toEqual([
+      { id: 'child->leaf', source: 'child', target: 'leaf', type: 'mind-parent', component: 'dashed' }
+    ])
+    expect(store.selectedEdgeId).toBeNull()
+    expect(store.selectedNodeIds).toEqual([])
+    expect(store.canUndo).toBe(true)
+
+    store.undo()
+
+    expect(store.document?.edges.map((edge) => edge.id)).toEqual(['root->child', 'child->leaf'])
+  })
+
+  it('clears stale edge selection after load and document commits', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+        ],
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'arrow' }]
+      })
+    )
+
+    store.selectEdge('root->child')
+    store.load(emptyDocument())
+
+    expect(store.selectedEdgeId).toBeNull()
+
+    const documentWithEdge = emptyDocument({
+      nodes: [
+        { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+        { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+      ],
+      edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'arrow' }]
+    })
+    store.load(documentWithEdge)
+    store.selectEdge('root->child')
+    store.commit(emptyDocument({ nodes: [{ id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } }] }))
+
+    expect(store.selectedEdgeId).toBeNull()
   })
 
   it('generates a child id that does not collide with loaded node ids', () => {
