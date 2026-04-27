@@ -1,5 +1,9 @@
 name: mind-x-refactor-dev
 
+x-dev-api-build: &dev-api-build
+  context: ..
+  dockerfile: docker/dev.Dockerfile
+
 services:
   mysql:
     image: mysql:8.4
@@ -23,7 +27,7 @@ services:
       start_period: 20s
 
   seed:
-    image: mind-x-refactor-dev-api
+    build: *dev-api-build
     restart: "no"
     command: npm run db:seed -w apps/api
     environment:
@@ -46,9 +50,7 @@ services:
 
   api:
     image: mind-x-refactor-dev-api
-    build:
-      context: ..
-      dockerfile: docker/dev.Dockerfile
+    build: *dev-api-build
     restart: unless-stopped
     command: npm run dev:api
     environment:
