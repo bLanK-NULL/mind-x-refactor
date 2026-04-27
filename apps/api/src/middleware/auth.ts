@@ -1,5 +1,5 @@
 import type Koa from 'koa'
-import { verifyAuthToken } from '../modules/auth/auth.service.js'
+import { authenticateToken } from '../modules/auth/auth.service.js'
 import { HttpError } from '../shared/http-error.js'
 
 function unauthorized(): HttpError {
@@ -14,6 +14,6 @@ export async function requireAuth(ctx: Koa.Context, next: Koa.Next): Promise<voi
     throw unauthorized()
   }
 
-  ctx.state.user = verifyAuthToken(match[1])
+  ctx.state.user = await authenticateToken(match[1])
   await next()
 }

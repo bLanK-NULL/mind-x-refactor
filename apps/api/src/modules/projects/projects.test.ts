@@ -44,6 +44,8 @@ type StoredProject = {
   user_id: string
 }
 
+const authenticatedUsers = new Map<string, string>()
+
 class MockResponse extends Writable {
   statusCode = 404
   statusMessage = ''
@@ -114,7 +116,9 @@ async function requestApp(path: string, options: RequestOptions = {}): Promise<R
 }
 
 function authHeaders(userId = '00000000-0000-4000-8000-0000000000a1'): Record<string, string> {
-  const token = signAuthToken({ id: userId, username: `user-${userId.slice(-2)}` })
+  const username = `user-${userId.slice(-2)}`
+  authenticatedUsers.set(userId, username)
+  const token = signAuthToken({ id: userId, username })
   return { authorization: `Bearer ${token}` }
 }
 
@@ -149,6 +153,12 @@ function installProjectStore(): StoredProject[] {
 
   mockPool.execute.mockImplementation(async (sql: string, params: unknown[] = []) => {
     const normalizedSql = sql.replace(/\s+/g, ' ').trim()
+
+    if (normalizedSql === 'SELECT id, username FROM users WHERE id = ? LIMIT 1') {
+      const [userId] = params as [string]
+      const username = authenticatedUsers.get(userId)
+      return [username === undefined ? [] : [{ id: userId, username }]]
+    }
 
     if (normalizedSql.startsWith('SELECT') && normalizedSql.includes('WHERE user_id = ? ORDER BY updated_at DESC')) {
       const [userId] = params
@@ -232,6 +242,7 @@ describe('project routes', () => {
   beforeEach(() => {
     mockPool.execute.mockReset()
     mockPool.end.mockReset()
+    authenticatedUsers.clear()
   })
 
   it('rejects unauthenticated project list requests', async () => {

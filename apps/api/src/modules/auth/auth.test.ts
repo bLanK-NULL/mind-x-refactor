@@ -3,7 +3,7 @@ import { Readable, Writable } from 'node:stream'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { createApp } from '../../app.js'
 import { seedUsers } from '../../db/seed.js'
-import { DUMMY_PASSWORD_HASH } from './auth.service.js'
+import { DUMMY_PASSWORD_HASH, signAuthToken } from './auth.service.js'
 import { hashPassword } from './password.js'
 
 const mockPool = vi.hoisted(() => ({
@@ -192,6 +192,7 @@ describe('auth routes', () => {
       method: 'POST'
     })
     const token = (loginResponse.body as { token: string }).token
+    mockPool.execute.mockResolvedValueOnce([[{ id: '00000000-0000-4000-8000-000000000001', username: 'blank' }]])
 
     await expect(
       requestApp('/api/auth/me', {
@@ -202,6 +203,25 @@ describe('auth routes', () => {
         user: { id: '00000000-0000-4000-8000-000000000001', username: 'blank' }
       },
       status: 200
+    })
+  })
+
+  it('rejects a bearer token when the user no longer exists', async () => {
+    const token = signAuthToken({ id: 'missing-user', username: 'ghost' })
+    mockPool.execute.mockResolvedValueOnce([[]])
+
+    await expect(
+      requestApp('/api/auth/me', {
+        headers: { authorization: `Bearer ${token}` }
+      })
+    ).resolves.toEqual({
+      body: {
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Missing or invalid authorization token'
+        }
+      },
+      status: 401
     })
   })
 

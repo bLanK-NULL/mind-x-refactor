@@ -11,6 +11,11 @@ type UserRow = {
   username: string
 }
 
+type AuthenticatedUserRow = {
+  id: string
+  username: string
+}
+
 type AuthTokenPayload = JwtPayload & {
   userId: string
   username: string
@@ -46,6 +51,20 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
 
 export function signAuthToken(user: UserDto): string {
   return jwt.sign({ userId: user.id, username: user.username }, env.JWT_SECRET, { expiresIn: '7d' })
+}
+
+export async function authenticateToken(token: string): Promise<UserDto> {
+  const tokenUser = verifyAuthToken(token)
+  const [rows] = (await pool.execute('SELECT id, username FROM users WHERE id = ? LIMIT 1', [
+    tokenUser.id
+  ])) as [AuthenticatedUserRow[], unknown]
+  const user = rows[0]
+
+  if (user === undefined) {
+    throw invalidTokenError()
+  }
+
+  return { id: user.id, username: user.username }
 }
 
 export function verifyAuthToken(token: string): UserDto {
