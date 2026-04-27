@@ -132,6 +132,20 @@ describe('createApp', () => {
     })
   })
 
+  it('logs the final response status for HttpError routes', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+
+    await requestApp('/api/conflict', {
+      configureRouter: (router) => {
+        router.get('/conflict', () => {
+          throw new HttpError(409, 'CONFLICT', 'Name already exists')
+        })
+      }
+    })
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^GET \/api\/conflict 409 - \d+ms$/))
+  })
+
   it('returns JSON for ZodError routes', async () => {
     await expect(
       requestApp('/api/invalid', {

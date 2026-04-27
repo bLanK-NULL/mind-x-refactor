@@ -16,8 +16,8 @@ export function createApp(options: CreateAppOptions = {}): Koa {
 
   options.configureRouter?.(router)
 
-  app.use(errorHandler)
   app.use(requestLogger)
+  app.use(errorHandler)
   app.use(bodyParser())
   app.use(router.routes())
   app.use(async (ctx, next) => {
