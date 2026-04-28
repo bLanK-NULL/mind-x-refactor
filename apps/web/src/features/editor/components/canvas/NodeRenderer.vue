@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { MindNode, Point } from '@mind-x/shared'
+import type { PropType } from 'vue'
+import { defineComponent, h } from 'vue'
 import BaseNode from './BaseNode.vue'
 import TopicNodeContent from './node-content/TopicNodeContent.vue'
-
-type TopicNodeModel = Extract<MindNode, { type: 'topic' }>
 
 defineProps<{
   nodes: MindNode[]
@@ -20,29 +20,43 @@ const emit = defineEmits<{
   select: [nodeId: string]
 }>()
 
-const contentComponentByType: Record<MindNode['type'], typeof TopicNodeContent> = {
-  attachment: TopicNodeContent,
-  code: TopicNodeContent,
-  image: TopicNodeContent,
-  link: TopicNodeContent,
-  task: TopicNodeContent,
-  topic: TopicNodeContent
-}
+const NodeFallbackContent = defineComponent({
+  name: 'NodeFallbackContent',
+  props: {
+    node: {
+      required: true,
+      type: Object as PropType<MindNode>
+    }
+  },
+  setup(props) {
+    return () => h('span', { class: 'node-fallback' }, props.node.type)
+  }
+})
 
-function getContentComponent(node: MindNode): typeof TopicNodeContent {
+const contentComponentByType = {
+  attachment: NodeFallbackContent,
+  code: NodeFallbackContent,
+  image: NodeFallbackContent,
+  link: NodeFallbackContent,
+  task: NodeFallbackContent,
+  topic: TopicNodeContent
+} satisfies Record<MindNode['type'], typeof NodeFallbackContent | typeof TopicNodeContent>
+
+function getContentComponent(node: MindNode): typeof NodeFallbackContent | typeof TopicNodeContent {
   return contentComponentByType[node.type]
 }
 
-function getTopicContentNode(node: MindNode): TopicNodeModel {
-  return node as TopicNodeModel
-}
-
-function onEditCommit(nodeId: string, title: unknown): void {
-  if (typeof title !== 'string') {
+function onContentCommit(node: MindNode, title: unknown, finishEdit: (payload: unknown) => void): void {
+  if (node.type !== 'topic' || typeof title !== 'string') {
     return
   }
 
-  emit('editCommit', nodeId, { title })
+  finishEdit(title)
+  emit('editCommit', node.id, { title })
+}
+
+function handleContentCommit(node: MindNode, finishEdit: (payload: unknown) => void, title: unknown): void {
+  onContentCommit(node, title, finishEdit)
 }
 </script>
 
@@ -54,7 +68,6 @@ function onEditCommit(nodeId: string, title: unknown): void {
       @drag="(nodeId, delta) => emit('drag', nodeId, delta)"
       @drag-end="emit('dragEnd')"
       @cancel-edit="emit('cancelEdit', $event)"
-      @edit-commit="onEditCommit"
       @resize="(nodeId, delta) => emit('resize', nodeId, delta)"
       @resize-end="emit('resizeEnd')"
       @select="emit('select', $event)"
@@ -63,9 +76,9 @@ function onEditCommit(nodeId: string, title: unknown): void {
         <component
           :is="getContentComponent(node)"
           :editing="editing"
-          :node="getTopicContentNode(node)"
+          :node="node"
           @cancel="cancelEdit"
-          @commit="commitEdit"
+          @commit="handleContentCommit(node, commitEdit, $event)"
         />
       </template>
     </BaseNode>
