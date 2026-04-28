@@ -56,6 +56,7 @@ function v1Document(overrides: Record<string, unknown> = {}) {
         id: 'child',
         type: 'topic',
         position: { x: 240, y: 0 },
+        size: { width: 180, height: 72 },
         data: { title: 'Child' }
       }
     ],
@@ -91,6 +92,7 @@ describe('mind document versions', () => {
 
     expect(parsed.version).toBe(1)
     expect(parsed.meta.theme).toBe('vivid')
+    expect(parsed.nodes[1].size).toEqual({ width: 180, height: 72 })
     expect(parsed.edges[0].component).toBe('dashed-arrow')
   })
 
@@ -117,6 +119,7 @@ describe('mind document versions', () => {
           id: 'child',
           type: 'topic',
           position: { x: 240, y: 0 },
+          size: { width: 180, height: 72 },
           data: { title: 'Child' },
           style: DEFAULT_TOPIC_STYLE
         }
@@ -131,6 +134,7 @@ describe('mind document versions', () => {
         }
       ]
     })
+    expect(migrated.nodes[1].size).toEqual({ width: 180, height: 72 })
   })
 
   it('returns parsed v2 documents unchanged through migration', () => {
