@@ -35,9 +35,9 @@ const EDGE_DASHARRAY: Record<EdgeStyle['linePattern'], string> = {
 }
 
 const EDGE_WIDTH: Record<EdgeStyle['width'], string> = {
-  regular: '2',
-  thick: '3',
-  thin: '1.5'
+  regular: '2px',
+  thick: '3px',
+  thin: '1.5px'
 }
 
 export type CssVariableStyle = CSSProperties & Record<`--${string}`, string>

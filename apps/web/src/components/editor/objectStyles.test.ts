@@ -47,7 +47,7 @@ describe('object style resolvers', () => {
       style: {
         '--edge-dasharray': '2 7',
         '--edge-stroke': '#d97706',
-        '--edge-width': '3'
+        '--edge-width': '3px'
       }
     })
     expect(getEdgeMarkerEnd({ ...DEFAULT_EDGE_STYLE, arrow: 'none' }, 'marker')).toBeUndefined()

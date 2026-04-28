@@ -206,10 +206,10 @@ function getPath(edge: MindEdge): string | null {
 }
 
 .edge-renderer__marker {
-  fill: var(--edge-stroke);
+  fill: context-stroke;
 }
 
 .edge-renderer__marker--selected {
-  fill: var(--edge-stroke);
+  fill: context-stroke;
 }
 </style>
