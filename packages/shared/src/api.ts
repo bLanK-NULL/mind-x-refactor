@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { createPlainTextSchema, migratableMindDocumentSchema } from './document.js'
+import { createPlainTextSchema, mindDocumentSchema } from './document.js'
 
 export const userSchema = z.object({
   id: z.string(),
@@ -32,7 +32,7 @@ export const renameProjectRequestSchema = z.object({
 })
 
 export const saveDocumentRequestSchema = z.object({
-  document: migratableMindDocumentSchema
+  document: mindDocumentSchema
 })
 
 export type UserDto = z.infer<typeof userSchema>

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { assertMindTree, createEmptyDocument } from '@mind-x/mind-engine'
-import { migrateMindDocument, type MindDocument, type ProjectSummaryDto } from '@mind-x/shared'
+import type { MindDocument, ProjectSummaryDto } from '@mind-x/shared'
 import { HttpError } from '../../shared/http-error.js'
 import {
   deleteProject,
@@ -81,9 +81,7 @@ export async function getDocument(userId: string, projectId: string): Promise<Mi
 }
 
 export async function saveDocument(userId: string, projectId: string, document: MindDocument): Promise<MindDocument> {
-  const normalizedDocument = migrateMindDocument(document)
-
-  if (normalizedDocument.meta.projectId !== projectId) {
+  if (document.meta.projectId !== projectId) {
     throw new HttpError(422, 'VALIDATION_ERROR', 'Document projectId must match route project id')
   }
 
@@ -93,7 +91,7 @@ export async function saveDocument(userId: string, projectId: string, document: 
   }
 
   try {
-    assertMindTree(normalizedDocument)
+    assertMindTree(document)
   } catch (error) {
     if (error instanceof Error) {
       throw new HttpError(422, 'VALIDATION_ERROR', 'Document graph is invalid')
@@ -101,7 +99,7 @@ export async function saveDocument(userId: string, projectId: string, document: 
     throw error
   }
 
-  const affectedRows = await updateProjectDocument({ document: normalizedDocument, projectId, userId })
+  const affectedRows = await updateProjectDocument({ document, projectId, userId })
   if (affectedRows === 0) {
     const project = await findProjectSummary(userId, projectId)
     if (project === null) {
@@ -109,7 +107,7 @@ export async function saveDocument(userId: string, projectId: string, document: 
     }
   }
 
-  return normalizedDocument
+  return document
 }
 
 async function getExistingProjectSummary(userId: string, projectId: string): Promise<ProjectSummaryDto> {
