@@ -27,11 +27,16 @@ function cloneEntry(entry: HistoryEntry): HistoryEntry {
   }
 }
 
-export function createHistory<T extends object>(initial: T): History<T> {
+function createHistoryState<T extends object>(
+  initial: T,
+  initialEntries: HistoryEntry[] = [],
+  initialIndex = 0,
+  initialCurrent = initial
+): History<T> {
   const base = clone(initial)
-  let current = clone(initial)
-  let entries: HistoryEntry[] = []
-  let index = 0
+  let current = clone(initialCurrent)
+  let entries = initialEntries.map(cloneEntry)
+  let index = initialIndex
 
   return {
     current() {
@@ -85,17 +90,26 @@ export function createHistory<T extends object>(initial: T): History<T> {
       }
 
       const transformedStates = states.map((state) => transform(clone(state)))
-      const nextHistory = createHistory(transformedStates[0])
+      const transformedEntries: HistoryEntry[] = []
 
       for (let stateIndex = 1; stateIndex < transformedStates.length; stateIndex += 1) {
-        nextHistory.push(replaceWithPatchResult(transformedStates[stateIndex - 1], transformedStates[stateIndex]))
+        const result = replaceWithPatchResult(transformedStates[stateIndex - 1], transformedStates[stateIndex])
+        transformedEntries.push({
+          patches: clone(result.patches),
+          inversePatches: clone(result.inversePatches)
+        })
       }
 
-      for (let stateIndex = transformedStates.length - 1; stateIndex > originalIndex; stateIndex -= 1) {
-        nextHistory.undo()
-      }
-
-      return nextHistory
+      return createHistoryState(
+        transformedStates[0],
+        transformedEntries,
+        originalIndex,
+        transformedStates[originalIndex]
+      )
     }
   }
+}
+
+export function createHistory<T extends object>(initial: T): History<T> {
+  return createHistoryState(initial)
 }

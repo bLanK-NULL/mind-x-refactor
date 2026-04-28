@@ -104,4 +104,47 @@ describe('history', () => {
     expect(renamedHistory.redo().nodes[0].data.title).toBe('Edited Root')
     expect(renamedHistory.current().meta.title).toBe('Renamed Project')
   })
+
+  it('preserves replaceAll boundaries when transformed adjacent states become identical', () => {
+    const base = createEmptyDocument({ projectId: 'p1', title: 'Base', now: '2026-04-26T00:00:00.000Z' })
+    const first = {
+      ...base,
+      meta: {
+        ...base.meta,
+        title: 'Same'
+      }
+    }
+    const second = {
+      ...first,
+      meta: {
+        ...first.meta,
+        title: 'Other'
+      }
+    }
+    const history = createHistory(base)
+    history.push(replaceWithPatchResult(base, first))
+    history.push(replaceWithPatchResult(first, second))
+    history.undo()
+
+    const renamedHistory = history.replaceAll((document) => ({
+      ...document,
+      meta: {
+        ...document.meta,
+        title: 'Same'
+      }
+    }))
+
+    expect(renamedHistory.current().meta.title).toBe('Same')
+    expect(renamedHistory.canUndo()).toBe(true)
+    expect(renamedHistory.canRedo()).toBe(true)
+
+    expect(renamedHistory.undo().meta.title).toBe('Same')
+    expect(renamedHistory.canUndo()).toBe(false)
+    expect(renamedHistory.canRedo()).toBe(true)
+
+    expect(renamedHistory.redo().meta.title).toBe('Same')
+    expect(renamedHistory.canRedo()).toBe(true)
+    expect(renamedHistory.redo().meta.title).toBe('Same')
+    expect(renamedHistory.canRedo()).toBe(false)
+  })
 })
