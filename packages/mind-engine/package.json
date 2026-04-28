@@ -17,6 +17,7 @@
     "test": "vitest run src"
   },
   "dependencies": {
-    "@mind-x/shared": "0.1.0"
+    "@mind-x/shared": "0.1.0",
+    "immer": "^11.1.4"
   }
 }
