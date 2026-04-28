@@ -6,7 +6,7 @@ import {
   type EdgeStyle,
   type TopicNodeStyle
 } from '@mind-x/shared'
-import { createEmptyDocument } from './documentFactory.js'
+import { createEmptyDocument } from '../documentFactory.js'
 import {
   addChildNode,
   addChildNodeCommand,
@@ -23,8 +23,8 @@ import {
   moveNodesCommand,
   setEdgeStyleCommand,
   setNodeStyleCommand
-} from './commands.js'
-import { getParentId } from './graph.js'
+} from '../commands.js'
+import { getParentId } from '../graph.js'
 
 describe('commands', () => {
   it('executes command recipes with forward and inverse patches', () => {

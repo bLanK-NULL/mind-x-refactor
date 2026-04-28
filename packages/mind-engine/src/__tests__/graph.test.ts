@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE } from '@mind-x/shared'
-import { createEmptyDocument } from './documentFactory.js'
-import { assertMindTree, getChildIds, getParentId } from './graph.js'
+import { createEmptyDocument } from '../documentFactory.js'
+import { assertMindTree, getChildIds, getParentId } from '../graph.js'
 
 describe('graph rules', () => {
   it('accepts a document where each node has at most one parent', () => {
