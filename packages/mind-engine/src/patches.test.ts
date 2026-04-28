@@ -28,6 +28,37 @@ describe('patch utilities', () => {
     expect(result.inversePatches).toEqual([])
   })
 
+  it('patches different Date values', () => {
+    const result = replaceWithPatchResult(
+      { createdAt: new Date('2026-04-28T00:00:00.000Z') },
+      { createdAt: new Date('2026-04-29T00:00:00.000Z') }
+    )
+
+    expect(result.patches).not.toEqual([])
+    expect(result.inversePatches).not.toEqual([])
+  })
+
+  it('patches different Map values', () => {
+    const result = replaceWithPatchResult(
+      { values: new Map([['a', 1]]) },
+      { values: new Map([['a', 2]]) }
+    )
+
+    expect(result.patches).not.toEqual([])
+    expect(result.inversePatches).not.toEqual([])
+  })
+
+  it('compares enumerable symbol-keyed plain object values', () => {
+    const key = Symbol('key')
+    const previous = { [key]: 'before' }
+    const next = { [key]: 'after' }
+
+    const result = replaceWithPatchResult(previous, next)
+
+    expect(result.patches).not.toEqual([])
+    expect(result.inversePatches).not.toEqual([])
+  })
+
   it('replaces array roots without leaving stale length', () => {
     const result = replaceWithPatchResult([1, 2, 3], [4])
 

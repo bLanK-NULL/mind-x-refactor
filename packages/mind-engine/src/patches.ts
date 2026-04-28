@@ -37,8 +37,12 @@ function isStructurallyEqual(left: unknown, right: unknown): boolean {
     return left.every((value, index) => isStructurallyEqual(value, right[index]))
   }
 
-  const leftKeys = Object.keys(left)
-  const rightKeys = Object.keys(right)
+  if (!isPlainObject(left) || !isPlainObject(right)) {
+    return false
+  }
+
+  const leftKeys = getEnumerableOwnKeys(left)
+  const rightKeys = getEnumerableOwnKeys(right)
 
   if (leftKeys.length !== rightKeys.length) {
     return false
@@ -50,10 +54,24 @@ function isStructurallyEqual(left: unknown, right: unknown): boolean {
     }
 
     return isStructurallyEqual(
-      (left as Record<string, unknown>)[key],
-      (right as Record<string, unknown>)[key]
+      (left as Record<PropertyKey, unknown>)[key],
+      (right as Record<PropertyKey, unknown>)[key]
     )
   })
+}
+
+function isPlainObject(value: object): value is Record<PropertyKey, unknown> {
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+function getEnumerableOwnKeys(value: object): Array<string | symbol> {
+  return [
+    ...Object.keys(value),
+    ...Object.getOwnPropertySymbols(value).filter((key) =>
+      Object.prototype.propertyIsEnumerable.call(value, key)
+    )
+  ]
 }
 
 export function replaceWithPatchResult<T extends object>(previous: T, next: T): PatchResult<T> {
