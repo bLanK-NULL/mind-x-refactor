@@ -124,58 +124,68 @@ function getPath(edge: MindEdge): string | null {
 </script>
 
 <template>
-  <svg class="edge-renderer" aria-hidden="true" :style="edgeRendererStyle" :viewBox="edgeViewport.viewBox">
-    <defs>
-      <marker
-        :id="edgeArrowMarkerId"
-        markerHeight="8"
-        markerUnits="strokeWidth"
-        markerWidth="8"
-        orient="auto"
-        refX="7"
-        refY="4"
-        viewBox="0 0 8 8"
-      >
-        <path class="edge-renderer__marker" d="M 0 0 L 8 4 L 0 8 z" />
-      </marker>
-      <marker
-        :id="selectedEdgeArrowMarkerId"
-        markerHeight="8"
-        markerUnits="strokeWidth"
-        markerWidth="8"
-        orient="auto"
-        refX="7"
-        refY="4"
-        viewBox="0 0 8 8"
-      >
-        <path class="edge-renderer__marker edge-renderer__marker--selected" d="M 0 0 L 8 4 L 0 8 z" />
-      </marker>
-    </defs>
+  <div class="edge-renderer" aria-hidden="true" :style="edgeRendererStyle">
+    <svg class="edge-renderer__svg" :viewBox="edgeViewport.viewBox">
+      <defs>
+        <marker
+          :id="edgeArrowMarkerId"
+          markerHeight="8"
+          markerUnits="strokeWidth"
+          markerWidth="8"
+          orient="auto"
+          refX="7"
+          refY="4"
+          viewBox="0 0 8 8"
+        >
+          <path class="edge-renderer__marker" d="M 0 0 L 8 4 L 0 8 z" />
+        </marker>
+        <marker
+          :id="selectedEdgeArrowMarkerId"
+          markerHeight="8"
+          markerUnits="strokeWidth"
+          markerWidth="8"
+          orient="auto"
+          refX="7"
+          refY="4"
+          viewBox="0 0 8 8"
+        >
+          <path class="edge-renderer__marker edge-renderer__marker--selected" d="M 0 0 L 8 4 L 0 8 z" />
+        </marker>
+      </defs>
 
-    <template v-for="edge in edges" :key="edge.id">
-      <g v-if="getPath(edge)" data-editor-edge :data-editor-edge-id="edge.id">
-        <path
-          class="edge-renderer__hit-path"
-          :d="getPath(edge) ?? undefined"
-          @click.stop="emit('select', edge.id)"
-          @pointerdown.stop
-          @pointerenter="hoveredEdgeId = edge.id"
-          @pointerleave="hoveredEdgeId = hoveredEdgeId === edge.id ? null : hoveredEdgeId"
-        />
-        <path
-          :class="getVisiblePathClass(edge)"
-          :d="getPath(edge) ?? undefined"
-          :marker-end="getMarkerEnd(edge)"
-          :style="getVisiblePathStyle(edge)"
-        />
-      </g>
-    </template>
-  </svg>
+      <template v-for="edge in edges" :key="edge.id">
+        <g v-if="getPath(edge)" data-editor-edge :data-editor-edge-id="edge.id">
+          <path
+            class="edge-renderer__hit-path"
+            :d="getPath(edge) ?? undefined"
+            @click.stop="emit('select', edge.id)"
+            @pointerdown.stop
+            @pointerenter="hoveredEdgeId = edge.id"
+            @pointerleave="hoveredEdgeId = hoveredEdgeId === edge.id ? null : hoveredEdgeId"
+          />
+          <path
+            :class="getVisiblePathClass(edge)"
+            :d="getPath(edge) ?? undefined"
+            :marker-end="getMarkerEnd(edge)"
+            :style="getVisiblePathStyle(edge)"
+          />
+        </g>
+      </template>
+    </svg>
+  </div>
 </template>
 
 <style scoped>
 .edge-renderer {
   position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.edge-renderer__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
   overflow: visible;
   pointer-events: none;
 }
