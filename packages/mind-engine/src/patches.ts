@@ -1,4 +1,4 @@
-import { enablePatches, produceWithPatches, type Draft, type Patch } from 'immer'
+import { castDraft, enablePatches, produceWithPatches, type Patch, type Producer } from 'immer'
 
 enablePatches()
 
@@ -10,7 +10,7 @@ export type PatchResult<T extends object> = {
 
 export function createPatchResult<T extends object>(
   document: T,
-  recipe: (draft: Draft<T>) => void
+  recipe: Producer<T>
 ): PatchResult<T> {
   const [nextDocument, patches, inversePatches] = produceWithPatches(document, recipe)
   return {
@@ -31,11 +31,5 @@ export function replaceWithPatchResult<T extends object>(previous: T, next: T): 
     }
   }
 
-  return createPatchResult(previous, (draft) => {
-    const target = draft as unknown as Record<string, unknown>
-    for (const key of Object.keys(target)) {
-      delete target[key]
-    }
-    Object.assign(target, clonedNext)
-  })
+  return createPatchResult(previous, () => castDraft(clonedNext))
 }
