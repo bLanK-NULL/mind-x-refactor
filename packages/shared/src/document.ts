@@ -23,6 +23,10 @@ export const viewportSchema = z.object({
   zoom: z.number().min(0.2).max(3)
 })
 
+const pointV2Schema = pointSchema.strict()
+const sizeV2Schema = sizeSchema.strict()
+const viewportV2Schema = viewportSchema.strict()
+
 export const legacyThemeNameSchema = z.enum(['light', 'dark', 'colorful', 'vivid'])
 export const edgeComponentSchema = z.enum(['plain', 'dashed', 'arrow', 'dashed-arrow'])
 export const edgeDirectionSchema = z.literal('source-target')
@@ -133,16 +137,24 @@ export const createDefaultEdgeStyle = (): z.infer<typeof edgeStyleSchema> => ({
   labelStyle: { ...DEFAULT_EDGE_STYLE.labelStyle }
 })
 
+const mindNodeDataSchema = z.object({
+  title: plainTextSchema
+}).strict()
+
+const mindDocumentMetaSchema = z.object({
+  projectId: z.string().min(1),
+  title: plainTextSchema,
+  updatedAt: z.string().datetime()
+}).strict()
+
 export const mindNodeSchema = z.object({
   id: z.string().min(1),
   type: z.literal('topic'),
-  position: pointSchema,
-  size: sizeSchema.optional(),
-  data: z.object({
-    title: plainTextSchema
-  }),
+  position: pointV2Schema,
+  size: sizeV2Schema.optional(),
+  data: mindNodeDataSchema,
   style: topicNodeStyleSchema
-})
+}).strict()
 
 export const mindEdgeSchema = z.object({
   id: z.string().min(1),
@@ -150,19 +162,15 @@ export const mindEdgeSchema = z.object({
   target: z.string().min(1),
   type: z.literal('mind-parent'),
   style: edgeStyleSchema
-})
+}).strict()
 
 export const mindDocumentV2Schema = z.object({
   version: z.literal(2),
-  meta: z.object({
-    projectId: z.string().min(1),
-    title: plainTextSchema,
-    updatedAt: z.string().datetime()
-  }),
-  viewport: viewportSchema,
+  meta: mindDocumentMetaSchema,
+  viewport: viewportV2Schema,
   nodes: z.array(mindNodeSchema),
   edges: z.array(mindEdgeSchema)
-})
+}).strict()
 
 export const mindDocumentSchema = mindDocumentV2Schema
 

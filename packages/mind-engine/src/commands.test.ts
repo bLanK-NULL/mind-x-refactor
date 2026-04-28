@@ -190,6 +190,22 @@ describe('commands', () => {
     expect(doc).toEqual(original)
   })
 
+  it('rejects commands against v2 documents with legacy edge component fields', () => {
+    const doc = addChildNode(
+      addRootNode(createEmptyDocument({ projectId: 'project-1', title: 'Project One', now: '2026-04-26T00:00:00.000Z' }), {
+        id: 'root',
+        title: 'Root'
+      }),
+      { parentId: 'root', id: 'child', title: 'Child' }
+    )
+    const invalidDoc = {
+      ...doc,
+      edges: [{ ...doc.edges[0], component: 'dashed-arrow' }]
+    }
+
+    expect(() => executeCommand(invalidDoc as any, moveNodesCommand, { nodeIds: ['root'], delta: { x: 1, y: 1 } })).toThrow()
+  })
+
   it('generates inverse patches for title, movement, edge, and delete commands', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(

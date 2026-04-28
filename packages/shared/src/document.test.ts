@@ -338,6 +338,25 @@ describe('mind document versions', () => {
     ).toBe(false)
   })
 
+  it('rejects legacy edge component fields on v2 documents', () => {
+    expect(
+      mindDocumentSchema.safeParse(
+        v2Document({
+          edges: [
+            {
+              id: 'root->child',
+              source: 'root',
+              target: 'child',
+              type: 'mind-parent',
+              component: 'dashed-arrow',
+              style: DEFAULT_EDGE_STYLE
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
+  })
+
   it('migrates save document request bodies to v2', () => {
     const parsed = saveDocumentRequestSchema.parse({ document: v1Document() })
 
