@@ -8,13 +8,19 @@ import {
   type Viewport
 } from '@mind-x/shared'
 import {
-  addChildNode,
+  addChildNodeCommand,
+  addRootNodeCommand,
   createHistory,
-  deleteEdgeDetachChild,
-  deleteNodePromoteChildren,
-  editNodeTitle,
+  deleteEdgeDetachChildCommand,
+  deleteNodesPromoteChildrenCommand,
+  editNodeTitleCommand,
+  executeCommand,
   moveNodes,
-  setEdgeComponent,
+  moveNodesCommand,
+  replaceWithPatchResult,
+  setDocumentThemeCommand,
+  setEdgeComponentCommand,
+  type CommandResult,
   type History
 } from '@mind-x/mind-engine'
 import { defineStore } from 'pinia'
@@ -51,16 +57,6 @@ function retitleDocument(document: MindDocument, title: string): MindDocument {
   next.meta = {
     ...next.meta,
     title
-  }
-  mindDocumentSchema.parse(next)
-  return next
-}
-
-function rethemeDocument(document: MindDocument, theme: ThemeName): MindDocument {
-  const next = cloneDocument(document)
-  next.meta = {
-    ...next.meta,
-    theme
   }
   mindDocumentSchema.parse(next)
   return next
@@ -111,27 +107,7 @@ function compactSelectedEdge(document: MindDocument | null, selectedEdgeId: stri
 }
 
 function retitleHistory(history: History<MindDocument>, title: string): History<MindDocument> {
-  let originalIndex = 0
-  while (history.canUndo()) {
-    history.undo()
-    originalIndex += 1
-  }
-
-  const entries = [retitleDocument(history.current(), title)]
-  while (history.canRedo()) {
-    entries.push(retitleDocument(history.redo(), title))
-  }
-
-  const nextHistory = createHistory(entries[0])
-  for (const entry of entries.slice(1)) {
-    nextHistory.push(entry)
-  }
-
-  for (let currentIndex = entries.length - 1; currentIndex > originalIndex; currentIndex -= 1) {
-    nextHistory.undo()
-  }
-
-  return nextHistory
+  return history.replaceAll((document) => retitleDocument(document, title))
 }
 
 export const useEditorStore = defineStore('editor', {
@@ -167,21 +143,31 @@ export const useEditorStore = defineStore('editor', {
       this.history = markRaw(createHistory(next))
       this.syncHistoryState()
     },
-    commit(document: MindDocument): void {
-      const next = cloneDocument(document)
+    commitCommandResult(result: CommandResult): void {
+      const next = cloneDocument(result.document)
       this.document = next
-      this.history?.push(next)
+      this.history?.push({
+        document: next,
+        patches: result.patches,
+        inversePatches: result.inversePatches
+      })
       this.selectedNodeIds = compactSelection(next, this.selectedNodeIds)
       this.selectedEdgeId = compactSelectedEdge(next, this.selectedEdgeId)
       this.syncDirtyState()
       this.syncHistoryState()
     },
+    commit(document: MindDocument): void {
+      const next = cloneDocument(document)
+      const current = this.history?.current() ?? this.document ?? next
+      this.commitCommandResult(replaceWithPatchResult(current, next))
+    },
     commitCurrentDocument(): void {
-      if (!this.document) {
+      if (!this.document || !this.history) {
         return
       }
 
-      const currentJson = this.history ? serializeMindDocument(this.history.current()) : null
+      const current = this.history.current()
+      const currentJson = serializeMindDocument(current)
       const nextJson = serializeMindDocument(this.document)
       if (currentJson === nextJson) {
         this.syncDirtyState()
@@ -189,7 +175,7 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      this.commit(this.document)
+      this.commitCommandResult(replaceWithPatchResult(current, cloneDocument(this.document)))
     },
     finishInteraction(): void {
       this.commitCurrentDocument()
@@ -227,7 +213,7 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      this.commit(rethemeDocument(this.document, theme))
+      this.commitCommandResult(executeCommand(cloneDocument(this.document), setDocumentThemeCommand, { theme }))
     },
     selectOnly(nodeId: string): void {
       this.selectedNodeIds = compactSelection(this.document, [nodeId])
@@ -255,18 +241,10 @@ export const useEditorStore = defineStore('editor', {
       const id = input.id ?? createNodeId(this.document)
       const title = input.title ?? 'New topic'
       assertTopicInput(id, title)
-      const next = cloneDocument(this.document)
-      next.nodes.push({
-        id,
-        type: 'topic',
-        position: { x: 0, y: 0 },
-        size: { width: 180, height: 56 },
-        data: { title }
-      })
-      mindDocumentSchema.parse(next)
+      const result = executeCommand(cloneDocument(this.document), addRootNodeCommand, { id, title })
       this.selectedNodeIds = [id]
       this.selectedEdgeId = null
-      this.commit(next)
+      this.commitCommandResult(result)
       return id
     },
     addChildTopic(input: AddChildTopicInput = {}): string | null {
@@ -280,14 +258,14 @@ export const useEditorStore = defineStore('editor', {
       }
 
       const id = input.id ?? createNodeId(this.document)
-      const next = addChildNode(cloneDocument(this.document), {
+      const result = executeCommand(cloneDocument(this.document), addChildNodeCommand, {
         parentId,
         id,
         title: input.title ?? 'New topic'
       })
       this.selectedNodeIds = [id]
       this.selectedEdgeId = null
-      this.commit(next)
+      this.commitCommandResult(result)
       return id
     },
     editNodeTitle(nodeId: string, title: string): void {
@@ -295,14 +273,16 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      this.commit(editNodeTitle(cloneDocument(this.document), { nodeId, title }))
+      this.commitCommandResult(executeCommand(cloneDocument(this.document), editNodeTitleCommand, { nodeId, title }))
     },
     moveSelectedByWorldDelta(delta: Point): void {
       if (!this.document || this.selectedNodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
         return
       }
 
-      this.commit(moveNodes(cloneDocument(this.document), { nodeIds: this.selectedNodeIds, delta }))
+      this.commitCommandResult(
+        executeCommand(cloneDocument(this.document), moveNodesCommand, { nodeIds: this.selectedNodeIds, delta })
+      )
     },
     moveSelectedByScreenDelta(delta: Point): void {
       if (!this.document) {
@@ -347,8 +327,8 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      this.commit(
-        setEdgeComponent(cloneDocument(this.document), {
+      this.commitCommandResult(
+        executeCommand(cloneDocument(this.document), setEdgeComponentCommand, {
           edgeId: this.selectedEdgeId,
           component
         })
@@ -368,7 +348,7 @@ export const useEditorStore = defineStore('editor', {
 
         this.selectedEdgeId = null
         this.selectedNodeIds = []
-        this.commit(deleteEdgeDetachChild(cloneDocument(this.document), { edgeId }))
+        this.commitCommandResult(executeCommand(cloneDocument(this.document), deleteEdgeDetachChildCommand, { edgeId }))
         return
       }
 
@@ -376,16 +356,9 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      let next = cloneDocument(this.document)
-      for (const nodeId of this.selectedNodeIds) {
-        if (next.nodes.some((node) => node.id === nodeId)) {
-          next = deleteNodePromoteChildren(next, { nodeId })
-        }
-      }
-
-      this.selectedNodeIds = compactSelection(next, this.selectedNodeIds)
-      this.selectedEdgeId = compactSelectedEdge(next, this.selectedEdgeId)
-      this.commit(next)
+      this.commitCommandResult(
+        executeCommand(cloneDocument(this.document), deleteNodesPromoteChildrenCommand, { nodeIds: this.selectedNodeIds })
+      )
     },
     undo(): void {
       if (!this.history?.canUndo()) {

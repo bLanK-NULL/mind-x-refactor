@@ -459,6 +459,35 @@ describe('editor store', () => {
     expect(store.dirty).toBe(true)
   })
 
+  it('keeps external project renames through redo history after undo', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+      })
+    )
+    store.editNodeTitle('root', 'First edit')
+    store.editNodeTitle('root', 'Second edit')
+    store.undo()
+
+    store.updateDocumentTitle('Renamed While Redo Exists')
+
+    expect(store.document?.meta.title).toBe('Renamed While Redo Exists')
+    expect(store.document?.nodes[0].data.title).toBe('First edit')
+    expect(store.canRedo).toBe(true)
+
+    store.undo()
+    expect(store.document?.meta.title).toBe('Renamed While Redo Exists')
+    expect(store.document?.nodes[0].data.title).toBe('Root')
+
+    store.redo()
+    expect(store.document?.meta.title).toBe('Renamed While Redo Exists')
+    expect(store.document?.nodes[0].data.title).toBe('First edit')
+
+    store.redo()
+    expect(store.document?.meta.title).toBe('Renamed While Redo Exists')
+    expect(store.document?.nodes[0].data.title).toBe('Second edit')
+  })
+
   it('does not mutate state when undo or redo is invoked at the history boundary', () => {
     const store = loadedStore()
     store.addRootTopic({ id: 'root', title: 'Root topic' })
