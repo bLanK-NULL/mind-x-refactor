@@ -1,36 +1,46 @@
 <script setup lang="ts">
+import type { Point } from '@mind-x/shared'
 import { CloseOutlined } from '@ant-design/icons-vue'
-import { reactive, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { clampInspectorPosition } from './inspectorPosition'
 
-defineProps<{
+const props = defineProps<{
+  position: Point
   title: string
 }>()
 
 const emit = defineEmits<{
   close: []
+  positionChange: [position: Point]
 }>()
 
-const position = reactive({ x: 24, y: 88 })
 const draggingPointerId = ref<number | null>(null)
-const lastPointer = ref<{ x: number; y: number } | null>(null)
+const lastPointer = ref<Point | null>(null)
+const draftPosition = ref<Point | null>(null)
+const activePosition = computed(() => draftPosition.value ?? props.position)
 
 function startDrag(event: PointerEvent): void {
   draggingPointerId.value = event.pointerId
   lastPointer.value = { x: event.clientX, y: event.clientY }
+  draftPosition.value = { ...props.position }
   ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
   event.preventDefault()
   event.stopPropagation()
 }
 
 function moveDrag(event: PointerEvent): void {
-  if (draggingPointerId.value !== event.pointerId || !lastPointer.value) {
+  if (draggingPointerId.value !== event.pointerId || !lastPointer.value || !draftPosition.value) {
     return
   }
 
   const nextPointer = { x: event.clientX, y: event.clientY }
-  position.x = Math.max(8, position.x + nextPointer.x - lastPointer.value.x)
-  position.y = Math.max(8, position.y + nextPointer.y - lastPointer.value.y)
+  const nextPosition = clampInspectorPosition({
+    x: draftPosition.value.x + nextPointer.x - lastPointer.value.x,
+    y: draftPosition.value.y + nextPointer.y - lastPointer.value.y
+  })
+  draftPosition.value = nextPosition
   lastPointer.value = nextPointer
+  emit('positionChange', nextPosition)
   event.preventDefault()
   event.stopPropagation()
 }
@@ -57,6 +67,7 @@ function cleanupDrag(event: PointerEvent): void {
 
   draggingPointerId.value = null
   lastPointer.value = null
+  draftPosition.value = null
 }
 </script>
 
@@ -64,7 +75,7 @@ function cleanupDrag(event: PointerEvent): void {
   <aside
     class="inspector-panel"
     data-editor-control
-    :style="{ transform: `translate(${position.x}px, ${position.y}px)` }"
+    :style="{ transform: `translate(${activePosition.x}px, ${activePosition.y}px)` }"
     @click.stop
     @pointerdown.stop
   >
