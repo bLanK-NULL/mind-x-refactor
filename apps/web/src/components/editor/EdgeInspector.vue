@@ -1,37 +1,78 @@
 <script setup lang="ts">
 import { DeleteOutlined } from '@ant-design/icons-vue'
-import type { MindEdgeComponent } from '@mind-x/shared'
-import { EDGE_COMPONENT_OPTIONS } from './edgeComponents'
+import type { EdgeStyle } from '@mind-x/shared'
+import ColorTokenPicker from './ColorTokenPicker.vue'
+import StyleField from './StyleField.vue'
 
 defineProps<{
-  component: MindEdgeComponent
+  style: EdgeStyle
 }>()
 
 const emit = defineEmits<{
-  componentChange: [component: MindEdgeComponent]
+  styleChange: [stylePatch: Partial<EdgeStyle>]
   delete: []
 }>()
 
-function onComponentChange(component: MindEdgeComponent): void {
-  emit('componentChange', component)
+function emitLinePatternChange(linePattern: unknown): void {
+  emit('styleChange', { linePattern: linePattern as EdgeStyle['linePattern'] })
+}
+
+function emitArrowChange(arrow: unknown): void {
+  emit('styleChange', { arrow: arrow as EdgeStyle['arrow'] })
+}
+
+function emitWidthChange(width: unknown): void {
+  emit('styleChange', { width: width as EdgeStyle['width'] })
+}
+
+function emitRoutingChange(routing: unknown): void {
+  emit('styleChange', { routing: routing as EdgeStyle['routing'] })
 }
 </script>
 
 <template>
   <section class="edge-inspector" aria-label="Edge inspector">
-    <label id="edge-inspector-component-label" class="edge-inspector__label">Edge component</label>
-    <a-radio-group
-      class="edge-inspector__components"
-      aria-labelledby="edge-inspector-component-label"
-      :value="component"
-      button-style="solid"
-      size="small"
-      @update:value="onComponentChange"
-    >
-      <a-radio-button v-for="option in EDGE_COMPONENT_OPTIONS" :key="option.value" :value="option.value">
-        {{ option.label }}
-      </a-radio-button>
-    </a-radio-group>
+    <StyleField label="Color">
+      <ColorTokenPicker :value="style.colorToken" @change="(colorToken) => emit('styleChange', { colorToken })" />
+    </StyleField>
+    <StyleField label="Line">
+      <a-select
+        :value="style.linePattern"
+        size="small"
+        @change="emitLinePatternChange"
+      >
+        <a-select-option value="solid">Solid</a-select-option>
+        <a-select-option value="dashed">Dashed</a-select-option>
+        <a-select-option value="dotted">Dotted</a-select-option>
+      </a-select>
+    </StyleField>
+    <StyleField label="Arrow">
+      <a-segmented
+        :options="['none', 'end']"
+        :value="style.arrow"
+        size="small"
+        @change="emitArrowChange"
+      />
+    </StyleField>
+    <StyleField label="Width">
+      <a-segmented
+        :options="['thin', 'regular', 'thick']"
+        :value="style.width"
+        size="small"
+        @change="emitWidthChange"
+      />
+    </StyleField>
+    <StyleField label="Routing">
+      <a-select
+        :value="style.routing"
+        size="small"
+        @change="emitRoutingChange"
+      >
+        <a-select-option value="curved">Curved</a-select-option>
+        <a-select-option value="straight">Straight</a-select-option>
+        <a-select-option value="elbow">Elbow</a-select-option>
+      </a-select>
+    </StyleField>
 
     <a-button block danger type="text" @click="emit('delete')">
       <template #icon>
@@ -46,29 +87,5 @@ function onComponentChange(component: MindEdgeComponent): void {
 .edge-inspector {
   display: grid;
   gap: 10px;
-}
-
-.edge-inspector__label {
-  color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1.2;
-}
-
-.edge-inspector__components {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.edge-inspector__components :deep(.ant-radio-button-wrapper) {
-  width: 100%;
-  border-inline-start-width: 1px;
-  border-radius: 6px;
-  text-align: center;
-}
-
-.edge-inspector__components :deep(.ant-radio-button-wrapper::before) {
-  display: none;
 }
 </style>

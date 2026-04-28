@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { MindDocument, MindEdge, MindEdgeComponent, Point } from '@mind-x/shared'
+import type { EdgeStyle, MindDocument, MindEdge, MindNode, Point, TopicNodeStyle } from '@mind-x/shared'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useEditorStore } from '@/stores/editor'
-import { getEdgeComponent } from './edgeComponents'
 import EdgeInspector from './EdgeInspector.vue'
 import EdgeRenderer from './EdgeRenderer.vue'
 import EditorContextMenu from './EditorContextMenu.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import InspectorPanel from './InspectorPanel.vue'
 import { isTextEditingTarget } from './keyboardTargets'
+import NodeInspector from './NodeInspector.vue'
 import NodeRenderer from './NodeRenderer.vue'
 import SelectionLayer from './SelectionLayer.vue'
 import ViewportPane from './ViewportPane.vue'
@@ -37,6 +37,13 @@ const hasDocument = computed(() => documentState.value !== null)
 const hasNodes = computed(() => (documentState.value?.nodes.length ?? 0) > 0)
 const hasSelection = computed(() => editor.selectedNodeIds.length > 0)
 const hasDeletableSelection = computed(() => hasSelection.value || editor.selectedEdgeId !== null)
+const selectedNode = computed<MindNode | null>(() => {
+  if (!documentState.value || editor.selectedNodeIds.length !== 1) {
+    return null
+  }
+
+  return documentState.value.nodes.find((node) => node.id === editor.selectedNodeIds[0]) ?? null
+})
 const selectedEdge = computed<MindEdge | null>(() => {
   if (!documentState.value || !editor.selectedEdgeId) {
     return null
@@ -123,8 +130,12 @@ function clearSelectionFromCanvas(event: PointerEvent): void {
   editor.clearSelection()
 }
 
-function setSelectedEdgeComponent(component: MindEdgeComponent): void {
-  editor.setSelectedEdgeComponent(component)
+function setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
+  editor.setSelectedNodeStyle(stylePatch)
+}
+
+function setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void {
+  editor.setSelectedEdgeStyle(stylePatch)
 }
 
 function deleteSelectedEdgeFromInspector(): void {
@@ -216,11 +227,15 @@ onUnmounted(() => {
       />
     </ViewportPane>
 
+    <InspectorPanel v-if="selectedNode" title="Node" @close="editor.clearSelection">
+      <NodeInspector :style="selectedNode.style" @style-change="setSelectedNodeStyle" />
+    </InspectorPanel>
+
     <InspectorPanel v-if="selectedEdge" title="Edge" @close="editor.clearSelection">
       <EdgeInspector
-        :component="getEdgeComponent(selectedEdge)"
-        @component-change="setSelectedEdgeComponent"
+        :style="selectedEdge.style"
         @delete="deleteSelectedEdgeFromInspector"
+        @style-change="setSelectedEdgeStyle"
       />
     </InspectorPanel>
 
