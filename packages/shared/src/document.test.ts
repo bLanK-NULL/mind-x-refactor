@@ -344,6 +344,94 @@ describe('mind document versions', () => {
     })
   })
 
+  it('migrates v1 topic documents to valid v3 topic documents', () => {
+    const migrated = migrateMindDocumentToV3(v1Document())
+
+    expect(mindDocumentV3Schema.parse(migrated)).toEqual(migrated)
+    expect(migrated).toMatchObject({
+      version: 3,
+      meta: {
+        projectId: 'project-1',
+        title: 'Planning',
+        updatedAt: '2026-04-26T00:00:00.000Z'
+      },
+      nodes: [
+        {
+          id: 'root',
+          type: 'topic',
+          size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+          data: { title: 'Root' },
+          contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
+        },
+        {
+          id: 'child',
+          type: 'topic',
+          size: { width: 180, height: 72 },
+          data: { title: 'Child' },
+          contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
+        }
+      ]
+    })
+  })
+
+  it('returns parsed v3 documents unchanged through v3 migration', () => {
+    const document = v3Document({
+      nodes: [
+        {
+          id: 'link',
+          type: 'link',
+          position: { x: 0, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.link,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { title: 'Docs', url: 'https://example.com/docs' },
+          contentStyle: DEFAULT_LINK_CONTENT_STYLE
+        }
+      ]
+    })
+
+    expect(migrateMindDocumentToV3(document)).toEqual(mindDocumentV3Schema.parse(document))
+  })
+
+  it('migrates v2 topic sizes as fresh objects', () => {
+    const explicitSize = { width: 222, height: 66 }
+    const migrated = migrateMindDocumentToV3(
+      v2Document({
+        nodes: [
+          {
+            id: 'root',
+            type: 'topic',
+            position: { x: 0, y: 0 },
+            data: { title: 'Root' },
+            style: DEFAULT_TOPIC_STYLE
+          },
+          {
+            id: 'sibling',
+            type: 'topic',
+            position: { x: 240, y: 0 },
+            data: { title: 'Sibling' },
+            style: DEFAULT_TOPIC_STYLE
+          },
+          {
+            id: 'explicit',
+            type: 'topic',
+            position: { x: 480, y: 0 },
+            size: explicitSize,
+            data: { title: 'Explicit' },
+            style: DEFAULT_TOPIC_STYLE
+          }
+        ]
+      })
+    )
+
+    expect(migrated.nodes[0].size).toEqual(DEFAULT_NODE_SIZE_BY_TYPE.topic)
+    expect(migrated.nodes[0].size).not.toBe(DEFAULT_NODE_SIZE_BY_TYPE.topic)
+    expect(migrated.nodes[1].size).not.toBe(DEFAULT_NODE_SIZE_BY_TYPE.topic)
+    expect(migrated.nodes[0].size).not.toBe(migrated.nodes[1].size)
+    expect(migrated.nodes[2].size).toEqual(explicitSize)
+    expect(migrated.nodes[2].size).not.toBe(explicitSize)
+    expect(migrated.nodes[2].size).not.toBe(migrated.nodes[0].size)
+  })
+
   it('rejects invalid v3 URLs and empty task lists', () => {
     expect(
       mindDocumentV3Schema.safeParse(
@@ -380,6 +468,51 @@ describe('mind document versions', () => {
         })
       ).success
     ).toBe(false)
+  })
+
+  it('rejects unsupported v3 URL schemes for URL-backed node types', () => {
+    const urlBackedNodes = [
+      {
+        type: 'image',
+        size: DEFAULT_NODE_SIZE_BY_TYPE.image,
+        contentStyle: DEFAULT_IMAGE_CONTENT_STYLE,
+        dataForUrl: (url: string) => ({ url })
+      },
+      {
+        type: 'link',
+        size: DEFAULT_NODE_SIZE_BY_TYPE.link,
+        contentStyle: DEFAULT_LINK_CONTENT_STYLE,
+        dataForUrl: (url: string) => ({ title: 'Docs', url })
+      },
+      {
+        type: 'attachment',
+        size: DEFAULT_NODE_SIZE_BY_TYPE.attachment,
+        contentStyle: DEFAULT_ATTACHMENT_CONTENT_STYLE,
+        dataForUrl: (url: string) => ({ fileName: 'brief.pdf', url })
+      }
+    ] as const
+
+    for (const node of urlBackedNodes) {
+      for (const url of ['javascript:alert(1)', 'data:text/plain,hello', 'ftp://example.com/file']) {
+        expect(
+          mindDocumentV3Schema.safeParse(
+            v3Document({
+              nodes: [
+                {
+                  id: `${node.type}-${url}`,
+                  type: node.type,
+                  position: { x: 0, y: 0 },
+                  size: node.size,
+                  shellStyle: DEFAULT_NODE_SHELL_STYLE,
+                  data: node.dataForUrl(url),
+                  contentStyle: node.contentStyle
+                }
+              ]
+            })
+          ).success
+        ).toBe(false)
+      }
+    }
   })
 
   it('rejects invalid object color tokens and missing v2 styles', () => {

@@ -7,6 +7,18 @@ export const createPlainTextSchema = (maxLength = 500) =>
 
 export const plainTextSchema = createPlainTextSchema()
 
+export const webUrlSchema = z.string().refine(
+  (value) => {
+    try {
+      const url = new URL(value)
+      return url.protocol === 'http:' || url.protocol === 'https:'
+    } catch {
+      return false
+    }
+  },
+  { message: 'URL must use http or https' }
+)
+
 export const pointSchema = z.object({
   x: z.number().finite(),
   y: z.number().finite()
@@ -262,7 +274,7 @@ const topicNodeV3Schema = nodeBaseV3Schema.extend({
 const imageNodeV3Schema = nodeBaseV3Schema.extend({
   type: z.literal('image'),
   data: z.object({
-    url: z.string().url(),
+    url: webUrlSchema,
     alt: plainTextSchema.optional(),
     caption: plainTextSchema.optional()
   }).strict(),
@@ -272,7 +284,7 @@ const imageNodeV3Schema = nodeBaseV3Schema.extend({
 const linkNodeV3Schema = nodeBaseV3Schema.extend({
   type: z.literal('link'),
   data: z.object({
-    url: z.string().url(),
+    url: webUrlSchema,
     title: plainTextSchema,
     description: plainTextSchema.optional()
   }).strict(),
@@ -282,7 +294,7 @@ const linkNodeV3Schema = nodeBaseV3Schema.extend({
 const attachmentNodeV3Schema = nodeBaseV3Schema.extend({
   type: z.literal('attachment'),
   data: z.object({
-    url: z.string().url(),
+    url: webUrlSchema,
     fileName: plainTextSchema,
     fileSizeLabel: plainTextSchema.optional(),
     mimeType: plainTextSchema.optional()
@@ -385,6 +397,13 @@ function createDefaultTopicContentStyleFromLegacy(style: TopicNodeStyle): z.infe
   }
 }
 
+function cloneSize(size: Size): Size {
+  return {
+    height: size.height,
+    width: size.width
+  }
+}
+
 function migrateV2MindDocumentToV3(v2: z.infer<typeof mindDocumentV2Schema>): z.infer<typeof mindDocumentV3Schema> {
   return {
     version: 3,
@@ -394,7 +413,7 @@ function migrateV2MindDocumentToV3(v2: z.infer<typeof mindDocumentV2Schema>): z.
       id: node.id,
       type: 'topic',
       position: node.position,
-      size: node.size ?? LEGACY_TOPIC_SIZE_TO_NODE_SIZE[node.style.size],
+      size: cloneSize(node.size ?? LEGACY_TOPIC_SIZE_TO_NODE_SIZE[node.style.size]),
       shellStyle: migrateTopicStyleToShellStyle(node.style),
       data: node.data,
       contentStyle: createDefaultTopicContentStyleFromLegacy(node.style)
