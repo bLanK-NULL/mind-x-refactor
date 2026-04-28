@@ -357,12 +357,17 @@ describe('mind document versions', () => {
     ).toBe(false)
   })
 
-  it('migrates save document request bodies to v2', () => {
-    const parsed = saveDocumentRequestSchema.parse({ document: v1Document() })
+  it('accepts v2 save document request bodies', () => {
+    const document = v2Document()
+    const parsed = saveDocumentRequestSchema.parse({ document })
 
-    expect(parsed.document.version).toBe(2)
-    expect(parsed.document.nodes[0].style).toEqual(DEFAULT_TOPIC_STYLE)
-    expect(parsed.document.edges[0].style).toEqual(DEFAULT_EDGE_STYLE)
+    expect(parsed.document).toEqual(mindDocumentV2Schema.parse(document))
+  })
+
+  it('rejects v1 save document request bodies', () => {
+    const result = saveDocumentRequestSchema.safeParse({ document: v1Document() })
+
+    expect(result.success).toBe(false)
   })
 
   it('returns a failed safeParse result for invalid document request styles instead of throwing', () => {
