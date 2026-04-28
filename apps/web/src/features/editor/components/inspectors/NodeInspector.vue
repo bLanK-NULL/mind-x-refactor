@@ -12,6 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   contentChange: [dataPatch: Record<string, unknown>]
+  contentStyleChange: [stylePatch: Record<string, unknown>]
   shellStyleChange: [stylePatch: Partial<NodeShellStyle>]
 }>()
 
@@ -29,6 +30,10 @@ function emitBorderStyleChange(borderStyle: unknown): void {
 
 function emitShadowLevelChange(shadowLevel: unknown): void {
   emit('shellStyleChange', { shadowLevel: shadowLevel as NodeShellStyle['shadowLevel'] })
+}
+
+function emitTextWeightChange(textWeight: unknown): void {
+  emit('contentStyleChange', { textWeight })
 }
 
 function textValue(event: Event): string {
@@ -174,6 +179,17 @@ function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
     <template v-if="node.type === 'topic'">
       <StyleField label="Title">
         <a-input :value="node.data.title" size="small" @change="updateTopicTitle" />
+      </StyleField>
+      <StyleField label="Text">
+        <a-select
+          :value="node.contentStyle.textWeight"
+          size="small"
+          @change="emitTextWeightChange"
+        >
+          <a-select-option value="regular">Regular</a-select-option>
+          <a-select-option value="medium">Medium</a-select-option>
+          <a-select-option value="bold">Bold</a-select-option>
+        </a-select>
       </StyleField>
     </template>
 

@@ -14,6 +14,17 @@ const TEXT_EDITING_INPUT_TYPES = new Set([
   'week'
 ])
 
+const EDITOR_SHORTCUT_PROTECTED_SELECTOR = [
+  'input',
+  'textarea',
+  'select',
+  'button',
+  '[contenteditable="true"]',
+  '[data-editor-control]',
+  '.editor-toolbar',
+  '.editor-context-menu'
+].join(', ')
+
 export function isTextEditingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false
@@ -28,4 +39,16 @@ export function isTextEditingTarget(target: EventTarget | null): boolean {
   }
 
   return target.isContentEditable
+}
+
+export function isEditorShortcutTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  if (target instanceof HTMLInputElement) {
+    return true
+  }
+
+  return isTextEditingTarget(target) || target.closest(EDITOR_SHORTCUT_PROTECTED_SELECTOR) !== null
 }

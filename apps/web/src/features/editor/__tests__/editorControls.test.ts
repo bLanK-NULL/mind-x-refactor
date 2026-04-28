@@ -49,20 +49,25 @@ describe('editor multi-type controls', () => {
     expect(source).toContain('editor.addChildNode({ type })')
     expect(source).toContain("addChild('topic')")
     expect(source).toContain('editor.updateNodeData(selectedNode.value.id, dataPatch)')
+    expect(source).toContain('editor.setSelectedNodeContentStyle(stylePatch)')
     expect(source).toContain('editor.setSelectedNodeShellStyle(stylePatch)')
     expect(source).toContain(':node="selectedNode"')
     expect(source).toContain('@content-change="setSelectedNodeContent"')
+    expect(source).toContain('@content-style-change="setSelectedNodeContentStyle"')
     expect(source).toContain('@shell-style-change="setSelectedNodeShellStyle"')
   })
 
-  it('lets NodeInspector edit shell style and type-specific node data', () => {
+  it('lets NodeInspector edit shell style, content style, and type-specific node data', () => {
     const source = readEditorSource('../components/inspectors/NodeInspector.vue')
 
     expect(source).toContain("import type { MindNode, NodeShellStyle } from '@mind-x/shared'")
     expect(source).toContain('node: MindNode')
     expect(source).toContain('contentChange: [dataPatch: Record<string, unknown>]')
+    expect(source).toContain('contentStyleChange: [stylePatch: Record<string, unknown>]')
     expect(source).toContain('shellStyleChange: [stylePatch: Partial<NodeShellStyle>]')
     expect(source).toContain("emit('shellStyleChange', { colorToken })")
+    expect(source).toContain("emit('contentStyleChange', { textWeight })")
+    expect(source).not.toContain("label=\"Size\"")
     expect(source).toContain("emit('contentChange', { title })")
     expect(source).toContain("emit('contentChange', { url, alt")
     expect(source).toContain("emit('contentChange', { title, url })")

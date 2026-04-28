@@ -9,7 +9,7 @@ import EditorContextMenu from './context-menu/EditorContextMenu.vue'
 import EditorToolbar from './toolbar/EditorToolbar.vue'
 import InspectorPanel from './inspectors/InspectorPanel.vue'
 import { readStoredInspectorPosition, writeStoredInspectorPosition } from '../utils/inspectorPosition'
-import { isTextEditingTarget } from '../utils/keyboardTargets'
+import { isEditorShortcutTarget } from '../utils/keyboardTargets'
 import NodeInspector from './inspectors/NodeInspector.vue'
 import NodeRenderer from './canvas/NodeRenderer.vue'
 import SelectionLayer from './canvas/SelectionLayer.vue'
@@ -157,6 +157,10 @@ function setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void {
   editor.setSelectedNodeShellStyle(stylePatch)
 }
 
+function setSelectedNodeContentStyle(stylePatch: Record<string, unknown>): void {
+  editor.setSelectedNodeContentStyle(stylePatch)
+}
+
 function setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void {
   editor.setSelectedEdgeStyle(stylePatch)
 }
@@ -176,7 +180,7 @@ function deleteFromContextMenu(): void {
 }
 
 function onKeydown(event: KeyboardEvent): void {
-  if (isTextEditingTarget(event.target)) {
+  if (isEditorShortcutTarget(event.target)) {
     return
   }
 
@@ -262,6 +266,7 @@ onUnmounted(() => {
       <NodeInspector
         :node="selectedNode"
         @content-change="setSelectedNodeContent"
+        @content-style-change="setSelectedNodeContentStyle"
         @shell-style-change="setSelectedNodeShellStyle"
       />
     </InspectorPanel>
