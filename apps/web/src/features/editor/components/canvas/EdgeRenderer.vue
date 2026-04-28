@@ -5,7 +5,7 @@ let edgeRendererInstanceCounter = 0
 <script setup lang="ts">
 import type { MindEdge, MindNode } from '@mind-x/shared'
 import { computed, ref } from 'vue'
-import { createEdgePath, getEdgeMarkerEnd, resolveEdgeStyle } from './objectStyles'
+import { createEdgePath, getEdgeMarkerEnd, resolveEdgeStyle } from '../../utils/objectStyles'
 
 const props = defineProps<{
   edges: MindEdge[]

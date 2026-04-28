@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 function readEdgeRendererSections(): { styles: string; template: string } {
-  const source = readFileSync(new URL('./EdgeRenderer.vue', import.meta.url), 'utf8')
+  const source = readFileSync(new URL('../../features/editor/components/canvas/EdgeRenderer.vue', import.meta.url), 'utf8')
   const template = source.match(/<template>([\s\S]*?)<\/template>/)?.[1] ?? ''
   const styles = [...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)]
     .map((match) => match[1])

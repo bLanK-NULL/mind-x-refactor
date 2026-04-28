@@ -65,7 +65,7 @@ describe('syncService', () => {
   it('loads and validates a server document with an encoded project id', async () => {
     const serverDocument = document()
     mockedApiClient.get.mockResolvedValueOnce({ data: { document: serverDocument } })
-    const { loadServerDocument } = await import('./syncService')
+    const { loadServerDocument } = await import('@/features/editor/services/syncService')
 
     await expect(loadServerDocument('project/one')).resolves.toEqual(serverDocument)
 
@@ -75,7 +75,7 @@ describe('syncService', () => {
 
   it('migrates legacy server documents when loading', async () => {
     mockedApiClient.get.mockResolvedValueOnce({ data: { document: legacyDocument() } })
-    const { loadServerDocument } = await import('./syncService')
+    const { loadServerDocument } = await import('@/features/editor/services/syncService')
 
     await expect(loadServerDocument('project/one')).resolves.toMatchObject({
       version: 2,
@@ -86,7 +86,7 @@ describe('syncService', () => {
   it('saves the document to the server, validates the response, and clears a local draft', async () => {
     const savedDocument = document({ meta: { ...document().meta, title: 'Saved' } })
     mockedApiClient.put.mockResolvedValueOnce({ data: { document: savedDocument } })
-    const { saveServerDocument } = await import('./syncService')
+    const { saveServerDocument } = await import('@/features/editor/services/syncService')
 
     await expect(saveServerDocument('project/one', document())).resolves.toEqual(savedDocument)
 
@@ -98,7 +98,7 @@ describe('syncService', () => {
     const legacy = legacyDocument('project/one')
     const savedDocument = document({ meta: { ...document().meta, title: 'Saved' } })
     mockedApiClient.put.mockResolvedValueOnce({ data: { document: savedDocument } })
-    const { saveServerDocument } = await import('./syncService')
+    const { saveServerDocument } = await import('@/features/editor/services/syncService')
 
     await expect(saveServerDocument('project/one', legacy as any)).resolves.toEqual(savedDocument)
 
@@ -110,7 +110,7 @@ describe('syncService', () => {
     const savedDocument = document({ meta: { ...document().meta, title: 'Saved' } })
     localForageMock.store.removeItem.mockRejectedValueOnce(new Error('storage unavailable'))
     mockedApiClient.put.mockResolvedValueOnce({ data: { document: savedDocument } })
-    const { saveServerDocument } = await import('./syncService')
+    const { saveServerDocument } = await import('@/features/editor/services/syncService')
 
     await expect(saveServerDocument('project/one', document())).resolves.toEqual(savedDocument)
 
@@ -125,7 +125,7 @@ describe('syncService', () => {
       document: draftDocument,
       savedAt: '2026-04-26T01:02:03.000Z'
     })
-    const { getLocalDraft, saveLocalDraft } = await import('./syncService')
+    const { getLocalDraft, saveLocalDraft } = await import('@/features/editor/services/syncService')
 
     await saveLocalDraft('project/one', draftDocument)
     await expect(getLocalDraft('project/one')).resolves.toEqual({
@@ -141,7 +141,7 @@ describe('syncService', () => {
 
   it('stores local drafts without migrating legacy-shaped runtime input', async () => {
     const legacy = legacyDocument('project/one')
-    const { saveLocalDraft } = await import('./syncService')
+    const { saveLocalDraft } = await import('@/features/editor/services/syncService')
 
     const draft = await saveLocalDraft('project/one', legacy as any)
 
@@ -157,7 +157,7 @@ describe('syncService', () => {
       document: legacyDocument(),
       savedAt: '2026-04-26T00:00:00.000Z'
     })
-    const { getLocalDraft } = await import('./syncService')
+    const { getLocalDraft } = await import('@/features/editor/services/syncService')
 
     await expect(getLocalDraft('project-1')).resolves.toMatchObject({
       document: {
@@ -170,7 +170,7 @@ describe('syncService', () => {
 
   it('removes corrupt local drafts and returns null', async () => {
     localForageMock.store.getItem.mockResolvedValueOnce({ document: { broken: true }, savedAt: 'not-a-date' })
-    const { getLocalDraft } = await import('./syncService')
+    const { getLocalDraft } = await import('@/features/editor/services/syncService')
 
     await expect(getLocalDraft('project/one')).resolves.toBeNull()
 
@@ -180,7 +180,7 @@ describe('syncService', () => {
   it('returns null when reading a local draft fails', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     localForageMock.store.getItem.mockRejectedValueOnce(new Error('read failed'))
-    const { getLocalDraft } = await import('./syncService')
+    const { getLocalDraft } = await import('@/features/editor/services/syncService')
 
     await expect(getLocalDraft('project/one')).resolves.toBeNull()
 
@@ -192,7 +192,7 @@ describe('syncService', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     localForageMock.store.getItem.mockResolvedValueOnce({ document: { broken: true }, savedAt: 'not-a-date' })
     localForageMock.store.removeItem.mockRejectedValueOnce(new Error('remove failed'))
-    const { getLocalDraft } = await import('./syncService')
+    const { getLocalDraft } = await import('@/features/editor/services/syncService')
 
     await expect(getLocalDraft('project/one')).resolves.toBeNull()
 
@@ -202,7 +202,7 @@ describe('syncService', () => {
   })
 
   it('explicitly clears a local draft', async () => {
-    const { clearLocalDraft } = await import('./syncService')
+    const { clearLocalDraft } = await import('@/features/editor/services/syncService')
 
     await clearLocalDraft('project/one')
 

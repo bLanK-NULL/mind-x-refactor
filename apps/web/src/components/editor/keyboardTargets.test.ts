@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { isTextEditingTarget } from './keyboardTargets'
+import { isTextEditingTarget } from '@/features/editor/utils/keyboardTargets'
 
 class TestHTMLElement {
   constructor(readonly isContentEditable = false) {}

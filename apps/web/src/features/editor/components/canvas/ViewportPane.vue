@@ -3,7 +3,7 @@ import type { Viewport } from '@mind-x/shared'
 import { select, type Selection } from 'd3-selection'
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomBehavior } from 'd3-zoom'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { allowsViewportGesture } from './viewportGestureFilter'
+import { allowsViewportGesture } from '../../utils/viewportGestureFilter'
 
 const props = defineProps<{
   viewport: Viewport

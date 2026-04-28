@@ -6,7 +6,7 @@ import {
   clampInspectorPosition,
   readStoredInspectorPosition,
   writeStoredInspectorPosition
-} from './inspectorPosition'
+} from '@/features/editor/utils/inspectorPosition'
 
 class FakeInspectorPositionStorage {
   items = new Map<string, string>()

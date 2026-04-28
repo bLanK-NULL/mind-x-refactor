@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MindNode, Point } from '@mind-x/shared'
 import { computed, nextTick, ref, watch } from 'vue'
-import { resolveTopicNodeClass, resolveTopicNodeStyle } from './objectStyles'
+import { resolveTopicNodeClass, resolveTopicNodeStyle } from '../../utils/objectStyles'
 
 const props = defineProps<{
   node: MindNode

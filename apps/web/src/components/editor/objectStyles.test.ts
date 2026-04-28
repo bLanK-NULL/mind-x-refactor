@@ -6,7 +6,7 @@ import {
   resolveEdgeStyle,
   resolveTopicNodeClass,
   resolveTopicNodeStyle
-} from './objectStyles'
+} from '@/features/editor/utils/objectStyles'
 
 describe('object style resolvers', () => {
   it('resolves default topic style to CSS variables and classes', () => {

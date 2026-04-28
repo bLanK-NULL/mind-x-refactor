@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { allowsViewportGesture } from './viewportGestureFilter'
+import { allowsViewportGesture } from '@/features/editor/utils/viewportGestureFilter'
 
 class TestElement {
   constructor(

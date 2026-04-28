@@ -2,7 +2,7 @@
 import type { Point } from '@mind-x/shared'
 import { CloseOutlined } from '@ant-design/icons-vue'
 import { computed, ref } from 'vue'
-import { clampInspectorPosition } from './inspectorPosition'
+import { clampInspectorPosition } from '../../utils/inspectorPosition'
 
 const props = defineProps<{
   position: Point

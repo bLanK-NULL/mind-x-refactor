@@ -2,7 +2,7 @@ import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE, type MindDocument } from '@min
 import { createEmptyDocument } from '@mind-x/mind-engine'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { serializeMindDocument, useEditorStore } from './editor'
+import { serializeMindDocument, useEditorStore } from '@/features/editor/stores/editor'
 
 function emptyDocument(overrides: Partial<MindDocument> = {}): MindDocument {
   return {

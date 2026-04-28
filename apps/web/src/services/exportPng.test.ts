@@ -44,7 +44,7 @@ describe('exportPng', () => {
   })
 
   it('calculates document bounds with node size fallback and padding', async () => {
-    const { calculateDocumentBounds } = await import('./exportPng')
+    const { calculateDocumentBounds } = await import('@/features/editor/services/exportPng')
     const bounds = calculateDocumentBounds(
       document({
         nodes: [
@@ -78,7 +78,7 @@ describe('exportPng', () => {
   })
 
   it('sanitizes unsafe document titles for png filenames', async () => {
-    const { createPngFilename } = await import('./exportPng')
+    const { createPngFilename } = await import('@/features/editor/services/exportPng')
 
     expect(createPngFilename('Roadmap/Q2\u0000: Draft')).toBe('Roadmap-Q2 Draft.png')
     expect(createPngFilename('   ')).toBe('mind-map.png')
@@ -86,7 +86,7 @@ describe('exportPng', () => {
   })
 
   it('returns false without rendering when the document has no nodes', async () => {
-    const { exportDocumentAsPng } = await import('./exportPng')
+    const { exportDocumentAsPng } = await import('@/features/editor/services/exportPng')
 
     await expect(exportDocumentAsPng({ document: document(), root: {} as HTMLElement })).resolves.toBe(false)
 
@@ -111,7 +111,7 @@ describe('exportPng', () => {
     vi.stubGlobal('document', { body: { appendChild, removeChild }, createElement })
     vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
 
-    const { exportDocumentAsPng } = await import('./exportPng')
+    const { exportDocumentAsPng } = await import('@/features/editor/services/exportPng')
     await expect(
       exportDocumentAsPng({
         document: document({
@@ -166,7 +166,7 @@ describe('exportPng', () => {
     })
     vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:mind-map'), revokeObjectURL: vi.fn() })
 
-    const { exportDocumentAsPng } = await import('./exportPng')
+    const { exportDocumentAsPng } = await import('@/features/editor/services/exportPng')
     await exportDocumentAsPng({
       document: document({
         nodes: [
