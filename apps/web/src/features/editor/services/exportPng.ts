@@ -1,4 +1,4 @@
-import type { MindDocument, MindNode } from '@mind-x/shared'
+import type { MindDocument } from '@mind-x/shared'
 import html2canvas from 'html2canvas'
 
 const EXPORT_PADDING = 24
@@ -25,8 +25,8 @@ export function calculateDocumentBounds(document: MindDocument): DocumentBounds 
 
   const minX = Math.min(...document.nodes.map((node) => node.position.x))
   const minY = Math.min(...document.nodes.map((node) => node.position.y))
-  const maxX = Math.max(...document.nodes.map((node) => node.position.x + nodeWidth(node)))
-  const maxY = Math.max(...document.nodes.map((node) => node.position.y + nodeHeight(node)))
+  const maxX = Math.max(...document.nodes.map((node) => node.position.x + node.size.width))
+  const maxY = Math.max(...document.nodes.map((node) => node.position.y + node.size.height))
 
   return {
     height: Math.ceil(maxY - minY + EXPORT_PADDING * 2),
@@ -111,12 +111,4 @@ function revokeObjectUrlSoon(url: string): void {
   }
 
   URL.revokeObjectURL(url)
-}
-
-function nodeWidth(node: MindNode): number {
-  return node.size.width
-}
-
-function nodeHeight(node: MindNode): number {
-  return node.size.height
 }

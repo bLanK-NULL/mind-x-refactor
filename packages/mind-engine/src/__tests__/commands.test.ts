@@ -236,10 +236,10 @@ describe('commands', () => {
 
     const result = executeCommand(doc, resizeNodesCommand, {
       nodeIds: ['root'],
-      delta: { width: 40, height: 20 }
+      delta: { width: -1000, height: -1000 }
     })
 
-    expect(result.document.nodes[0].size).toEqual({ width: 220, height: 76 })
+    expect(result.document.nodes[0].size).toEqual({ width: 120, height: 44 })
   })
 
   it('updates edge style as an undoable patch command', () => {
