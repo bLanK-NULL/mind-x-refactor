@@ -364,22 +364,32 @@ describe('editor store', () => {
     expect(store.dirty).toBe(true)
   })
 
-  it('updates document theme as an undoable dirty document change', () => {
-    const store = loadedStore()
+  it('updates document theme as a non-undoable dirty document change', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [{ id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } }]
+      })
+    )
 
+    store.editNodeTitle('root', 'Renamed')
     store.setDocumentTheme('dark')
 
     expect(store.document?.meta.theme).toBe('dark')
+    expect(store.document?.nodes[0].data.title).toBe('Renamed')
     expect(store.dirty).toBe(true)
     expect(store.canUndo).toBe(true)
 
     store.undo()
-    expect(store.document?.meta.theme).toBe('light')
-    expect(store.dirty).toBe(false)
+
+    expect(store.document?.meta.theme).toBe('dark')
+    expect(store.document?.nodes[0].data.title).toBe('Root')
+    expect(store.dirty).toBe(true)
     expect(store.canRedo).toBe(true)
 
     store.redo()
+
     expect(store.document?.meta.theme).toBe('dark')
+    expect(store.document?.nodes[0].data.title).toBe('Renamed')
     expect(store.dirty).toBe(true)
   })
 

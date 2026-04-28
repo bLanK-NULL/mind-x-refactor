@@ -6,6 +6,8 @@
 
 **Architecture:** Add a small patch utility module in `@mind-x/mind-engine`, convert engine document commands into Immer draft recipes, and run them through a unified `executeCommand()` API. Replace snapshot history with patch entries that apply forward patches for redo and inverse patches for undo, then migrate the Pinia editor store to commit command results while preserving current viewport, dirty-state, selection, and external rename semantics.
 
+**2026-04-28 update:** Theme changes are no longer part of `@mind-x/mind-engine` command history. `MindDocument.meta.theme` is still persisted by the web editor store, but undo and redo preserve the current theme instead of replaying theme patches.
+
 **Tech Stack:** TypeScript, Vitest, Immer 11.1.4, Vue 3, Pinia, npm workspaces.
 
 ---
@@ -22,7 +24,7 @@
   - Convert command implementations into draft recipes.
   - Add `executeCommand()`.
   - Keep existing command function names as compatibility wrappers returning `MindDocument`.
-  - Add engine recipes for root creation, theme changes, and multi-node deletion so store content edits can use command results.
+  - Add engine recipes for root creation and multi-node deletion so store content edits can use command results.
 - Modify: `packages/mind-engine/src/history.ts`
   - Replace snapshot stack with patch entries.
   - Add `replaceAll()` for external title renames.
@@ -182,7 +184,6 @@ import {
   executeCommand,
   moveNodes,
   moveNodesCommand,
-  setDocumentThemeCommand,
   setEdgeComponent,
   setEdgeComponentCommand
 } from './commands.js'
@@ -223,7 +224,7 @@ Add these tests at the top of the `describe('commands', () => {` block in `packa
     expect(getParentId(result, 'child')).toBe('root')
   })
 
-  it('generates inverse patches for title, movement, edge, theme, and delete commands', () => {
+  it('generates inverse patches for title, movement, edge, and delete commands', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
       { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
@@ -240,11 +241,9 @@ Add these tests at the top of the `describe('commands', () => {` block in `packa
       edgeId: 'root->child',
       component: 'dashed-arrow'
     })
-    const themed = executeCommand(styled.document, setDocumentThemeCommand, { theme: 'dark' })
-    const deleted = executeCommand(themed.document, deleteNodePromoteChildrenCommand, { nodeId: 'root' })
+    const deleted = executeCommand(styled.document, deleteNodePromoteChildrenCommand, { nodeId: 'root' })
 
     let reverted = applyPatches(deleted.document, deleted.inversePatches)
-    reverted = applyPatches(reverted, themed.inversePatches)
     reverted = applyPatches(reverted, styled.inversePatches)
     reverted = applyPatches(reverted, moved.inversePatches)
     reverted = applyPatches(reverted, edited.inversePatches)
@@ -471,19 +470,6 @@ export function setEdgeComponentCommand(draft: Draft<MindDocument>, input: SetEd
 
 export function setEdgeComponent(document: MindDocument, input: SetEdgeComponentInput): MindDocument {
   return executeCommand(document, setEdgeComponentCommand, input).document
-}
-
-export type SetDocumentThemeInput = {
-  theme: ThemeName
-}
-
-export function setDocumentThemeCommand(draft: Draft<MindDocument>, input: SetDocumentThemeInput): void {
-  draft.meta.theme = input.theme
-  assertMindTree(asDocument(draft))
-}
-
-export function setDocumentTheme(document: MindDocument, input: SetDocumentThemeInput): MindDocument {
-  return executeCommand(document, setDocumentThemeCommand, input).document
 }
 
 export type DeleteEdgeInput = {
@@ -937,7 +923,6 @@ import {
   moveNodes,
   moveNodesCommand,
   replaceWithPatchResult,
-  setDocumentThemeCommand,
   setEdgeComponentCommand,
   type CommandResult,
   type History
@@ -1011,7 +996,7 @@ In the `actions` block, replace the existing `commit(document: MindDocument)` an
     },
 ```
 
-- [ ] **Step 7: Migrate root, child, theme, title, and move actions**
+- [ ] **Step 7: Migrate root, child, title, and move actions**
 
 Replace these action bodies in `apps/web/src/stores/editor.ts`:
 
@@ -1021,7 +1006,15 @@ Replace these action bodies in `apps/web/src/stores/editor.ts`:
         return
       }
 
-      this.commitCommandResult(executeCommand(cloneDocument(this.document), setDocumentThemeCommand, { theme }))
+      this.document = {
+        ...this.document,
+        meta: {
+          ...this.document.meta,
+          theme
+        }
+      }
+      this.syncDirtyState()
+      this.syncHistoryState()
     },
 ```
 

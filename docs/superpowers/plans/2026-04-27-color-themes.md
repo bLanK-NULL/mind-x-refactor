@@ -75,7 +75,7 @@ Add these tests inside the existing `describe('mindDocumentSchema', ...)` block 
 
 - [ ] **Step 2: Write a failing editor-store contract test**
 
-Add this test after the existing `updates document theme as an undoable dirty document change` test in `apps/web/src/stores/editor.test.ts`:
+Add this test after the existing editor-store theme persistence test in `apps/web/src/stores/editor.test.ts`:
 
 ```ts
   it('updates document theme to a color theme for persistence', () => {
@@ -116,7 +116,7 @@ npm run test -w packages/shared -- src/document.test.ts
 npm run test -w apps/web -- src/stores/editor.test.ts
 ```
 
-Expected: both commands pass. The existing `editor.setDocumentTheme(theme: ThemeName)` implementation should not need logic changes because it already writes any valid shared `ThemeName`.
+Expected: both test commands pass. The existing `editor.setDocumentTheme(theme: ThemeName)` implementation should not need logic changes because it already writes any valid shared `ThemeName` without adding undo history.
 
 - [ ] **Step 6: Commit shared contract change**
 

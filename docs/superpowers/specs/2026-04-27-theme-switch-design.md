@@ -23,6 +23,7 @@ This gives the app one source of truth for the selected theme while keeping exis
 - Update `App.vue` to wrap `RouterView` in `a-config-provider`.
 - Add a reusable `ThemeToggle.vue` button and place it in authenticated page headers.
 - Add an editor-store action for updating `document.meta.theme`.
+- Keep theme updates out of `@mind-x/mind-engine` command history. Theme is persisted document metadata, but it is not an undoable editor command.
 
 ## Data Flow
 
@@ -30,6 +31,7 @@ This gives the app one source of truth for the selected theme while keeping exis
 - Projects and other non-document pages switch the application preference only.
 - When an editor document loads, `document.meta.theme` becomes the active application theme for that editor session.
 - When the theme is toggled while an editor document is open, the app updates `document.meta.theme`, marks the document dirty through the existing editor dirty-state flow, and applies the same mode to `html[theme]`.
+- Undo and redo preserve the current theme instead of restoring historical theme snapshots.
 - Saving the editor document persists the selected theme through the existing document save endpoint.
 
 ## Styling
@@ -54,6 +56,7 @@ This gives the app one source of truth for the selected theme while keeping exis
 ## Testing
 
 - Unit tests cover theme initialization, persistence, invalid stored values, and toggle behavior.
+- Editor-store tests cover dirty tracking and prove theme changes are not added to undo or redo history.
 - Existing web tests should continue to pass.
 - Typecheck and web build verify the Vue and Ant Design integration.
 

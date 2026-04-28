@@ -196,10 +196,11 @@ Engine history tests:
 
 Web editor store tests:
 
-- existing undo and redo behavior for add, edit, delete, move, theme, and edge component changes
+- existing undo and redo behavior for add, edit, delete, move, and edge component changes
 - repeated drag preview commits as one history entry
 - viewport changes mark dirty without entering undo history
-- undo and redo preserve the current viewport
+- theme changes mark dirty without entering undo history
+- undo and redo preserve the current viewport and theme
 - external project renames persist across undo and redo
 - stale node and edge selections are compacted after commits, undo, redo, and load
 
@@ -207,6 +208,7 @@ Web editor store tests:
 
 - Do not add event sourcing or command replay from command name and input.
 - Do not make viewport changes undoable.
+- Do not make theme changes undoable.
 - Do not move selection state into engine history.
 - Do not redesign the editor UI.
 - Do not remove compatibility wrappers until all call sites are migrated and tests prove they are unused.

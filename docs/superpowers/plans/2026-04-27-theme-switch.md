@@ -88,7 +88,7 @@ Expected: all tests in `useTheme.test.ts` pass.
 
 - [ ] **Step 1: Write failing editor-store tests**
 
-Add tests that load a document, call `setDocumentTheme('dark')`, and assert that `document.meta.theme` changes, the store becomes dirty, and undo/redo can cross the theme change.
+Add tests that load a document, call `setDocumentTheme('dark')`, and assert that `document.meta.theme` changes, the store becomes dirty, and undo/redo does not restore historical theme values.
 
 - [ ] **Step 2: Verify the tests fail**
 
@@ -102,7 +102,7 @@ Expected: fail because `setDocumentTheme` does not exist.
 
 - [ ] **Step 3: Implement the editor-store action**
 
-Import `ThemeName` from `@mind-x/shared`, clone the current document, update `next.meta.theme`, validate with `mindDocumentSchema.parse(next)`, and commit the updated document.
+Import `ThemeName` from `@mind-x/shared`, update `document.meta.theme` inside the editor store, and sync dirty/history flags without committing the theme update to undo history.
 
 - [ ] **Step 4: Verify the tests pass**
 

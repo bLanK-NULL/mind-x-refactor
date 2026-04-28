@@ -4,8 +4,7 @@ import {
   type MindDocument,
   type MindEdge,
   type MindEdgeComponent,
-  type Point,
-  type ThemeName
+  type Point
 } from '@mind-x/shared'
 import type { Draft } from 'immer'
 import { assertMindTree, createParentEdge, findNode, getChildIds, getParentId } from './graph.js'
@@ -182,19 +181,6 @@ export function setEdgeComponentCommand(draft: Draft<MindDocument>, input: SetEd
 
 export function setEdgeComponent(document: MindDocument, input: SetEdgeComponentInput): MindDocument {
   return executeCommand(document, setEdgeComponentCommand, input).document
-}
-
-export type SetDocumentThemeInput = {
-  theme: ThemeName
-}
-
-export function setDocumentThemeCommand(draft: Draft<MindDocument>, input: SetDocumentThemeInput): void {
-  draft.meta.theme = input.theme
-  assertMindTree(asDocument(draft))
-}
-
-export function setDocumentTheme(document: MindDocument, input: SetDocumentThemeInput): MindDocument {
-  return executeCommand(document, setDocumentThemeCommand, input).document
 }
 
 export type DeleteEdgeInput = {

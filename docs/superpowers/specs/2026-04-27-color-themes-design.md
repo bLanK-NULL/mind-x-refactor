@@ -52,6 +52,7 @@ The current compact toggle should become a theme picker menu. A menu is more dis
 - Non-editor pages persist the selected theme as the app preference.
 - Editor pages apply the opened document's `meta.theme`.
 - Changing the theme while editing a document persists the app preference and marks the document dirty through `editor.setDocumentTheme(themeName)`.
+- Theme changes are intentionally not undoable; undo and redo preserve the current selected theme while continuing to undo content edits.
 - Saving the document persists the selected color theme through the existing save endpoint.
 
 ## UI Behavior
@@ -71,7 +72,7 @@ The current compact toggle should become a theme picker menu. A menu is more dis
 
 - Shared document tests cover `colorful`, `vivid`, and invalid values.
 - Theme controller tests cover initialization and direct selection of the new themes.
-- Editor store tests cover writing at least one non-binary theme to `document.meta.theme`.
+- Editor store tests cover writing at least one non-binary theme to `document.meta.theme` and keeping theme changes out of undo/redo history.
 - Web typecheck and build verify Ant Design Vue integration.
 
 ## Out Of Scope

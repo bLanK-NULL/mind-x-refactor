@@ -18,7 +18,6 @@ import {
   moveNodes,
   moveNodesCommand,
   replaceWithPatchResult,
-  setDocumentThemeCommand,
   setEdgeComponentCommand,
   type CommandResult,
   type History
@@ -76,8 +75,19 @@ function createNodeId(document: MindDocument): string {
   return `node-${generatedNodeSequence}`
 }
 
-function preserveViewport(document: MindDocument, viewport: Viewport | undefined): MindDocument {
-  return viewport ? { ...document, viewport: { ...viewport } } : document
+function preserveUntrackedDocumentState(
+  document: MindDocument,
+  currentDocument: MindDocument | null | undefined
+): MindDocument {
+  const next = {
+    ...document,
+    meta: {
+      ...document.meta,
+      theme: currentDocument?.meta.theme ?? document.meta.theme
+    }
+  }
+
+  return currentDocument?.viewport ? { ...next, viewport: { ...currentDocument.viewport } } : next
 }
 
 function assertTopicInput(id: string, title: string): void {
@@ -213,7 +223,15 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      this.commitCommandResult(executeCommand(cloneDocument(this.document), setDocumentThemeCommand, { theme }))
+      this.document = {
+        ...this.document,
+        meta: {
+          ...this.document.meta,
+          theme
+        }
+      }
+      this.syncDirtyState()
+      this.syncHistoryState()
     },
     selectOnly(nodeId: string): void {
       this.selectedNodeIds = compactSelection(this.document, [nodeId])
@@ -365,8 +383,8 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      const currentViewport = this.document?.viewport
-      this.document = preserveViewport(this.history.undo(), currentViewport)
+      const currentDocument = this.document
+      this.document = preserveUntrackedDocumentState(this.history.undo(), currentDocument)
       this.selectedNodeIds = compactSelection(this.document, this.selectedNodeIds)
       this.selectedEdgeId = compactSelectedEdge(this.document, this.selectedEdgeId)
       this.syncDirtyState()
@@ -377,8 +395,8 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      const currentViewport = this.document?.viewport
-      this.document = preserveViewport(this.history.redo(), currentViewport)
+      const currentDocument = this.document
+      this.document = preserveUntrackedDocumentState(this.history.redo(), currentDocument)
       this.selectedNodeIds = compactSelection(this.document, this.selectedNodeIds)
       this.selectedEdgeId = compactSelectedEdge(this.document, this.selectedEdgeId)
       this.syncDirtyState()

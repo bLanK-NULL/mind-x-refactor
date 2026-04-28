@@ -15,7 +15,6 @@ import {
   executeCommand,
   moveNodes,
   moveNodesCommand,
-  setDocumentThemeCommand,
   setEdgeComponent,
   setEdgeComponentCommand
 } from './commands.js'
@@ -51,7 +50,7 @@ describe('commands', () => {
     expect(getParentId(result, 'child')).toBe('root')
   })
 
-  it('generates inverse patches for title, movement, edge, theme, and delete commands', () => {
+  it('generates inverse patches for title, movement, edge, and delete commands', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
       { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
@@ -68,11 +67,9 @@ describe('commands', () => {
       edgeId: 'root->child',
       component: 'dashed-arrow'
     })
-    const themed = executeCommand(styled.document, setDocumentThemeCommand, { theme: 'dark' })
-    const deleted = executeCommand(themed.document, deleteNodePromoteChildrenCommand, { nodeId: 'root' })
+    const deleted = executeCommand(styled.document, deleteNodePromoteChildrenCommand, { nodeId: 'root' })
 
     let reverted = applyPatches(deleted.document, deleted.inversePatches)
-    reverted = applyPatches(reverted, themed.inversePatches)
     reverted = applyPatches(reverted, styled.inversePatches)
     reverted = applyPatches(reverted, moved.inversePatches)
     reverted = applyPatches(reverted, edited.inversePatches)
