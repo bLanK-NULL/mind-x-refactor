@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { EdgeStyle, MindDocument, MindEdge, MindNode, Point, TopicNodeStyle } from '@mind-x/shared'
+import type { EdgeStyle, MindDocument, MindEdge, MindNode, MindNodeType, Point } from '@mind-x/shared'
+import type { NodeShellStyle } from '@mind-x/shared'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useEditorStore } from '@/features/editor/stores/editor'
 import EdgeInspector from './inspectors/EdgeInspector.vue'
@@ -46,20 +47,6 @@ const selectedNode = computed<MindNode | null>(() => {
 
   return documentState.value.nodes.find((node) => node.id === editor.selectedNodeIds[0]) ?? null
 })
-const selectedTopicNode = computed<Extract<MindNode, { type: 'topic' }> | null>(() => {
-  return selectedNode.value?.type === 'topic' ? selectedNode.value : null
-})
-const selectedTopicStyle = computed<TopicNodeStyle | null>(() => {
-  if (!selectedTopicNode.value) {
-    return null
-  }
-
-  return {
-    ...selectedTopicNode.value.shellStyle,
-    size: resolveTopicSizePreset(selectedTopicNode.value.size),
-    textWeight: selectedTopicNode.value.contentStyle.textWeight
-  }
-})
 const selectedEdge = computed<MindEdge | null>(() => {
   if (!documentState.value || !editor.selectedEdgeId) {
     return null
@@ -68,28 +55,18 @@ const selectedEdge = computed<MindEdge | null>(() => {
   return documentState.value.edges.find((edge) => edge.id === editor.selectedEdgeId) ?? null
 })
 
-function resolveTopicSizePreset(size: { height: number; width: number }): TopicNodeStyle['size'] {
-  if (size.width === 150 && size.height === 44) {
-    return 'sm'
-  }
-  if (size.width === 220 && size.height === 72) {
-    return 'lg'
-  }
-  return 'md'
-}
-
 watch(
   () => props.document,
   (document) => editor.load(document),
   { immediate: true }
 )
 
-function addTopic(): void {
-  editor.addRootTopic({ title: 'Central topic' })
+function addTopic(type: MindNodeType = 'topic'): void {
+  editor.addRootNode({ type })
 }
 
-function addChild(): void {
-  editor.addChildTopic({ title: 'New topic' })
+function addChild(type: MindNodeType = 'topic'): void {
+  editor.addChildNode({ type })
 }
 
 function moveNode(nodeId: string, delta: Point): void {
@@ -168,8 +145,16 @@ function setInspectorPosition(position: Point): void {
   writeStoredInspectorPosition(position)
 }
 
-function setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
-  editor.setSelectedNodeStyle(stylePatch)
+function setSelectedNodeContent(dataPatch: Record<string, unknown>): void {
+  if (!selectedNode.value) {
+    return
+  }
+
+  editor.updateNodeData(selectedNode.value.id, dataPatch)
+}
+
+function setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void {
+  editor.setSelectedNodeShellStyle(stylePatch)
 }
 
 function setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void {
@@ -180,8 +165,8 @@ function deleteSelectedEdgeFromInspector(): void {
   editor.deleteSelected()
 }
 
-function addChildFromContextMenu(): void {
-  addChild()
+function addChildFromContextMenu(type: MindNodeType): void {
+  addChild(type)
   closeContextMenu()
 }
 
@@ -197,7 +182,7 @@ function onKeydown(event: KeyboardEvent): void {
 
   if (event.key === 'Tab' && hasSelection.value) {
     event.preventDefault()
-    addChild()
+    addChild('topic')
   } else if (event.key === 'Delete' || event.key === 'Backspace') {
     event.preventDefault()
     editor.deleteSelected()
@@ -268,13 +253,17 @@ onUnmounted(() => {
     </ViewportPane>
 
     <InspectorPanel
-      v-if="selectedTopicNode && selectedTopicStyle"
+      v-if="selectedNode"
       :position="inspectorPosition"
       title="Node"
       @close="editor.clearSelection"
       @position-change="setInspectorPosition"
     >
-      <NodeInspector :style="selectedTopicStyle" @style-change="setSelectedNodeStyle" />
+      <NodeInspector
+        :node="selectedNode"
+        @content-change="setSelectedNodeContent"
+        @shell-style-change="setSelectedNodeShellStyle"
+      />
     </InspectorPanel>
 
     <InspectorPanel

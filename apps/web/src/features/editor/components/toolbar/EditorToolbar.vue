@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import type { MindNodeType } from '@mind-x/shared'
 import {
   DeleteOutlined,
+  DownOutlined,
   DownloadOutlined,
   PlusOutlined,
   RedoOutlined,
   SaveOutlined,
   UndoOutlined
 } from '@ant-design/icons-vue'
+import { NODE_TYPE_OPTIONS } from '../../utils/nodeContent'
 
 defineProps<{
   canRedo: boolean
@@ -19,44 +22,87 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  addChild: []
-  addTopic: []
+  addChild: [type?: MindNodeType]
+  addTopic: [type?: MindNodeType]
   delete: []
   exportPng: []
   redo: []
   save: []
   undo: []
 }>()
+
 </script>
 
 <template>
   <div class="editor-toolbar" role="toolbar" aria-label="Editor toolbar">
-    <a-tooltip title="Add topic">
-      <a-button
-        :disabled="!hasDocument || hasNodes"
-        aria-label="Add topic"
-        shape="circle"
-        type="text"
-        @click="emit('addTopic')"
-      >
-        <template #icon>
-          <PlusOutlined />
+    <div class="editor-toolbar__split-action">
+      <a-tooltip title="Add topic">
+        <a-button
+          :disabled="!hasDocument || hasNodes"
+          aria-label="Add topic"
+          shape="circle"
+          type="text"
+          @click="emit('addTopic', 'topic')"
+        >
+          <template #icon>
+            <PlusOutlined />
+          </template>
+        </a-button>
+      </a-tooltip>
+      <a-dropdown :disabled="!hasDocument || hasNodes" :trigger="['click']">
+        <a-button
+          :disabled="!hasDocument || hasNodes"
+          aria-label="Choose root node type"
+          shape="circle"
+          type="text"
+        >
+          <template #icon>
+            <DownOutlined />
+          </template>
+        </a-button>
+        <template #overlay>
+          <a-menu>
+            <a-menu-item v-for="option in NODE_TYPE_OPTIONS" :key="option.type" @click="emit('addTopic', option.type)">
+              Add {{ option.label.toLowerCase() }} root
+            </a-menu-item>
+          </a-menu>
         </template>
-      </a-button>
-    </a-tooltip>
-    <a-tooltip title="Add child">
-      <a-button
-        :disabled="!hasDocument || !hasSelection"
-        aria-label="Add child"
-        shape="circle"
-        type="text"
-        @click="emit('addChild')"
-      >
-        <template #icon>
-          <PlusOutlined />
+      </a-dropdown>
+    </div>
+    <div class="editor-toolbar__split-action">
+      <a-tooltip title="Add child">
+        <a-button
+          :disabled="!hasDocument || !hasSelection"
+          aria-label="Add child"
+          shape="circle"
+          type="text"
+          @click="emit('addChild', 'topic')"
+        >
+          <template #icon>
+            <PlusOutlined />
+          </template>
+        </a-button>
+      </a-tooltip>
+      <a-dropdown :disabled="!hasDocument || !hasSelection" :trigger="['click']">
+        <a-button
+          :disabled="!hasDocument || !hasSelection"
+          aria-label="Choose child node type"
+          shape="circle"
+          type="text"
+        >
+          <template #icon>
+            <DownOutlined />
+          </template>
+        </a-button>
+        <template #overlay>
+          <a-menu>
+            <a-menu-item v-for="option in NODE_TYPE_OPTIONS" :key="option.type" @click="emit('addChild', option.type)">
+              Add {{ option.label.toLowerCase() }} child
+            </a-menu-item>
+          </a-menu>
         </template>
-      </a-button>
-    </a-tooltip>
+      </a-dropdown>
+    </div>
     <a-divider class="editor-toolbar__divider" type="vertical" />
     <a-tooltip title="Undo">
       <a-button :disabled="!canUndo" aria-label="Undo" shape="circle" type="text" @click="emit('undo')">
@@ -125,5 +171,11 @@ const emit = defineEmits<{
 .editor-toolbar__divider {
   height: 24px;
   margin-inline: 2px;
+}
+
+.editor-toolbar__split-action {
+  display: flex;
+  align-items: center;
+  gap: 0;
 }
 </style>

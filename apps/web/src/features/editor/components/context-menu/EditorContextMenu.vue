@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { MindNodeType } from '@mind-x/shared'
+import { NODE_TYPE_OPTIONS } from '../../utils/nodeContent'
+
 defineProps<{
   canAddChild: boolean
   canDelete: boolean
@@ -8,7 +11,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  addChild: []
+  addChild: [type: MindNodeType]
   close: []
   delete: []
 }>()
@@ -22,7 +25,16 @@ const emit = defineEmits<{
     @contextmenu.prevent
     @pointerdown.stop
   >
-    <a-button :disabled="!canAddChild" block type="text" @click="emit('addChild')">Add child</a-button>
+    <a-button
+      v-for="option in NODE_TYPE_OPTIONS"
+      :key="option.type"
+      :disabled="!canAddChild"
+      block
+      type="text"
+      @click="emit('addChild', option.type)"
+    >
+      {{ `Add ${option.label.toLowerCase()} child` }}
+    </a-button>
     <a-button :disabled="!canDelete" block danger type="text" @click="emit('delete')">Delete</a-button>
     <button class="editor-context-menu__scrim" aria-label="Close" type="button" @click="emit('close')" />
   </div>
