@@ -205,6 +205,28 @@ describe('editor session', () => {
     expect(session.getState().canRedo).toBe(true)
   })
 
+  it('allows screen-delta methods to be called without a session this binding', () => {
+    const previewSession = createEditorSession()
+    previewSession.load(documentWithRoot())
+    previewSession.selectOnly('root')
+    const { previewMoveSelectedByScreenDelta } = previewSession
+
+    previewMoveSelectedByScreenDelta({ x: 5, y: 0 })
+
+    expect(previewSession.getState().document?.nodes[0].position).toEqual({ x: 15, y: 20 })
+    expect(previewSession.getState().canUndo).toBe(false)
+
+    const moveSession = createEditorSession()
+    moveSession.load(documentWithRoot())
+    moveSession.selectOnly('root')
+    const { moveSelectedByScreenDelta } = moveSession
+
+    moveSelectedByScreenDelta({ x: 5, y: 0 })
+
+    expect(moveSession.getState().document?.nodes[0].position).toEqual({ x: 15, y: 20 })
+    expect(moveSession.getState().canUndo).toBe(true)
+  })
+
   it('updates viewport and marks dirty without adding undo history', () => {
     const session = createEditorSession()
     session.load(emptyDocument())
@@ -213,6 +235,17 @@ describe('editor session', () => {
 
     expect(session.getState().document?.viewport).toEqual({ x: 40, y: 50, zoom: 1.5 })
     expect(session.getState().dirty).toBe(true)
+    expect(session.getState().canUndo).toBe(false)
+  })
+
+  it('does not add viewport-only changes to history when an interaction finishes', () => {
+    const session = createEditorSession()
+    session.load(documentWithRoot())
+
+    session.setViewport({ x: 40, y: 50, zoom: 1.5 })
+    session.finishInteraction()
+
+    expect(session.getState().document?.viewport).toEqual({ x: 40, y: 50, zoom: 1.5 })
     expect(session.getState().canUndo).toBe(false)
   })
 
@@ -288,6 +321,24 @@ describe('editor session', () => {
     expect(session.getState().document?.nodes[0].data.title).toBe('First edit')
     session.redo()
     expect(session.getState().document?.nodes[0].data.title).toBe('Second edit')
+  })
+
+  it('preserves redo history when an external title update happens at a clean undo point', () => {
+    const session = createEditorSession()
+    session.load(documentWithRoot())
+    session.editNodeTitle('root', 'First edit')
+    session.undo()
+
+    session.updateDocumentTitle('Renamed At Clean Point')
+
+    expect(session.getState().document?.meta.title).toBe('Renamed At Clean Point')
+    expect(session.getState().document?.nodes[0].data.title).toBe('Root')
+    expect(session.getState().dirty).toBe(false)
+    expect(session.getState().canRedo).toBe(true)
+
+    session.redo()
+    expect(session.getState().document?.meta.title).toBe('Renamed At Clean Point')
+    expect(session.getState().document?.nodes[0].data.title).toBe('First edit')
   })
 
   it('generates child ids without colliding with loaded node ids', () => {

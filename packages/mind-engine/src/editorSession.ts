@@ -184,6 +184,7 @@ function updateDirty(state: InternalState): void {
 export function createEditorSession(): EditorSession {
   let history: History<MindDocument> | null = null
   let generatedNodeSequence = 0
+  let pendingPreviewBaseline: MindDocument | null = null
   let state: InternalState = {
     cleanDocumentJson: null,
     dirty: false,
@@ -224,23 +225,53 @@ export function createEditorSession(): EditorSession {
       patches: result.patches,
       inversePatches: result.inversePatches
     })
+    pendingPreviewBaseline = null
     syncAfterDocumentChange(next)
   }
 
-  function commitCurrentDocument(): void {
-    if (!state.document || !history) {
+  function moveSelectedByWorldDelta(delta: Point): void {
+    if (!state.document || state.selectedNodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
       return
     }
 
-    const current = history.current()
-    if (serializeMindDocument(current) === serializeMindDocument(state.document)) {
-      setState((draft) => {
-        updateDirty(draft)
+    commitCommandResult(
+      executeCommand(cloneDocument(state.document), moveNodesCommand, {
+        nodeIds: state.selectedNodeIds,
+        delta
       })
+    )
+  }
+
+  function previewMoveSelectedByWorldDelta(delta: Point): void {
+    if (!state.document || state.selectedNodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
       return
     }
 
-    commitCommandResult(replaceWithPatchResult(current, state.document))
+    if (!pendingPreviewBaseline) {
+      pendingPreviewBaseline = preserveUntrackedDocumentState(history?.current() ?? state.document, state.document)
+    }
+
+    syncAfterDocumentChange(moveNodes(cloneDocument(state.document), { nodeIds: state.selectedNodeIds, delta }))
+  }
+
+  function finishInteraction(): void {
+    if (!state.document || !pendingPreviewBaseline) {
+      return
+    }
+
+    const baseline = pendingPreviewBaseline
+    const trackedNext = produce(state.document, (draft) => {
+      draft.viewport = { ...baseline.viewport }
+    })
+    const result = replaceWithPatchResult(baseline, trackedNext)
+    const next = cloneDocument(state.document)
+    history?.push({
+      document: next,
+      patches: result.patches,
+      inversePatches: result.inversePatches
+    })
+    pendingPreviewBaseline = null
+    syncAfterDocumentChange(next)
   }
 
   return {
@@ -341,9 +372,7 @@ export function createEditorSession(): EditorSession {
 
       commitCommandResult(executeCommand(cloneDocument(state.document), editNodeTitleCommand, { nodeId, title }))
     },
-    finishInteraction() {
-      commitCurrentDocument()
-    },
+    finishInteraction,
     getState() {
       return Object.freeze({
         canRedo: history?.canRedo() ?? false,
@@ -361,6 +390,7 @@ export function createEditorSession(): EditorSession {
     load(document: MindDocument) {
       const next = cloneDocument(document)
       history = createHistory(next)
+      pendingPreviewBaseline = null
       setState((draft) => {
         draft.document = next
         draft.selectedNodeIds = []
@@ -383,35 +413,18 @@ export function createEditorSession(): EditorSession {
       }
 
       const zoom = state.document.viewport.zoom || 1
-      this.moveSelectedByWorldDelta({ x: delta.x / zoom, y: delta.y / zoom })
+      moveSelectedByWorldDelta({ x: delta.x / zoom, y: delta.y / zoom })
     },
-    moveSelectedByWorldDelta(delta: Point) {
-      if (!state.document || state.selectedNodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
-        return
-      }
-
-      commitCommandResult(
-        executeCommand(cloneDocument(state.document), moveNodesCommand, {
-          nodeIds: state.selectedNodeIds,
-          delta
-        })
-      )
-    },
+    moveSelectedByWorldDelta,
     previewMoveSelectedByScreenDelta(delta: Point) {
       if (!state.document) {
         return
       }
 
       const zoom = state.document.viewport.zoom || 1
-      this.previewMoveSelectedByWorldDelta({ x: delta.x / zoom, y: delta.y / zoom })
+      previewMoveSelectedByWorldDelta({ x: delta.x / zoom, y: delta.y / zoom })
     },
-    previewMoveSelectedByWorldDelta(delta: Point) {
-      if (!state.document || state.selectedNodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
-        return
-      }
-
-      syncAfterDocumentChange(moveNodes(cloneDocument(state.document), { nodeIds: state.selectedNodeIds, delta }))
-    },
+    previewMoveSelectedByWorldDelta,
     redo() {
       if (!history?.canRedo()) {
         return
@@ -520,7 +533,6 @@ export function createEditorSession(): EditorSession {
         return
       }
 
-      const wasDirty = state.dirty
       const next = retitleDocument(state.document, title)
       if (state.cleanDocumentJson !== null) {
         const cleanDocument = JSON.parse(state.cleanDocumentJson) as MindDocument
@@ -530,7 +542,7 @@ export function createEditorSession(): EditorSession {
         })
       }
 
-      if (!wasDirty) {
+      if (!history) {
         history = createHistory(next)
         setState((draft) => {
           draft.document = next
@@ -541,10 +553,7 @@ export function createEditorSession(): EditorSession {
         return
       }
 
-      if (history) {
-        history = retitleHistory(history, title)
-      }
-
+      history = retitleHistory(history, title)
       syncAfterDocumentChange(next)
     }
   }
