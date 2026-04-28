@@ -155,14 +155,8 @@ export const mindDocumentV2Schema = z.object({
 
 export const mindDocumentSchema = mindDocumentV2Schema
 
-export function migrateMindDocument(input: unknown): MindDocument {
-  const v2Result = mindDocumentV2Schema.safeParse(input)
-  if (v2Result.success) {
-    return v2Result.data
-  }
-
-  const v1 = mindDocumentV1Schema.parse(input)
-  return mindDocumentV2Schema.parse({
+const migrateV1MindDocument = (v1: z.infer<typeof mindDocumentV1Schema>) =>
+  ({
     version: 2,
     meta: {
       projectId: v1.meta.projectId,
@@ -185,7 +179,15 @@ export function migrateMindDocument(input: unknown): MindDocument {
       type: edge.type,
       style: DEFAULT_EDGE_STYLE
     }))
-  })
+  }) satisfies z.infer<typeof mindDocumentV2Schema>
+
+export const migratableMindDocumentSchema = z.union([
+  mindDocumentV2Schema,
+  mindDocumentV1Schema.transform((document) => migrateV1MindDocument(document))
+])
+
+export function migrateMindDocument(input: unknown): MindDocument {
+  return migratableMindDocumentSchema.parse(input)
 }
 
 export type Point = z.infer<typeof pointSchema>

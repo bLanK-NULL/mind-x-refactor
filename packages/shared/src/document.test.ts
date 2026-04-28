@@ -218,12 +218,65 @@ describe('mind document versions', () => {
     ).toBe(false)
   })
 
+  it('rejects invalid and missing v2 edge styles', () => {
+    expect(
+      mindDocumentSchema.safeParse(
+        v2Document({
+          edges: [
+            {
+              id: 'root->child',
+              source: 'root',
+              target: 'child',
+              type: 'mind-parent',
+              style: { ...DEFAULT_EDGE_STYLE, colorToken: 'teal' }
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
+
+    expect(
+      mindDocumentSchema.safeParse(
+        v2Document({
+          edges: [
+            {
+              id: 'root->child',
+              source: 'root',
+              target: 'child',
+              type: 'mind-parent'
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
+  })
+
   it('migrates save document request bodies to v2', () => {
     const parsed = saveDocumentRequestSchema.parse({ document: v1Document() })
 
     expect(parsed.document.version).toBe(2)
     expect(parsed.document.nodes[0].style).toEqual(DEFAULT_TOPIC_STYLE)
     expect(parsed.document.edges[0].style).toEqual(DEFAULT_EDGE_STYLE)
+  })
+
+  it('returns a failed safeParse result for invalid document request styles instead of throwing', () => {
+    const invalidDocument = v2Document({
+      nodes: [
+        {
+          id: 'root',
+          type: 'topic',
+          position: { x: 0, y: 0 },
+          data: { title: 'Root' },
+          style: { ...DEFAULT_TOPIC_STYLE, colorToken: 'teal' }
+        }
+      ]
+    })
+    let result: unknown
+
+    expect(() => {
+      result = saveDocumentRequestSchema.safeParse({ document: invalidDocument })
+    }).not.toThrow()
+    expect(result).toMatchObject({ success: false })
   })
 
   it('rejects HTML titles', () => {
