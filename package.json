@@ -12,7 +12,7 @@
     "dev:web": "npm run dev -w apps/web",
     "build": "tsc -b packages/shared packages/mind-engine apps/api && npm run build -w apps/web",
     "typecheck": "tsc -b packages/shared packages/mind-engine apps/api && npm run typecheck -w apps/web",
-    "test": "vitest run",
+    "test": "vitest run --exclude '.worktrees/**'",
     "test:engine": "npm run test -w packages/mind-engine",
     "test:api": "npm run test -w apps/api"
   },
