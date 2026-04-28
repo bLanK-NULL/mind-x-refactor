@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
-export const createPlainTextSchema = (maxLength = 500) =>
+export const PLAIN_TEXT_MAX_LENGTH = 500
+export const CODE_NODE_CODE_MAX_LENGTH = 20_000
+
+export const createPlainTextSchema = (maxLength = PLAIN_TEXT_MAX_LENGTH) =>
   z.string().min(1).max(maxLength).refine((value) => !/[<>]/.test(value), {
     message: 'HTML is not allowed'
   })
@@ -305,7 +308,7 @@ const attachmentNodeV3Schema = nodeBaseV3Schema.extend({
 const codeNodeV3Schema = nodeBaseV3Schema.extend({
   type: z.literal('code'),
   data: z.object({
-    code: z.string().max(20000),
+    code: z.string().max(CODE_NODE_CODE_MAX_LENGTH),
     language: z.string().min(1).max(64).optional()
   }).strict(),
   contentStyle: codeContentStyleSchema

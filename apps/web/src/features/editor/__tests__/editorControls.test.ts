@@ -60,7 +60,11 @@ describe('editor multi-type controls', () => {
   it('lets NodeInspector edit shell style, content style, and type-specific node data', () => {
     const source = readEditorSource('../components/inspectors/NodeInspector.vue')
 
-    expect(source).toContain("import type { MindNode, NodeShellStyle } from '@mind-x/shared'")
+    expect(source).toContain("from '@mind-x/shared'")
+    expect(source).toContain('CODE_NODE_CODE_MAX_LENGTH')
+    expect(source).toContain('PLAIN_TEXT_MAX_LENGTH')
+    expect(source).toContain('isValidCode')
+    expect(source).toContain('isValidPlainText')
     expect(source).toContain('node: MindNode')
     expect(source).toContain('contentChange: [dataPatch: Record<string, unknown>]')
     expect(source).toContain('contentStyleChange: [stylePatch: Record<string, unknown>]')
@@ -75,5 +79,7 @@ describe('editor multi-type controls', () => {
     expect(source).toContain("emit('contentChange', { code })")
     expect(source).toContain("emit('contentChange', { items })")
     expect(source).toContain('replaceTaskItem')
+    expect(source).toContain(':maxlength="CODE_NODE_CODE_MAX_LENGTH"')
+    expect(source).toContain(':maxlength="PLAIN_TEXT_MAX_LENGTH"')
   })
 })

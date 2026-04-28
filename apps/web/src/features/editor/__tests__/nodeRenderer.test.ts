@@ -60,6 +60,10 @@ function readTaskNodeContentSource(): string {
   return readFileSync(new URL('../components/canvas/node-content/TaskNodeContent.vue', import.meta.url), 'utf8')
 }
 
+function readCodeNodeContentSource(): string {
+  return readFileSync(new URL('../components/canvas/node-content/CodeNodeContent.vue', import.meta.url), 'utf8')
+}
+
 describe('NodeRenderer', () => {
   it('renders nodes through BaseNode and dynamic content components', () => {
     const source = readNodeRendererSource()
@@ -140,5 +144,14 @@ describe('NodeRenderer', () => {
     expect(source).toContain('areItemsEqual(items, props.node.data.items)')
     expect(source).toContain("emit('cancel')")
     expect(source).toContain("emit('commit', { items })")
+  })
+
+  it('keeps oversized code edits out of commit payloads', () => {
+    const source = readCodeNodeContentSource()
+
+    expect(source).toContain('CODE_NODE_CODE_MAX_LENGTH')
+    expect(source).toContain('isValidCode(draftCode.value)')
+    expect(source).toContain('editError.value')
+    expect(source).toContain(':maxlength="CODE_NODE_CODE_MAX_LENGTH"')
   })
 })

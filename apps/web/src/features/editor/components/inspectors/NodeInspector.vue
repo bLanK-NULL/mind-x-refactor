@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { MindNode, NodeShellStyle } from '@mind-x/shared'
+import { CODE_NODE_CODE_MAX_LENGTH, PLAIN_TEXT_MAX_LENGTH, type MindNode, type NodeShellStyle } from '@mind-x/shared'
+import { isValidCode, isValidOptionalPlainText, isValidPlainText, isValidWebUrl } from '../../utils/nodeValidation'
 import ColorTokenPicker from './ColorTokenPicker.vue'
 import StyleField from './StyleField.vue'
 
@@ -44,26 +45,9 @@ function checkedValue(event: Event): boolean {
   return (event.target as HTMLInputElement).checked
 }
 
-function isPlainTextNonEmpty(value: string): boolean {
-  return value.trim().length > 0 && !/[<>]/.test(value)
-}
-
-function isOptionalPlainText(value: string): boolean {
-  return value.trim().length === 0 || !/[<>]/.test(value)
-}
-
-function isValidWebUrl(value: string): boolean {
-  try {
-    const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
-
 function updateTopicTitle(event: Event): void {
   const title = textValue(event).trim()
-  if (isPlainTextNonEmpty(title)) {
+  if (isValidPlainText(title)) {
     emit('contentChange', { title })
   }
 }
@@ -77,14 +61,14 @@ function updateImageUrl(event: Event): void {
 
 function updateImageAlt(event: Event): void {
   const alt = textValue(event).trim()
-  if (props.node.type === 'image' && isOptionalPlainText(alt)) {
+  if (props.node.type === 'image' && isValidOptionalPlainText(alt)) {
     emit('contentChange', { url: props.node.data.url, alt: alt || undefined })
   }
 }
 
 function updateLinkTitle(event: Event): void {
   const title = textValue(event).trim()
-  if (props.node.type === 'link' && isPlainTextNonEmpty(title)) {
+  if (props.node.type === 'link' && isValidPlainText(title)) {
     emit('contentChange', { title, url: props.node.data.url })
   }
 }
@@ -99,7 +83,7 @@ function updateLinkUrl(event: Event): void {
 
 function updateAttachmentFileName(event: Event): void {
   const fileName = textValue(event).trim()
-  if (props.node.type === 'attachment' && isPlainTextNonEmpty(fileName)) {
+  if (props.node.type === 'attachment' && isValidPlainText(fileName)) {
     emit('contentChange', { fileName, url: props.node.data.url })
   }
 }
@@ -114,7 +98,9 @@ function updateAttachmentUrl(event: Event): void {
 
 function updateCode(event: Event): void {
   const code = textValue(event)
-  emit('contentChange', { code })
+  if (isValidCode(code)) {
+    emit('contentChange', { code })
+  }
 }
 
 function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
@@ -123,7 +109,7 @@ function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
   }
 
   const items = props.node.data.items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : { ...item }))
-  if (items.every((item) => isPlainTextNonEmpty(item.title))) {
+  if (items.every((item) => isValidPlainText(item.title))) {
     emit('contentChange', { items })
   }
 }
@@ -178,7 +164,7 @@ function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
 
     <template v-if="node.type === 'topic'">
       <StyleField label="Title">
-        <a-input :value="node.data.title" size="small" @change="updateTopicTitle" />
+        <a-input :maxlength="PLAIN_TEXT_MAX_LENGTH" :value="node.data.title" size="small" @change="updateTopicTitle" />
       </StyleField>
       <StyleField label="Text">
         <a-select
@@ -198,13 +184,13 @@ function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
         <a-input :value="node.data.url" size="small" type="url" @change="updateImageUrl" />
       </StyleField>
       <StyleField label="Alt">
-        <a-input :value="node.data.alt" size="small" @change="updateImageAlt" />
+        <a-input :maxlength="PLAIN_TEXT_MAX_LENGTH" :value="node.data.alt" size="small" @change="updateImageAlt" />
       </StyleField>
     </template>
 
     <template v-else-if="node.type === 'link'">
       <StyleField label="Title">
-        <a-input :value="node.data.title" size="small" @change="updateLinkTitle" />
+        <a-input :maxlength="PLAIN_TEXT_MAX_LENGTH" :value="node.data.title" size="small" @change="updateLinkTitle" />
       </StyleField>
       <StyleField label="URL">
         <a-input :value="node.data.url" size="small" type="url" @change="updateLinkUrl" />
@@ -213,7 +199,7 @@ function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
 
     <template v-else-if="node.type === 'attachment'">
       <StyleField label="File">
-        <a-input :value="node.data.fileName" size="small" @change="updateAttachmentFileName" />
+        <a-input :maxlength="PLAIN_TEXT_MAX_LENGTH" :value="node.data.fileName" size="small" @change="updateAttachmentFileName" />
       </StyleField>
       <StyleField label="URL">
         <a-input :value="node.data.url" size="small" type="url" @change="updateAttachmentUrl" />
@@ -222,7 +208,13 @@ function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
 
     <template v-else-if="node.type === 'code'">
       <StyleField label="Code">
-        <a-textarea :value="node.data.code" :auto-size="{ minRows: 5, maxRows: 8 }" size="small" @change="updateCode" />
+        <a-textarea
+          :maxlength="CODE_NODE_CODE_MAX_LENGTH"
+          :value="node.data.code"
+          :auto-size="{ minRows: 5, maxRows: 8 }"
+          size="small"
+          @change="updateCode"
+        />
       </StyleField>
     </template>
 
@@ -235,6 +227,7 @@ function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
               @change="(event: Event) => replaceTaskItem(index, { done: checkedValue(event) })"
             />
             <a-input
+              :maxlength="PLAIN_TEXT_MAX_LENGTH"
               :value="item.title"
               size="small"
               @change="(event: Event) => replaceTaskItem(index, { title: textValue(event).trim() })"
