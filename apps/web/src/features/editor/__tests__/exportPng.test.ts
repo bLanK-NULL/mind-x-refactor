@@ -1,4 +1,11 @@
-import { DEFAULT_TOPIC_STYLE, type MindDocument } from '@mind-x/shared'
+import {
+  DEFAULT_NODE_SHELL_STYLE,
+  DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TOPIC_CONTENT_STYLE,
+  type MindDocument,
+  type Point,
+  type Size
+} from '@mind-x/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const html2canvasMock = vi.hoisted(() => vi.fn())
@@ -9,7 +16,7 @@ vi.mock('html2canvas', () => ({
 
 function document(overrides: Partial<MindDocument> = {}): MindDocument {
   return {
-    version: 2,
+    version: 3,
     meta: {
       projectId: 'project-1',
       title: 'Project One',
@@ -19,6 +26,18 @@ function document(overrides: Partial<MindDocument> = {}): MindDocument {
     nodes: [],
     edges: [],
     ...overrides
+  }
+}
+
+function topicNode(id: string, title: string, position: Point, size: Size = DEFAULT_NODE_SIZE_BY_TYPE.topic) {
+  return {
+    data: { title },
+    id,
+    position,
+    size,
+    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
+    type: 'topic' as const,
+    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
   }
 }
 
@@ -48,21 +67,8 @@ describe('exportPng', () => {
     const bounds = calculateDocumentBounds(
       document({
         nodes: [
-          {
-            data: { title: 'Root' },
-            id: 'root',
-            position: { x: -20, y: 10 },
-            style: DEFAULT_TOPIC_STYLE,
-            type: 'topic'
-          },
-          {
-            data: { title: 'Child' },
-            id: 'child',
-            position: { x: 220, y: -30 },
-            size: { height: 80, width: 200 },
-            style: DEFAULT_TOPIC_STYLE,
-            type: 'topic'
-          }
+          topicNode('root', 'Root', { x: -20, y: 10 }),
+          topicNode('child', 'Child', { x: 220, y: -30 }, { height: 80, width: 200 })
         ]
       })
     )
@@ -117,13 +123,7 @@ describe('exportPng', () => {
         document: document({
           meta: { ...document().meta, title: 'Project/One' },
           nodes: [
-            {
-              data: { title: 'Root' },
-              id: 'root',
-              position: { x: 120, y: 80 },
-              style: DEFAULT_TOPIC_STYLE,
-              type: 'topic'
-            }
+            topicNode('root', 'Root', { x: 120, y: 80 })
           ]
         }),
         root
@@ -170,13 +170,7 @@ describe('exportPng', () => {
     await exportDocumentAsPng({
       document: document({
         nodes: [
-          {
-            data: { title: 'Root' },
-            id: 'root',
-            position: { x: -40, y: -12 },
-            style: DEFAULT_TOPIC_STYLE,
-            type: 'topic'
-          }
+          topicNode('root', 'Root', { x: -40, y: -12 })
         ]
       }),
       root

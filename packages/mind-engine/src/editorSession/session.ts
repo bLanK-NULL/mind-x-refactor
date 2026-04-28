@@ -1,4 +1,4 @@
-import { type EdgeStyle, type MindDocument, type Point, type TopicNodeStyle, type Viewport } from '@mind-x/shared'
+import { type EdgeStyle, type MindDocument, type NodeShellStyle, type Point, type Viewport } from '@mind-x/shared'
 import { produce } from 'immer'
 import {
   addChildNodeCommand,
@@ -10,7 +10,7 @@ import {
   moveNodes,
   moveNodesCommand,
   setEdgeStyleCommand,
-  setNodeStyleCommand,
+  setNodeShellStyleCommand,
   type CommandResult
 } from '../commands.js'
 import { createHistory, type History } from '../history.js'
@@ -337,7 +337,7 @@ export function createEditorSession(): EditorSession {
         })
       )
     },
-    setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>) {
+    setSelectedNodeStyle(stylePatch: Partial<NodeShellStyle>) {
       if (!state.document || state.selectedNodeIds.length !== 1) {
         return
       }
@@ -352,13 +352,13 @@ export function createEditorSession(): EditorSession {
         return
       }
 
-      if (isStylePatchNoop(selectedNode.style, stylePatch)) {
+      if (isStylePatchNoop(selectedNode.shellStyle, stylePatch)) {
         return
       }
 
       finalizePendingPreview()
       commitCommandResult(
-        executeCommand(cloneDocument(state.document), setNodeStyleCommand, {
+        executeCommand(cloneDocument(state.document), setNodeShellStyleCommand, {
           nodeId,
           stylePatch
         })

@@ -1,7 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE } from '@mind-x/shared'
+import {
+  DEFAULT_EDGE_STYLE,
+  DEFAULT_NODE_SHELL_STYLE,
+  DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TOPIC_CONTENT_STYLE,
+  type Point
+} from '@mind-x/shared'
 import { createEmptyDocument } from '../documentFactory.js'
 import { assertMindTree, getChildIds, getParentId } from '../graph.js'
+
+function topicNode(id: string, title: string, position: Point) {
+  return {
+    id,
+    type: 'topic' as const,
+    position,
+    size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
+    data: { title },
+    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
+  }
+}
 
 describe('graph rules', () => {
   it('accepts a document where each node has at most one parent', () => {
@@ -11,8 +29,8 @@ describe('graph rules', () => {
       now: '2026-04-26T00:00:00.000Z'
     })
     doc.nodes.push(
-      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('root', 'Root', { x: 0, y: 0 }),
+      topicNode('child', 'Child', { x: 240, y: 0 })
     )
     doc.edges.push({ id: 'edge-1', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE })
 
@@ -28,9 +46,9 @@ describe('graph rules', () => {
       now: '2026-04-26T00:00:00.000Z'
     })
     doc.nodes.push(
-      { id: 'a', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'A' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'b', type: 'topic', position: { x: 0, y: 120 }, data: { title: 'B' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'c', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'C' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('a', 'A', { x: 0, y: 0 }),
+      topicNode('b', 'B', { x: 0, y: 120 }),
+      topicNode('c', 'C', { x: 240, y: 0 })
     )
     doc.edges.push(
       { id: 'edge-1', source: 'a', target: 'c', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },
@@ -46,7 +64,7 @@ describe('graph rules', () => {
       title: 'Planning',
       now: '2026-04-26T00:00:00.000Z'
     })
-    doc.nodes.push({ id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' }, style: DEFAULT_TOPIC_STYLE })
+    doc.nodes.push(topicNode('child', 'Child', { x: 240, y: 0 }))
     doc.edges.push({ id: 'edge-1', source: 'missing', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE })
 
     expect(() => assertMindTree(doc)).toThrow('Edge edge-1 source missing does not exist')
@@ -58,7 +76,7 @@ describe('graph rules', () => {
       title: 'Planning',
       now: '2026-04-26T00:00:00.000Z'
     })
-    doc.nodes.push({ id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE })
+    doc.nodes.push(topicNode('root', 'Root', { x: 0, y: 0 }))
     doc.edges.push({ id: 'edge-1', source: 'root', target: 'missing', type: 'mind-parent', style: DEFAULT_EDGE_STYLE })
 
     expect(() => assertMindTree(doc)).toThrow('Edge edge-1 target missing does not exist')
@@ -71,9 +89,9 @@ describe('graph rules', () => {
       now: '2026-04-26T00:00:00.000Z'
     })
     doc.nodes.push(
-      { id: 'a', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'A' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'b', type: 'topic', position: { x: 0, y: 120 }, data: { title: 'B' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'c', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'C' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('a', 'A', { x: 0, y: 0 }),
+      topicNode('b', 'B', { x: 0, y: 120 }),
+      topicNode('c', 'C', { x: 240, y: 0 })
     )
     doc.edges.push(
       { id: 'edge-1', source: 'a', target: 'c', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },
@@ -89,7 +107,7 @@ describe('graph rules', () => {
       title: 'Planning',
       now: '2026-04-26T00:00:00.000Z'
     })
-    doc.nodes.push({ id: 'a', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'A' }, style: DEFAULT_TOPIC_STYLE })
+    doc.nodes.push(topicNode('a', 'A', { x: 0, y: 0 }))
     doc.edges.push({ id: 'edge-1', source: 'a', target: 'a', type: 'mind-parent', style: DEFAULT_EDGE_STYLE })
 
     expect(() => assertMindTree(doc)).toThrow('Node a cannot be its own parent')
@@ -102,8 +120,8 @@ describe('graph rules', () => {
       now: '2026-04-26T00:00:00.000Z'
     })
     doc.nodes.push(
-      { id: 'a', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'A' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'b', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'B' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('a', 'A', { x: 0, y: 0 }),
+      topicNode('b', 'B', { x: 240, y: 0 })
     )
     doc.edges.push(
       { id: 'edge-1', source: 'a', target: 'b', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },

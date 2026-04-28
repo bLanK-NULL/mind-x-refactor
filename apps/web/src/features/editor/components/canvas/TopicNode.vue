@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { MindNode, Point } from '@mind-x/shared'
 import { computed, nextTick, ref, watch } from 'vue'
-import { resolveTopicNodeClass, resolveTopicNodeStyle } from '../../utils/objectStyles'
+import { resolveTopicContentClass, resolveTopicNodeClass, resolveTopicNodeStyle } from '../../utils/objectStyles'
+
+type TopicNodeModel = Extract<MindNode, { type: 'topic' }>
 
 const props = defineProps<{
-  node: MindNode
+  node: TopicNodeModel
   selected: boolean
 }>()
 
@@ -23,14 +25,15 @@ const draggingPointerId = ref<number | null>(null)
 const lastPointer = ref<Point | null>(null)
 
 const nodeStyle = computed(() => ({
-  ...resolveTopicNodeStyle(props.node.style),
-  height: `${props.node.size?.height ?? 56}px`,
+  ...resolveTopicNodeStyle(props.node.shellStyle),
+  height: `${props.node.size.height}px`,
   transform: `translate(${props.node.position.x}px, ${props.node.position.y}px)`,
-  width: `${props.node.size?.width ?? 180}px`
+  width: `${props.node.size.width}px`
 }))
 
 const nodeClass = computed(() => [
-  ...resolveTopicNodeClass(props.node.style),
+  ...resolveTopicNodeClass(props.node.shellStyle),
+  ...resolveTopicContentClass(props.node.contentStyle),
   { 'topic-node--selected': props.selected }
 ])
 
@@ -191,18 +194,6 @@ function endDrag(event: PointerEvent): void {
 
 .topic-node--shape-pill {
   border-radius: 999px;
-}
-
-.topic-node--size-sm {
-  padding: 7px 10px;
-}
-
-.topic-node--size-md {
-  padding: 10px 14px;
-}
-
-.topic-node--size-lg {
-  padding: 13px 18px;
 }
 
 .topic-node--border-none {

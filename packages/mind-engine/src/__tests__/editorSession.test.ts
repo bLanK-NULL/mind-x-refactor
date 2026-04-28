@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE, type MindDocument } from '@mind-x/shared'
+import {
+  DEFAULT_EDGE_STYLE,
+  DEFAULT_NODE_SHELL_STYLE,
+  DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TOPIC_CONTENT_STYLE,
+  type MindDocument,
+  type Point,
+  type Size
+} from '@mind-x/shared'
 import { createEmptyDocument } from '../documentFactory.js'
 import { createEditorSession, serializeMindDocument } from '../editorSession.js'
 
@@ -14,44 +22,30 @@ function emptyDocument(overrides: Partial<MindDocument> = {}): MindDocument {
   }
 }
 
+function topicNode(id: string, title: string, position: Point, size: Size = DEFAULT_NODE_SIZE_BY_TYPE.topic) {
+  return {
+    id,
+    type: 'topic' as const,
+    position,
+    size,
+    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
+    data: { title },
+    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
+  }
+}
+
 function documentWithRoot(): MindDocument {
   return emptyDocument({
-    nodes: [
-      {
-        id: 'root',
-        type: 'topic',
-        position: { x: 10, y: 20 },
-        data: { title: 'Root' },
-        style: DEFAULT_TOPIC_STYLE
-      }
-    ]
+    nodes: [topicNode('root', 'Root', { x: 10, y: 20 })]
   })
 }
 
 function documentWithEdge(): MindDocument {
   return emptyDocument({
     nodes: [
-      {
-        id: 'root',
-        type: 'topic',
-        position: { x: 0, y: 0 },
-        data: { title: 'Root' },
-        style: DEFAULT_TOPIC_STYLE
-      },
-      {
-        id: 'child',
-        type: 'topic',
-        position: { x: 240, y: 0 },
-        data: { title: 'Child' },
-        style: DEFAULT_TOPIC_STYLE
-      },
-      {
-        id: 'leaf',
-        type: 'topic',
-        position: { x: 480, y: 0 },
-        data: { title: 'Leaf' },
-        style: DEFAULT_TOPIC_STYLE
-      }
+      topicNode('root', 'Root', { x: 0, y: 0 }),
+      topicNode('child', 'Child', { x: 240, y: 0 }),
+      topicNode('leaf', 'Leaf', { x: 480, y: 0 })
     ],
     edges: [
       { id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },
@@ -160,9 +154,9 @@ describe('editor session', () => {
     session.undo()
     expect(session.getState().canRedo).toBe(true)
 
-    session.setSelectedNodeStyle({ colorToken: DEFAULT_TOPIC_STYLE.colorToken })
+    session.setSelectedNodeStyle({ colorToken: DEFAULT_NODE_SHELL_STYLE.colorToken })
 
-    expect(session.getState().document?.nodes[0].style).toEqual(DEFAULT_TOPIC_STYLE)
+    expect(session.getState().document?.nodes[0].shellStyle).toEqual(DEFAULT_NODE_SHELL_STYLE)
     expect(session.getState().dirty).toBe(false)
     expect(session.getState().canUndo).toBe(false)
     expect(session.getState().canRedo).toBe(true)
@@ -383,22 +377,8 @@ describe('editor session', () => {
     session.load(
       emptyDocument({
         nodes: [
-          {
-            id: 'node-1',
-            type: 'topic',
-            position: { x: 0, y: 0 },
-            size: { height: 56, width: 180 },
-            data: { title: 'Root topic' },
-            style: DEFAULT_TOPIC_STYLE
-          },
-          {
-            id: 'node-2',
-            type: 'topic',
-            position: { x: 260, y: 0 },
-            size: { height: 56, width: 180 },
-            data: { title: 'Existing child' },
-            style: DEFAULT_TOPIC_STYLE
-          }
+          topicNode('node-1', 'Root topic', { x: 0, y: 0 }),
+          topicNode('node-2', 'Existing child', { x: 260, y: 0 })
         ],
         edges: [{ id: 'node-1->node-2', source: 'node-1', target: 'node-2', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }]
       })

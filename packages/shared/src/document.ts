@@ -241,7 +241,7 @@ const mindDocumentMetaSchema = z.object({
   updatedAt: z.string().datetime()
 }).strict()
 
-export const mindNodeSchema = z.object({
+export const mindNodeV2Schema = z.object({
   id: z.string().min(1),
   type: z.literal('topic'),
   position: pointV2Schema,
@@ -349,11 +349,12 @@ export const mindDocumentV2Schema = z.object({
   version: z.literal(2),
   meta: mindDocumentMetaSchema,
   viewport: viewportV2Schema,
-  nodes: z.array(mindNodeSchema),
+  nodes: z.array(mindNodeV2Schema),
   edges: z.array(mindEdgeSchema)
 }).strict()
 
-export const mindDocumentSchema = mindDocumentV2Schema
+export const mindDocumentSchema = mindDocumentV3Schema
+export const mindNodeSchema = mindNodeV3Schema
 
 const migrateV1MindDocument = (v1: z.infer<typeof mindDocumentV1Schema>) =>
   ({
@@ -431,8 +432,9 @@ export function migrateMindDocumentToV3(input: unknown): z.infer<typeof mindDocu
 }
 
 export const migratableMindDocumentSchema = z.union([
-  mindDocumentV2Schema,
-  mindDocumentV1Schema.transform((document) => migrateV1MindDocument(document))
+  mindDocumentV3Schema,
+  mindDocumentV2Schema.transform((document) => migrateV2MindDocumentToV3(document)),
+  mindDocumentV1Schema.transform((document) => migrateV2MindDocumentToV3(migrateV1MindDocument(document)))
 ])
 
 export function migrateMindDocument(input: unknown): MindDocument {
@@ -456,10 +458,11 @@ export type EdgeStyle = z.infer<typeof edgeStyleSchema>
 export type EdgeLabelStyle = z.infer<typeof edgeLabelStyleSchema>
 export type EdgeEndpointStyle = z.infer<typeof edgeEndpointStyleSchema>
 export type EdgeAnimationStyle = z.infer<typeof edgeAnimationStyleSchema>
-export type MindNode = z.infer<typeof mindNodeSchema>
+export type MindNode = z.infer<typeof mindNodeV3Schema>
 export type MindNodeV3 = z.infer<typeof mindNodeV3Schema>
 export type MindEdge = z.infer<typeof mindEdgeSchema>
-export type MindDocument = z.infer<typeof mindDocumentV2Schema>
+export type MindDocument = z.infer<typeof mindDocumentV3Schema>
+export type MindDocumentV2 = z.infer<typeof mindDocumentV2Schema>
 export type MindDocumentV3 = z.infer<typeof mindDocumentV3Schema>
 export type MindDocumentV1 = z.infer<typeof mindDocumentV1Schema>
 export type ThemeName = z.infer<typeof legacyThemeNameSchema>

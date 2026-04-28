@@ -16,14 +16,15 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <TopicNode
-    v-for="node in nodes"
-    :key="node.id"
-    :node="node"
-    :selected="selectedNodeIds.includes(node.id)"
-    @drag="(nodeId, delta) => emit('drag', nodeId, delta)"
-    @drag-end="emit('dragEnd')"
-    @edit="(nodeId, title) => emit('edit', nodeId, title)"
-    @select="emit('select', $event)"
-  />
+  <template v-for="node in nodes" :key="node.id">
+    <TopicNode
+      v-if="node.type === 'topic'"
+      :node="node"
+      :selected="selectedNodeIds.includes(node.id)"
+      @drag="(nodeId, delta) => emit('drag', nodeId, delta)"
+      @drag-end="emit('dragEnd')"
+      @edit="(nodeId, title) => emit('edit', nodeId, title)"
+      @select="emit('select', $event)"
+    />
+  </template>
 </template>

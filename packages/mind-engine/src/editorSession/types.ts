@@ -1,4 +1,4 @@
-import type { EdgeStyle, MindDocument, Point, TopicNodeStyle, Viewport } from '@mind-x/shared'
+import type { EdgeStyle, MindDocument, NodeShellStyle, Point, Viewport } from '@mind-x/shared'
 
 export type AddTopicInput = { id?: string; title?: string }
 export type AddChildTopicInput = AddTopicInput & { parentId?: string }
@@ -33,7 +33,7 @@ export type EditorSession = {
   selectEdge(edgeId: string): void
   selectOnly(nodeId: string): void
   setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void
-  setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void
+  setSelectedNodeStyle(stylePatch: Partial<NodeShellStyle>): void
   setSelection(nodeIds: string[]): void
   setViewport(viewport: Viewport): void
   undo(): void

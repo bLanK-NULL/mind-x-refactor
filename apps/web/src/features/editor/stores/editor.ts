@@ -1,4 +1,4 @@
-import type { EdgeStyle, MindDocument, Point, TopicNodeStyle, Viewport } from '@mind-x/shared'
+import type { EdgeStyle, MindDocument, NodeShellStyle, Point, Viewport } from '@mind-x/shared'
 import { createEditorSession, type AddChildTopicInput, type AddTopicInput, type EditorSession } from '@mind-x/mind-engine'
 import { defineStore } from 'pinia'
 import { markRaw, ref, shallowRef, toRaw } from 'vue'
@@ -123,7 +123,7 @@ export const useEditorStore = defineStore('editor', () => {
     syncFromSession()
   }
 
-  function setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
+  function setSelectedNodeStyle(stylePatch: Partial<NodeShellStyle>): void {
     session.setSelectedNodeStyle(stylePatch)
     syncFromSession()
   }

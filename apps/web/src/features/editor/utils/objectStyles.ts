@@ -1,4 +1,4 @@
-import type { EdgeStyle, ObjectColorToken, TopicNodeStyle } from '@mind-x/shared'
+import type { EdgeStyle, NodeShellStyle, ObjectColorToken, TopicContentStyle } from '@mind-x/shared'
 import type { CSSProperties } from 'vue'
 
 type TopicPalette = {
@@ -51,18 +51,16 @@ export type EdgePathInput = {
   startY: number
 }
 
-export function resolveTopicNodeClass(style: TopicNodeStyle): string[] {
+export function resolveNodeShellClass(style: NodeShellStyle): string[] {
   return [
     `topic-node--tone-${style.tone}`,
     `topic-node--shape-${style.shape}`,
-    `topic-node--size-${style.size}`,
     `topic-node--border-${style.borderStyle}`,
-    `topic-node--shadow-${style.shadowLevel}`,
-    `topic-node--weight-${style.textWeight}`
+    `topic-node--shadow-${style.shadowLevel}`
   ]
 }
 
-export function resolveTopicNodeStyle(style: TopicNodeStyle): CssVariableStyle {
+export function resolveNodeShellStyle(style: NodeShellStyle): CssVariableStyle {
   const palette = TOPIC_PALETTE[style.colorToken]
   const solid = style.tone === 'solid'
 
@@ -72,6 +70,13 @@ export function resolveTopicNodeStyle(style: TopicNodeStyle): CssVariableStyle {
     '--object-text': solid ? '#ffffff' : palette.text
   }
 }
+
+export function resolveTopicContentClass(style: TopicContentStyle): string[] {
+  return [`topic-node--weight-${style.textWeight}`]
+}
+
+export const resolveTopicNodeClass = resolveNodeShellClass
+export const resolveTopicNodeStyle = resolveNodeShellStyle
 
 export function resolveEdgeStyle(style: EdgeStyle): { classNames: string[]; style: CssVariableStyle } {
   return {

@@ -1,5 +1,5 @@
 import { createEmptyDocument } from '@mind-x/mind-engine'
-import { DEFAULT_TOPIC_STYLE, type MindDocument, type MindDocumentV1 } from '@mind-x/shared'
+import { DEFAULT_NODE_SIZE_BY_TYPE, DEFAULT_TOPIC_CONTENT_STYLE, type MindDocument, type MindDocumentV1 } from '@mind-x/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '@/shared/api/client'
 
@@ -78,8 +78,8 @@ describe('syncService', () => {
     const { loadServerDocument } = await import('@/features/editor/services/syncService')
 
     await expect(loadServerDocument('project/one')).resolves.toMatchObject({
-      version: 2,
-      nodes: [expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })]
+      version: 3,
+      nodes: [expect.objectContaining({ size: DEFAULT_NODE_SIZE_BY_TYPE.topic, contentStyle: DEFAULT_TOPIC_CONTENT_STYLE })]
     })
   })
 
@@ -161,8 +161,8 @@ describe('syncService', () => {
 
     await expect(getLocalDraft('project-1')).resolves.toMatchObject({
       document: {
-        version: 2,
-        nodes: [expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })]
+        version: 3,
+        nodes: [expect.objectContaining({ size: DEFAULT_NODE_SIZE_BY_TYPE.topic, contentStyle: DEFAULT_TOPIC_CONTENT_STYLE })]
       },
       savedAt: '2026-04-26T00:00:00.000Z'
     })

@@ -2,9 +2,13 @@ import { applyPatches } from 'immer'
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_EDGE_STYLE,
-  DEFAULT_TOPIC_STYLE,
+  DEFAULT_NODE_SHELL_STYLE,
+  DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TOPIC_CONTENT_STYLE,
   type EdgeStyle,
-  type TopicNodeStyle
+  type NodeShellStyle,
+  type Point,
+  type Size
 } from '@mind-x/shared'
 import { createEmptyDocument } from '../documentFactory.js'
 import {
@@ -25,6 +29,18 @@ import {
   setNodeStyleCommand
 } from '../commands.js'
 import { getParentId } from '../graph.js'
+
+function topicNode(id: string, title: string, position: Point, size: Size = DEFAULT_NODE_SIZE_BY_TYPE.topic) {
+  return {
+    id,
+    type: 'topic' as const,
+    position,
+    size,
+    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
+    data: { title },
+    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
+  }
+}
 
 describe('commands', () => {
   it('executes command recipes with forward and inverse patches', () => {
@@ -56,7 +72,7 @@ describe('commands', () => {
     expect(getParentId(result, 'child')).toBe('root')
   })
 
-  it('creates root and child objects with explicit v2 default styles', () => {
+  it('creates root and child objects with explicit v3 default styles', () => {
     const doc = createEmptyDocument({
       now: '2026-04-26T00:00:00.000Z',
       projectId: 'project-1',
@@ -67,16 +83,24 @@ describe('commands', () => {
     const withChild = addChildNode(withRoot, { parentId: 'root', id: 'child', title: 'Child' })
 
     expect(withRoot).toMatchObject({
-      version: 2,
+      version: 3,
       meta: {
         projectId: 'project-1',
         title: 'Project One',
         updatedAt: '2026-04-26T00:00:00.000Z'
       }
     })
-    expect(withChild.nodes.map((node) => node.style)).toEqual([DEFAULT_TOPIC_STYLE, DEFAULT_TOPIC_STYLE])
-    expect(withChild.nodes[0].style).not.toBe(withChild.nodes[1].style)
-    expect(withChild.nodes[0].style).not.toBe(DEFAULT_TOPIC_STYLE)
+    expect(withChild.nodes.map((node) => node.shellStyle)).toEqual([DEFAULT_NODE_SHELL_STYLE, DEFAULT_NODE_SHELL_STYLE])
+    expect(withChild.nodes.map((node) => node.contentStyle)).toEqual([
+      DEFAULT_TOPIC_CONTENT_STYLE,
+      DEFAULT_TOPIC_CONTENT_STYLE
+    ])
+    expect(withChild.nodes.map((node) => node.size)).toEqual([
+      DEFAULT_NODE_SIZE_BY_TYPE.topic,
+      DEFAULT_NODE_SIZE_BY_TYPE.topic
+    ])
+    expect(withChild.nodes[0].shellStyle).not.toBe(withChild.nodes[1].shellStyle)
+    expect(withChild.nodes[0].shellStyle).not.toBe(DEFAULT_NODE_SHELL_STYLE)
     expect(withChild.edges).toEqual([
       {
         id: 'root->child',
@@ -94,11 +118,11 @@ describe('commands', () => {
       id: 'root',
       title: 'Root'
     })
-    const stylePatch: Partial<TopicNodeStyle> = { colorToken: 'purple', shape: 'pill', textWeight: 'bold' }
+    const stylePatch: Partial<NodeShellStyle> = { colorToken: 'purple', shape: 'pill' }
 
     const result = executeCommand(doc, setNodeStyleCommand, { nodeId: 'root', stylePatch })
 
-    expect(result.document.nodes[0].style).toEqual({ ...DEFAULT_TOPIC_STYLE, ...stylePatch })
+    expect(result.document.nodes[0].shellStyle).toEqual({ ...DEFAULT_NODE_SHELL_STYLE, ...stylePatch })
     expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
   })
 
@@ -209,8 +233,8 @@ describe('commands', () => {
   it('generates inverse patches for title, movement, edge, and delete commands', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
-      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('root', 'Root', { x: 0, y: 0 }),
+      topicNode('child', 'Child', { x: 240, y: 0 })
     )
     doc.edges.push({ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE })
 
@@ -236,9 +260,9 @@ describe('commands', () => {
   it('deletes multiple selected nodes as one command result', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
-      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'left', type: 'topic', position: { x: 240, y: -72 }, data: { title: 'Left' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'right', type: 'topic', position: { x: 240, y: 72 }, data: { title: 'Right' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('root', 'Root', { x: 0, y: 0 }),
+      topicNode('left', 'Left', { x: 240, y: -72 }),
+      topicNode('right', 'Right', { x: 240, y: 72 })
     )
     doc.edges.push(
       { id: 'root->left', source: 'root', target: 'left', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },
@@ -254,7 +278,7 @@ describe('commands', () => {
 
   it('adds a child node to the right of its parent', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
-    doc.nodes.push({ id: 'root', type: 'topic', position: { x: 10, y: 20 }, size: { width: 160, height: 48 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE })
+    doc.nodes.push(topicNode('root', 'Root', { x: 10, y: 20 }, { width: 160, height: 48 }))
 
     const result = addChildNode(doc, {
       parentId: 'root',
@@ -268,7 +292,7 @@ describe('commands', () => {
 
   it('rejects an HTML child node title', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
-    doc.nodes.push({ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE })
+    doc.nodes.push(topicNode('root', 'Root', { x: 10, y: 20 }))
 
     expect(() => addChildNode(doc, { parentId: 'root', id: 'child', title: '<b>Child</b>' })).toThrow(
       'Node title must be non-empty plain text'
@@ -277,7 +301,7 @@ describe('commands', () => {
 
   it('rejects an empty child node id', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
-    doc.nodes.push({ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE })
+    doc.nodes.push(topicNode('root', 'Root', { x: 10, y: 20 }))
 
     expect(() => addChildNode(doc, { parentId: 'root', id: '   ', title: 'Child' })).toThrow(
       'Node id must be non-empty'
@@ -287,8 +311,8 @@ describe('commands', () => {
   it('rejects a duplicate child node id', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
-      { id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'child', type: 'topic', position: { x: 250, y: 20 }, data: { title: 'Existing' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('root', 'Root', { x: 10, y: 20 }),
+      topicNode('child', 'Existing', { x: 250, y: 20 })
     )
 
     expect(() => addChildNode(doc, { parentId: 'root', id: 'child', title: 'Child' })).toThrow(
@@ -298,7 +322,7 @@ describe('commands', () => {
 
   it('edits a node title as plain text', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
-    doc.nodes.push({ id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE })
+    doc.nodes.push(topicNode('root', 'Root', { x: 0, y: 0 }))
 
     const result = editNodeTitle(doc, { nodeId: 'root', title: 'Updated' })
 
@@ -307,7 +331,7 @@ describe('commands', () => {
 
   it('rejects a whitespace-only node title edit', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
-    doc.nodes.push({ id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE })
+    doc.nodes.push(topicNode('root', 'Root', { x: 0, y: 0 }))
 
     expect(() => editNodeTitle(doc, { nodeId: 'root', title: '   ' })).toThrow(
       'Node title must be non-empty plain text'
@@ -317,8 +341,8 @@ describe('commands', () => {
   it('moves selected nodes by delta', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
-      { id: 'a', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'A' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'b', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'B' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('a', 'A', { x: 0, y: 0 }),
+      topicNode('b', 'B', { x: 10, y: 20 })
     )
 
     const result = moveNodes(doc, { nodeIds: ['a', 'b'], delta: { x: 5, y: -3 } })
@@ -329,9 +353,9 @@ describe('commands', () => {
   it('rejects moving nodes in a document with two parent edges', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
-      { id: 'a', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'A' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'b', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'B' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'c', type: 'topic', position: { x: 20, y: 40 }, data: { title: 'C' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('a', 'A', { x: 0, y: 0 }),
+      topicNode('b', 'B', { x: 10, y: 20 }),
+      topicNode('c', 'C', { x: 20, y: 40 })
     )
     doc.edges.push(
       { id: 'edge-1', source: 'a', target: 'c', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },
@@ -346,9 +370,9 @@ describe('commands', () => {
   it('deletes an edge and leaves the child as a root with its subtree intact', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
-      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'child', type: 'topic', position: { x: 240, y: 12 }, data: { title: 'Child' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'leaf', type: 'topic', position: { x: 480, y: 24 }, data: { title: 'Leaf' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('root', 'Root', { x: 0, y: 0 }),
+      topicNode('child', 'Child', { x: 240, y: 12 }),
+      topicNode('leaf', 'Leaf', { x: 480, y: 24 })
     )
     doc.edges.push(
       { id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },
@@ -374,9 +398,9 @@ describe('commands', () => {
   it('deletes a node and promotes children to the deleted node parent', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
-      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'middle', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Middle' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'leaf', type: 'topic', position: { x: 480, y: 0 }, data: { title: 'Leaf' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('root', 'Root', { x: 0, y: 0 }),
+      topicNode('middle', 'Middle', { x: 240, y: 0 }),
+      topicNode('leaf', 'Leaf', { x: 480, y: 0 })
     )
     doc.edges.push(
       { id: 'root->middle', source: 'root', target: 'middle', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },
@@ -401,9 +425,9 @@ describe('commands', () => {
   it('deletes a root and promotes children to roots without moving them', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
-      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'left', type: 'topic', position: { x: 240, y: -72 }, data: { title: 'Left' }, style: DEFAULT_TOPIC_STYLE },
-      { id: 'right', type: 'topic', position: { x: 240, y: 72 }, data: { title: 'Right' }, style: DEFAULT_TOPIC_STYLE }
+      topicNode('root', 'Root', { x: 0, y: 0 }),
+      topicNode('left', 'Left', { x: 240, y: -72 }),
+      topicNode('right', 'Right', { x: 240, y: 72 })
     )
     doc.edges.push(
       { id: 'root->left', source: 'root', target: 'left', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },

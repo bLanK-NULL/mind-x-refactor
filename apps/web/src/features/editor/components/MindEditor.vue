@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EdgeStyle, MindDocument, MindEdge, MindNode, Point, TopicNodeStyle } from '@mind-x/shared'
+import type { EdgeStyle, MindDocument, MindEdge, MindNode, NodeShellStyle, Point } from '@mind-x/shared'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useEditorStore } from '@/features/editor/stores/editor'
 import EdgeInspector from './inspectors/EdgeInspector.vue'
@@ -137,7 +137,7 @@ function setInspectorPosition(position: Point): void {
   writeStoredInspectorPosition(position)
 }
 
-function setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
+function setSelectedNodeStyle(stylePatch: Partial<NodeShellStyle>): void {
   editor.setSelectedNodeStyle(stylePatch)
 }
 
@@ -241,7 +241,7 @@ onUnmounted(() => {
       @close="editor.clearSelection"
       @position-change="setInspectorPosition"
     >
-      <NodeInspector :style="selectedNode.style" @style-change="setSelectedNodeStyle" />
+      <NodeInspector :style="selectedNode.shellStyle" @style-change="setSelectedNodeStyle" />
     </InspectorPanel>
 
     <InspectorPanel

@@ -1,4 +1,11 @@
-import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE, type MindDocument } from '@mind-x/shared'
+import {
+  DEFAULT_EDGE_STYLE,
+  DEFAULT_NODE_SHELL_STYLE,
+  DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TOPIC_CONTENT_STYLE,
+  type MindDocument,
+  type Point
+} from '@mind-x/shared'
 import { createEmptyDocument } from '@mind-x/mind-engine'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -15,17 +22,21 @@ function emptyDocument(overrides: Partial<MindDocument> = {}): MindDocument {
   }
 }
 
+function topicNode(id: string, title: string, position: Point) {
+  return {
+    id,
+    type: 'topic' as const,
+    position,
+    size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
+    data: { title },
+    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
+  }
+}
+
 function documentWithRoot(): MindDocument {
   return emptyDocument({
-    nodes: [
-      {
-        id: 'root',
-        type: 'topic',
-        position: { x: 10, y: 20 },
-        data: { title: 'Root' },
-        style: DEFAULT_TOPIC_STYLE
-      }
-    ]
+    nodes: [topicNode('root', 'Root', { x: 10, y: 20 })]
   })
 }
 
@@ -74,8 +85,8 @@ describe('editor store adapter', () => {
     store.load(
       emptyDocument({
         nodes: [
-          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
-          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' }, style: DEFAULT_TOPIC_STYLE }
+          topicNode('root', 'Root', { x: 0, y: 0 }),
+          topicNode('child', 'Child', { x: 240, y: 0 })
         ],
         edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }]
       })
@@ -115,19 +126,18 @@ describe('editor store adapter', () => {
       ...documentWithRoot(),
       nodes: [
         {
-          id: 'root',
-          type: 'topic' as const,
-          position: { x: 10, y: 20 },
-          data: { title: 'Draft root' },
-          style: DEFAULT_TOPIC_STYLE
+          ...topicNode('root', 'Root', { x: 10, y: 20 }),
+          data: { title: 'Draft root' }
         }
       ]
     }
 
     store.commit(draft)
-    draft.nodes[0].data.title = 'Mutated after commit'
+    if (draft.nodes[0]?.type === 'topic') {
+      draft.nodes[0].data.title = 'Mutated after commit'
+    }
 
-    expect(store.document?.nodes[0].data.title).toBe('Draft root')
+    expect(store.document?.nodes[0]).toMatchObject({ data: { title: 'Draft root' } })
     expect(store.dirty).toBe(true)
     expect(store.canUndo).toBe(true)
   })

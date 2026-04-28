@@ -8,7 +8,7 @@ export type CreateDocumentInput = {
 
 export function createEmptyDocument(input: CreateDocumentInput): MindDocument {
   return {
-    version: 2,
+    version: 3,
     meta: {
       projectId: input.projectId,
       title: input.title,

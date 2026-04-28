@@ -1,24 +1,24 @@
-import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE } from '@mind-x/shared'
+import { DEFAULT_EDGE_STYLE, DEFAULT_NODE_SHELL_STYLE, DEFAULT_TOPIC_CONTENT_STYLE } from '@mind-x/shared'
 import { describe, expect, it } from 'vitest'
 import {
   createEdgePath,
   getEdgeMarkerEnd,
   resolveEdgeStyle,
+  resolveTopicContentClass,
   resolveTopicNodeClass,
   resolveTopicNodeStyle
 } from '@/features/editor/utils/objectStyles'
 
 describe('object style resolvers', () => {
   it('resolves default topic style to CSS variables and classes', () => {
-    expect(resolveTopicNodeClass(DEFAULT_TOPIC_STYLE)).toEqual([
+    expect(resolveTopicNodeClass(DEFAULT_NODE_SHELL_STYLE)).toEqual([
       'topic-node--tone-soft',
       'topic-node--shape-rounded',
-      'topic-node--size-md',
       'topic-node--border-solid',
-      'topic-node--shadow-sm',
-      'topic-node--weight-medium'
+      'topic-node--shadow-sm'
     ])
-    expect(resolveTopicNodeStyle(DEFAULT_TOPIC_STYLE)).toMatchObject({
+    expect(resolveTopicContentClass(DEFAULT_TOPIC_CONTENT_STYLE)).toEqual(['topic-node--weight-medium'])
+    expect(resolveTopicNodeStyle(DEFAULT_NODE_SHELL_STYLE)).toMatchObject({
       '--object-border': '#cbd5e1',
       '--object-fill': '#ffffff',
       '--object-text': '#111827'
@@ -26,7 +26,7 @@ describe('object style resolvers', () => {
   })
 
   it('resolves solid purple topic styles', () => {
-    expect(resolveTopicNodeStyle({ ...DEFAULT_TOPIC_STYLE, colorToken: 'purple', tone: 'solid' })).toMatchObject({
+    expect(resolveTopicNodeStyle({ ...DEFAULT_NODE_SHELL_STYLE, colorToken: 'purple', tone: 'solid' })).toMatchObject({
       '--object-border': '#7c3aed',
       '--object-fill': '#7c3aed',
       '--object-text': '#ffffff'

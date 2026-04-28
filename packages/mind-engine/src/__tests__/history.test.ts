@@ -1,15 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_TOPIC_STYLE } from '@mind-x/shared'
+import { DEFAULT_NODE_SHELL_STYLE, DEFAULT_NODE_SIZE_BY_TYPE, DEFAULT_TOPIC_CONTENT_STYLE, type Point } from '@mind-x/shared'
 import { createEmptyDocument } from '../documentFactory.js'
 import { createHistory } from '../history.js'
 import { replaceWithPatchResult } from '../patches.js'
+
+function topicNode(id: string, title: string, position: Point) {
+  return {
+    id,
+    type: 'topic' as const,
+    position,
+    size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
+    data: { title },
+    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
+  }
+}
 
 describe('history', () => {
   it('undoes and redoes document patch entries', () => {
     const initial = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     const next = {
       ...initial,
-      nodes: [{ id: 'root', type: 'topic' as const, position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE }]
+      nodes: [topicNode('root', 'Root', { x: 0, y: 0 })]
     }
     const history = createHistory(initial)
 
@@ -24,11 +36,11 @@ describe('history', () => {
     const initial = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     const first = {
       ...initial,
-      nodes: [{ id: 'first', type: 'topic' as const, position: { x: 0, y: 0 }, data: { title: 'First' }, style: DEFAULT_TOPIC_STYLE }]
+      nodes: [topicNode('first', 'First', { x: 0, y: 0 })]
     }
     const replacement = {
       ...initial,
-      nodes: [{ id: 'replacement', type: 'topic' as const, position: { x: 10, y: 20 }, data: { title: 'Replacement' }, style: DEFAULT_TOPIC_STYLE }]
+      nodes: [topicNode('replacement', 'Replacement', { x: 10, y: 20 })]
     }
     const history = createHistory(initial)
 
@@ -74,11 +86,11 @@ describe('history', () => {
     const initial = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     const first = {
       ...initial,
-      nodes: [{ id: 'root', type: 'topic' as const, position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE }]
+      nodes: [topicNode('root', 'Root', { x: 0, y: 0 })]
     }
     const second = {
       ...first,
-      nodes: [{ id: 'root', type: 'topic' as const, position: { x: 0, y: 0 }, data: { title: 'Edited Root' }, style: DEFAULT_TOPIC_STYLE }]
+      nodes: [topicNode('root', 'Edited Root', { x: 0, y: 0 })]
     }
     const history = createHistory(initial)
     history.push(replaceWithPatchResult(initial, first))

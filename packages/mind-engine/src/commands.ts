@@ -1,23 +1,23 @@
 import {
   DEFAULT_EDGE_STYLE,
-  DEFAULT_TOPIC_STYLE,
-  createDefaultTopicStyle,
+  DEFAULT_NODE_SHELL_STYLE,
+  DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TOPIC_CONTENT_STYLE,
   mindDocumentSchema,
   type EdgeStyle,
   type MindDocument,
+  type NodeShellStyle,
   type Point,
-  type TopicNodeStyle
+  type TopicContentStyle
 } from '@mind-x/shared'
 import type { Draft } from 'immer'
 import { assertMindTree, createParentEdge, findNode, getChildIds, getParentId } from './graph.js'
 import { createPatchResult, type PatchResult } from './patches.js'
 
-const DEFAULT_NODE_WIDTH = 160
-const ROOT_NODE_WIDTH = 180
-const ROOT_NODE_HEIGHT = 56
 const CHILD_GAP_X = 80
 const SIBLING_GAP_Y = 72
-const TOPIC_STYLE_KEYS = new Set(Object.keys(DEFAULT_TOPIC_STYLE))
+const NODE_SHELL_STYLE_KEYS = new Set(Object.keys(DEFAULT_NODE_SHELL_STYLE))
+const TOPIC_CONTENT_STYLE_KEYS = new Set(Object.keys(DEFAULT_TOPIC_CONTENT_STYLE))
 const EDGE_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE))
 const EDGE_LABEL_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE.labelStyle))
 const EDGE_ENDPOINT_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE.endpointStyle))
@@ -48,8 +48,12 @@ function assertKnownKeys(value: unknown, allowedKeys: Set<string>, label: string
   }
 }
 
-function assertKnownTopicStylePatchKeys(stylePatch: Partial<TopicNodeStyle>): void {
-  assertKnownKeys(stylePatch, TOPIC_STYLE_KEYS, 'node')
+function assertKnownNodeShellStylePatchKeys(stylePatch: Partial<NodeShellStyle>): void {
+  assertKnownKeys(stylePatch, NODE_SHELL_STYLE_KEYS, 'node shell')
+}
+
+export function assertKnownTopicContentStylePatchKeys(stylePatch: Partial<TopicContentStyle>): void {
+  assertKnownKeys(stylePatch, TOPIC_CONTENT_STYLE_KEYS, 'topic content')
 }
 
 function assertKnownEdgeStylePatchKeys(stylePatch: Partial<EdgeStyle>): void {
@@ -92,9 +96,10 @@ export function addRootNodeCommand(draft: Draft<MindDocument>, input: AddRootNod
     id: input.id,
     type: 'topic',
     position: { x: 0, y: 0 },
-    size: { width: ROOT_NODE_WIDTH, height: ROOT_NODE_HEIGHT },
+    size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
     data: { title: input.title },
-    style: createDefaultTopicStyle()
+    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
   })
   assertMindTree(asDocument(draft))
 }
@@ -123,7 +128,7 @@ export function addChildNodeCommand(draft: Draft<MindDocument>, input: AddChildN
   }
 
   const childCount = getChildIds(asDocument(draft), input.parentId).length
-  const parentWidth = parent.size?.width ?? DEFAULT_NODE_WIDTH
+  const parentWidth = parent.size.width
   const position = {
     x: parent.position.x + parentWidth + CHILD_GAP_X,
     y: parent.position.y + childCount * SIBLING_GAP_Y
@@ -132,8 +137,10 @@ export function addChildNodeCommand(draft: Draft<MindDocument>, input: AddChildN
     id: input.id,
     type: 'topic',
     position,
+    size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
     data: { title: input.title },
-    style: createDefaultTopicStyle()
+    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
   })
   draft.edges.push(createParentEdge(input.parentId, input.id))
   assertMindTree(asDocument(draft))
@@ -153,6 +160,9 @@ export function editNodeTitleCommand(draft: Draft<MindDocument>, input: EditNode
   const node = findNode(asDocument(draft), input.nodeId)
   if (!node) {
     throw new Error(`Node ${input.nodeId} does not exist`)
+  }
+  if (node.type !== 'topic') {
+    throw new Error(`Node ${input.nodeId} does not support title editing`)
   }
   node.data.title = input.title
   assertMindTree(asDocument(draft))
@@ -184,24 +194,27 @@ export function moveNodes(document: MindDocument, input: MoveNodesInput): MindDo
   return executeCommand(document, moveNodesCommand, input).document
 }
 
-export type SetNodeStyleInput = {
+export type SetNodeShellStyleInput = {
   nodeId: string
-  stylePatch: Partial<TopicNodeStyle>
+  stylePatch: Partial<NodeShellStyle>
 }
 
-export function setNodeStyleCommand(draft: Draft<MindDocument>, input: SetNodeStyleInput): void {
+export function setNodeShellStyleCommand(draft: Draft<MindDocument>, input: SetNodeShellStyleInput): void {
   const node = findNode(asDocument(draft), input.nodeId)
   if (!node) {
     throw new Error(`Node ${input.nodeId} does not exist`)
   }
-  assertKnownTopicStylePatchKeys(input.stylePatch)
+  assertKnownNodeShellStylePatchKeys(input.stylePatch)
 
-  node.style = {
-    ...node.style,
+  node.shellStyle = {
+    ...node.shellStyle,
     ...input.stylePatch
   }
   assertMindTree(asDocument(draft))
 }
+
+export const setNodeStyleCommand = setNodeShellStyleCommand
+export type SetNodeStyleInput = SetNodeShellStyleInput
 
 export function setNodeStyle(document: MindDocument, input: SetNodeStyleInput): MindDocument {
   return executeCommand(document, setNodeStyleCommand, input).document

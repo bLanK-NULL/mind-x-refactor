@@ -16,7 +16,6 @@ import {
   migrateMindDocumentToV3,
   mindDocumentSchema,
   mindDocumentV1Schema,
-  mindDocumentV2Schema,
   mindDocumentV3Schema,
   renameProjectRequestSchema,
   saveDocumentRequestSchema
@@ -118,16 +117,17 @@ function v1Document(overrides: Record<string, unknown> = {}) {
 }
 
 describe('mind document versions', () => {
-  it('accepts a v2 document with explicit object styles and no document theme', () => {
-    const parsed = mindDocumentSchema.parse(v2Document())
+  it('accepts a v3 document with explicit object styles and no document theme', () => {
+    const parsed = mindDocumentSchema.parse(v3Document())
 
-    expect(parsed.version).toBe(2)
+    expect(parsed.version).toBe(3)
     expect(parsed.meta).toEqual({
       projectId: 'project-1',
       title: 'Planning',
       updatedAt: '2026-04-26T00:00:00.000Z'
     })
-    expect(parsed.nodes[0].style).toEqual(DEFAULT_TOPIC_STYLE)
+    expect(parsed.nodes[0].shellStyle).toEqual(DEFAULT_NODE_SHELL_STYLE)
+    expect(parsed.nodes[0].contentStyle).toEqual(DEFAULT_TOPIC_CONTENT_STYLE)
   })
 
   it('keeps the v1 schema available for migration inputs', () => {
@@ -139,11 +139,11 @@ describe('mind document versions', () => {
     expect(parsed.edges[0].component).toBe('dashed-arrow')
   })
 
-  it('migrates v1 documents to v2 defaults and discards theme and edge component data', () => {
+  it('migrates v1 documents to v3 defaults and discards theme and edge component data', () => {
     const migrated = migrateMindDocument(v1Document())
 
     expect(migrated).toEqual({
-      version: 2,
+      version: 3,
       meta: {
         projectId: 'project-1',
         title: 'Planning',
@@ -155,16 +155,19 @@ describe('mind document versions', () => {
           id: 'root',
           type: 'topic',
           position: { x: 0, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
           data: { title: 'Root' },
-          style: DEFAULT_TOPIC_STYLE
+          contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
         },
         {
           id: 'child',
           type: 'topic',
           position: { x: 240, y: 0 },
           size: { width: 180, height: 72 },
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
           data: { title: 'Child' },
-          style: DEFAULT_TOPIC_STYLE
+          contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
         }
       ],
       edges: [
@@ -192,9 +195,12 @@ describe('mind document versions', () => {
 
     expect(migrated.nodes).toHaveLength(2)
     expect(migrated.edges).toHaveLength(2)
-    expect(migrated.nodes[0].style).not.toBe(migrated.nodes[1].style)
-    expect(migrated.nodes[0].style).not.toBe(DEFAULT_TOPIC_STYLE)
-    expect(migrated.nodes[1].style).not.toBe(DEFAULT_TOPIC_STYLE)
+    expect(migrated.nodes[0].shellStyle).not.toBe(migrated.nodes[1].shellStyle)
+    expect(migrated.nodes[0].shellStyle).not.toBe(DEFAULT_NODE_SHELL_STYLE)
+    expect(migrated.nodes[1].shellStyle).not.toBe(DEFAULT_NODE_SHELL_STYLE)
+    expect(migrated.nodes[0].contentStyle).not.toBe(migrated.nodes[1].contentStyle)
+    expect(migrated.nodes[0].contentStyle).not.toBe(DEFAULT_TOPIC_CONTENT_STYLE)
+    expect(migrated.nodes[1].contentStyle).not.toBe(DEFAULT_TOPIC_CONTENT_STYLE)
     expect(migrated.edges[0].style).not.toBe(migrated.edges[1].style)
     expect(migrated.edges[0].style).not.toBe(DEFAULT_EDGE_STYLE)
     expect(migrated.edges[1].style).not.toBe(DEFAULT_EDGE_STYLE)
@@ -209,7 +215,7 @@ describe('mind document versions', () => {
     expect(migrated.edges[1].style.labelStyle).not.toBe(DEFAULT_EDGE_STYLE.labelStyle)
   })
 
-  it('returns parsed v2 documents unchanged through migration', () => {
+  it('migrates parsed v2 documents to the current document version', () => {
     const document = v2Document({
       edges: [
         {
@@ -254,7 +260,7 @@ describe('mind document versions', () => {
       ]
     })
 
-    expect(migrateMindDocument(document)).toEqual(mindDocumentV2Schema.parse(document))
+    expect(migrateMindDocument(document).version).toBe(3)
   })
 
   it('accepts v3 documents with every supported node type', () => {
@@ -650,15 +656,21 @@ describe('mind document versions', () => {
     ).toBe(false)
   })
 
-  it('accepts v2 save document request bodies', () => {
-    const document = v2Document()
+  it('accepts v3 save document request bodies', () => {
+    const document = v3Document()
     const parsed = saveDocumentRequestSchema.parse({ document })
 
-    expect(parsed.document).toEqual(mindDocumentV2Schema.parse(document))
+    expect(parsed.document).toEqual(mindDocumentV3Schema.parse(document))
   })
 
   it('rejects v1 save document request bodies', () => {
     const result = saveDocumentRequestSchema.safeParse({ document: v1Document() })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects v2 save document request bodies after the v3 upgrade', () => {
+    const result = saveDocumentRequestSchema.safeParse({ document: v2Document() })
 
     expect(result.success).toBe(false)
   })
@@ -685,14 +697,16 @@ describe('mind document versions', () => {
 
   it('rejects HTML titles', () => {
     const result = mindDocumentSchema.safeParse(
-      v2Document({
+      v3Document({
         nodes: [
           {
             id: 'node-1',
             type: 'topic',
             position: { x: 0, y: 0 },
+            size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+            shellStyle: DEFAULT_NODE_SHELL_STYLE,
             data: { title: '<img src=x onerror=alert(1)>' },
-            style: DEFAULT_TOPIC_STYLE
+            contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
           }
         ]
       })
