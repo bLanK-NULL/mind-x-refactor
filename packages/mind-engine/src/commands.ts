@@ -1,10 +1,10 @@
 import {
-  DEFAULT_EDGE_COMPONENT,
+  createDefaultTopicStyle,
   mindDocumentSchema,
+  type EdgeStyle,
   type MindDocument,
-  type MindEdge,
-  type MindEdgeComponent,
-  type Point
+  type Point,
+  type TopicNodeStyle
 } from '@mind-x/shared'
 import type { Draft } from 'immer'
 import { assertMindTree, createParentEdge, findNode, getChildIds, getParentId } from './graph.js'
@@ -21,16 +21,6 @@ export type CommandResult = PatchResult<MindDocument>
 
 function asDocument(draft: Draft<MindDocument>): MindDocument {
   return draft as unknown as MindDocument
-}
-
-function getEdgeComponent(edge: MindEdge): MindEdgeComponent {
-  return edge.component ?? DEFAULT_EDGE_COMPONENT
-}
-
-function getNewChildEdgeComponent(document: MindDocument, parentId: string): MindEdgeComponent {
-  const childEdges = document.edges.filter((edge) => edge.source === parentId)
-  const latestChildEdge = childEdges.at(-1)
-  return latestChildEdge ? getEdgeComponent(latestChildEdge) : DEFAULT_EDGE_COMPONENT
 }
 
 function assertPlainTextTitle(title: string): void {
@@ -73,7 +63,8 @@ export function addRootNodeCommand(draft: Draft<MindDocument>, input: AddRootNod
     type: 'topic',
     position: { x: 0, y: 0 },
     size: { width: ROOT_NODE_WIDTH, height: ROOT_NODE_HEIGHT },
-    data: { title: input.title }
+    data: { title: input.title },
+    style: createDefaultTopicStyle()
   })
   assertMindTree(asDocument(draft))
 }
@@ -107,15 +98,14 @@ export function addChildNodeCommand(draft: Draft<MindDocument>, input: AddChildN
     x: parent.position.x + parentWidth + CHILD_GAP_X,
     y: parent.position.y + childCount * SIBLING_GAP_Y
   }
-  const component = getNewChildEdgeComponent(asDocument(draft), input.parentId)
-
   draft.nodes.push({
     id: input.id,
     type: 'topic',
     position,
-    data: { title: input.title }
+    data: { title: input.title },
+    style: createDefaultTopicStyle()
   })
-  draft.edges.push(createParentEdge(input.parentId, input.id, { component }))
+  draft.edges.push(createParentEdge(input.parentId, input.id))
   assertMindTree(asDocument(draft))
 }
 
@@ -164,23 +154,48 @@ export function moveNodes(document: MindDocument, input: MoveNodesInput): MindDo
   return executeCommand(document, moveNodesCommand, input).document
 }
 
-export type SetEdgeComponentInput = {
-  edgeId: string
-  component: MindEdgeComponent
+export type SetNodeStyleInput = {
+  nodeId: string
+  stylePatch: Partial<TopicNodeStyle>
 }
 
-export function setEdgeComponentCommand(draft: Draft<MindDocument>, input: SetEdgeComponentInput): void {
+export function setNodeStyleCommand(draft: Draft<MindDocument>, input: SetNodeStyleInput): void {
+  const node = findNode(asDocument(draft), input.nodeId)
+  if (!node) {
+    throw new Error(`Node ${input.nodeId} does not exist`)
+  }
+
+  node.style = {
+    ...node.style,
+    ...input.stylePatch
+  }
+  assertMindTree(asDocument(draft))
+}
+
+export function setNodeStyle(document: MindDocument, input: SetNodeStyleInput): MindDocument {
+  return executeCommand(document, setNodeStyleCommand, input).document
+}
+
+export type SetEdgeStyleInput = {
+  edgeId: string
+  stylePatch: Partial<EdgeStyle>
+}
+
+export function setEdgeStyleCommand(draft: Draft<MindDocument>, input: SetEdgeStyleInput): void {
   const edge = draft.edges.find((candidate) => candidate.id === input.edgeId)
   if (!edge) {
     throw new Error(`Edge ${input.edgeId} does not exist`)
   }
 
-  edge.component = input.component
+  edge.style = {
+    ...edge.style,
+    ...input.stylePatch
+  }
   assertMindTree(asDocument(draft))
 }
 
-export function setEdgeComponent(document: MindDocument, input: SetEdgeComponentInput): MindDocument {
-  return executeCommand(document, setEdgeComponentCommand, input).document
+export function setEdgeStyle(document: MindDocument, input: SetEdgeStyleInput): MindDocument {
+  return executeCommand(document, setEdgeStyleCommand, input).document
 }
 
 export type DeleteEdgeInput = {
@@ -213,18 +228,13 @@ export function deleteNodePromoteChildrenCommand(draft: Draft<MindDocument>, inp
 
   const parentId = getParentId(asDocument(draft), input.nodeId)
   const childIds = getChildIds(asDocument(draft), input.nodeId)
-  const componentByChildId = new Map(
-    draft.edges
-      .filter((edge) => edge.source === input.nodeId)
-      .map((edge) => [edge.target, getEdgeComponent(edge as unknown as MindEdge)])
-  )
 
   draft.nodes = draft.nodes.filter((candidate) => candidate.id !== input.nodeId)
   draft.edges = draft.edges.filter((edge) => edge.source !== input.nodeId && edge.target !== input.nodeId)
 
   if (parentId) {
     for (const childId of childIds) {
-      draft.edges.push(createParentEdge(parentId, childId, { component: componentByChildId.get(childId) }))
+      draft.edges.push(createParentEdge(parentId, childId))
     }
   }
 

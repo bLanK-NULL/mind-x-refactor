@@ -1,4 +1,4 @@
-import type { MindDocument, MindEdge, MindEdgeComponent, MindNode } from '@mind-x/shared'
+import { createDefaultEdgeStyle, type MindDocument, type MindEdge, type MindNode } from '@mind-x/shared'
 
 export function findNode(document: MindDocument, nodeId: string): MindNode | undefined {
   return document.nodes.find((node) => node.id === nodeId)
@@ -19,17 +19,13 @@ export function getChildIds(document: MindDocument, nodeId: string): string[] {
   return document.edges.filter((edge) => edge.source === nodeId).map((edge) => edge.target)
 }
 
-export type CreateParentEdgeOptions = {
-  component?: MindEdgeComponent
-}
-
-export function createParentEdge(source: string, target: string, options: CreateParentEdgeOptions = {}): MindEdge {
+export function createParentEdge(source: string, target: string): MindEdge {
   return {
     id: `${source}->${target}`,
     source,
     target,
     type: 'mind-parent',
-    ...(options.component ? { component: options.component } : {})
+    style: createDefaultEdgeStyle()
   }
 }
 

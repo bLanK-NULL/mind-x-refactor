@@ -8,11 +8,10 @@ export type CreateDocumentInput = {
 
 export function createEmptyDocument(input: CreateDocumentInput): MindDocument {
   return {
-    version: 1,
+    version: 2,
     meta: {
       projectId: input.projectId,
       title: input.title,
-      theme: 'light',
       updatedAt: input.now
     },
     viewport: { x: 0, y: 0, zoom: 1 },
