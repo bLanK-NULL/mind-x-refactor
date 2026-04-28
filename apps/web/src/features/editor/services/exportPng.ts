@@ -1,8 +1,6 @@
 import type { MindDocument, MindNode } from '@mind-x/shared'
 import html2canvas from 'html2canvas'
 
-const FALLBACK_NODE_WIDTH = 180
-const FALLBACK_NODE_HEIGHT = 56
 const EXPORT_PADDING = 24
 const EXPORT_BACKGROUND = '#ffffff'
 
@@ -116,9 +114,9 @@ function revokeObjectUrlSoon(url: string): void {
 }
 
 function nodeWidth(node: MindNode): number {
-  return node.size?.width ?? FALLBACK_NODE_WIDTH
+  return node.size.width
 }
 
 function nodeHeight(node: MindNode): number {
-  return node.size?.height ?? FALLBACK_NODE_HEIGHT
+  return node.size.height
 }

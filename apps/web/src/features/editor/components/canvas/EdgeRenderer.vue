@@ -17,8 +17,6 @@ const emit = defineEmits<{
   select: [edgeId: string]
 }>()
 
-const DEFAULT_WIDTH = 180
-const DEFAULT_HEIGHT = 56
 const EDGE_PADDING = 32
 const markerIdPrefix = `edge-renderer-${edgeRendererInstanceCounter++}`
 const edgeArrowMarkerId = `${markerIdPrefix}-arrow`
@@ -39,8 +37,8 @@ const edgeViewport = computed(() => {
 
   const minX = Math.min(0, ...props.nodes.map((node) => node.position.x))
   const minY = Math.min(0, ...props.nodes.map((node) => node.position.y))
-  const maxX = Math.max(...props.nodes.map((node) => node.position.x + (node.size?.width ?? DEFAULT_WIDTH))) + EDGE_PADDING
-  const maxY = Math.max(...props.nodes.map((node) => node.position.y + (node.size?.height ?? DEFAULT_HEIGHT))) + EDGE_PADDING
+  const maxX = Math.max(...props.nodes.map((node) => node.position.x + node.size.width)) + EDGE_PADDING
+  const maxY = Math.max(...props.nodes.map((node) => node.position.y + node.size.height)) + EDGE_PADDING
   const width = Math.max(1, maxX - minX)
   const height = Math.max(1, maxY - minY)
 
@@ -88,8 +86,8 @@ function getMarkerEnd(edge: MindEdge): string | undefined {
 
 function getNodeCenter(node: MindNode) {
   return {
-    x: node.position.x + (node.size?.width ?? DEFAULT_WIDTH) / 2,
-    y: node.position.y + (node.size?.height ?? DEFAULT_HEIGHT) / 2
+    x: node.position.x + node.size.width / 2,
+    y: node.position.y + node.size.height / 2
   }
 }
 
@@ -104,8 +102,8 @@ function getPath(edge: MindEdge): string | null {
   const targetCenter = getNodeCenter(target)
   const offsetX = edgeViewport.value.left
   const offsetY = edgeViewport.value.top
-  const sourceWidth = source.size?.width ?? DEFAULT_WIDTH
-  const targetWidth = target.size?.width ?? DEFAULT_WIDTH
+  const sourceWidth = source.size.width
+  const targetWidth = target.size.width
   const forward = targetCenter.x >= sourceCenter.x
   const startX = sourceCenter.x + (forward ? sourceWidth / 2 : -sourceWidth / 2) - offsetX
   const endX = targetCenter.x + (forward ? -targetWidth / 2 : targetWidth / 2) - offsetX

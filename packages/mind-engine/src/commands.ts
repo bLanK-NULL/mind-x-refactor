@@ -2,12 +2,14 @@ import {
   DEFAULT_EDGE_STYLE,
   DEFAULT_NODE_SHELL_STYLE,
   DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TOPIC_STYLE,
   DEFAULT_TOPIC_CONTENT_STYLE,
   mindDocumentSchema,
   type EdgeStyle,
   type MindDocument,
   type NodeShellStyle,
   type Point,
+  type TopicNodeStyle,
   type TopicContentStyle
 } from '@mind-x/shared'
 import type { Draft } from 'immer'
@@ -17,11 +19,17 @@ import { createPatchResult, type PatchResult } from './patches.js'
 const CHILD_GAP_X = 80
 const SIBLING_GAP_Y = 72
 const NODE_SHELL_STYLE_KEYS = new Set(Object.keys(DEFAULT_NODE_SHELL_STYLE))
+const TOPIC_STYLE_KEYS = new Set(Object.keys(DEFAULT_TOPIC_STYLE))
 const TOPIC_CONTENT_STYLE_KEYS = new Set(Object.keys(DEFAULT_TOPIC_CONTENT_STYLE))
 const EDGE_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE))
 const EDGE_LABEL_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE.labelStyle))
 const EDGE_ENDPOINT_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE.endpointStyle))
 const EDGE_ANIMATION_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE.animation))
+const LEGACY_TOPIC_SIZE_TO_NODE_SIZE = {
+  lg: { width: 220, height: 72 },
+  md: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+  sm: { width: 150, height: 44 }
+} as const satisfies Record<TopicNodeStyle['size'], { width: number; height: number }>
 
 export type CommandRecipe<TInput> = (draft: Draft<MindDocument>, input: TInput) => void
 export type CommandResult = PatchResult<MindDocument>
@@ -54,6 +62,10 @@ function assertKnownNodeShellStylePatchKeys(stylePatch: Partial<NodeShellStyle>)
 
 export function assertKnownTopicContentStylePatchKeys(stylePatch: Partial<TopicContentStyle>): void {
   assertKnownKeys(stylePatch, TOPIC_CONTENT_STYLE_KEYS, 'topic content')
+}
+
+function assertKnownTopicStylePatchKeys(stylePatch: Partial<TopicNodeStyle>): void {
+  assertKnownKeys(stylePatch, TOPIC_STYLE_KEYS, 'node')
 }
 
 function assertKnownEdgeStylePatchKeys(stylePatch: Partial<EdgeStyle>): void {
@@ -199,6 +211,11 @@ export type SetNodeShellStyleInput = {
   stylePatch: Partial<NodeShellStyle>
 }
 
+export type SetNodeStyleInput = {
+  nodeId: string
+  stylePatch: Partial<TopicNodeStyle>
+}
+
 export function setNodeShellStyleCommand(draft: Draft<MindDocument>, input: SetNodeShellStyleInput): void {
   const node = findNode(asDocument(draft), input.nodeId)
   if (!node) {
@@ -213,8 +230,36 @@ export function setNodeShellStyleCommand(draft: Draft<MindDocument>, input: SetN
   assertMindTree(asDocument(draft))
 }
 
-export const setNodeStyleCommand = setNodeShellStyleCommand
-export type SetNodeStyleInput = SetNodeShellStyleInput
+export function setNodeStyleCommand(draft: Draft<MindDocument>, input: SetNodeStyleInput): void {
+  const node = findNode(asDocument(draft), input.nodeId)
+  if (!node) {
+    throw new Error(`Node ${input.nodeId} does not exist`)
+  }
+  assertKnownTopicStylePatchKeys(input.stylePatch)
+
+  const { size, textWeight, ...shellStylePatch } = input.stylePatch
+  node.shellStyle = {
+    ...node.shellStyle,
+    ...shellStylePatch
+  }
+
+  if (size !== undefined || textWeight !== undefined) {
+    if (node.type !== 'topic') {
+      throw new Error(`Node ${input.nodeId} does not support topic style fields`)
+    }
+    if (size !== undefined) {
+      node.size = { ...LEGACY_TOPIC_SIZE_TO_NODE_SIZE[size] }
+    }
+    if (textWeight !== undefined) {
+      node.contentStyle = {
+        ...node.contentStyle,
+        textWeight
+      }
+    }
+  }
+
+  assertMindTree(asDocument(draft))
+}
 
 export function setNodeStyle(document: MindDocument, input: SetNodeStyleInput): MindDocument {
   return executeCommand(document, setNodeStyleCommand, input).document

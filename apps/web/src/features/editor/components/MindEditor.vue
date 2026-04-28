@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EdgeStyle, MindDocument, MindEdge, MindNode, NodeShellStyle, Point } from '@mind-x/shared'
+import type { EdgeStyle, MindDocument, MindEdge, MindNode, Point, TopicNodeStyle } from '@mind-x/shared'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useEditorStore } from '@/features/editor/stores/editor'
 import EdgeInspector from './inspectors/EdgeInspector.vue'
@@ -46,6 +46,20 @@ const selectedNode = computed<MindNode | null>(() => {
 
   return documentState.value.nodes.find((node) => node.id === editor.selectedNodeIds[0]) ?? null
 })
+const selectedTopicNode = computed<Extract<MindNode, { type: 'topic' }> | null>(() => {
+  return selectedNode.value?.type === 'topic' ? selectedNode.value : null
+})
+const selectedTopicStyle = computed<TopicNodeStyle | null>(() => {
+  if (!selectedTopicNode.value) {
+    return null
+  }
+
+  return {
+    ...selectedTopicNode.value.shellStyle,
+    size: resolveTopicSizePreset(selectedTopicNode.value.size),
+    textWeight: selectedTopicNode.value.contentStyle.textWeight
+  }
+})
 const selectedEdge = computed<MindEdge | null>(() => {
   if (!documentState.value || !editor.selectedEdgeId) {
     return null
@@ -53,6 +67,16 @@ const selectedEdge = computed<MindEdge | null>(() => {
 
   return documentState.value.edges.find((edge) => edge.id === editor.selectedEdgeId) ?? null
 })
+
+function resolveTopicSizePreset(size: { height: number; width: number }): TopicNodeStyle['size'] {
+  if (size.width === 150 && size.height === 44) {
+    return 'sm'
+  }
+  if (size.width === 220 && size.height === 72) {
+    return 'lg'
+  }
+  return 'md'
+}
 
 watch(
   () => props.document,
@@ -137,7 +161,7 @@ function setInspectorPosition(position: Point): void {
   writeStoredInspectorPosition(position)
 }
 
-function setSelectedNodeStyle(stylePatch: Partial<NodeShellStyle>): void {
+function setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
   editor.setSelectedNodeStyle(stylePatch)
 }
 
@@ -235,13 +259,13 @@ onUnmounted(() => {
     </ViewportPane>
 
     <InspectorPanel
-      v-if="selectedNode"
+      v-if="selectedTopicNode && selectedTopicStyle"
       :position="inspectorPosition"
       title="Node"
       @close="editor.clearSelection"
       @position-change="setInspectorPosition"
     >
-      <NodeInspector :style="selectedNode.shellStyle" @style-change="setSelectedNodeStyle" />
+      <NodeInspector :style="selectedTopicStyle" @style-change="setSelectedNodeStyle" />
     </InspectorPanel>
 
     <InspectorPanel

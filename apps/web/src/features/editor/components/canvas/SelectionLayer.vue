@@ -14,9 +14,9 @@ const selectedNodes = computed(() => {
 
 function selectionStyle(node: MindNode) {
   return {
-    height: `${(node.size?.height ?? 56) + 8}px`,
+    height: `${node.size.height + 8}px`,
     transform: `translate(${node.position.x - 4}px, ${node.position.y - 4}px)`,
-    width: `${(node.size?.width ?? 180) + 8}px`
+    width: `${node.size.width + 8}px`
   }
 }
 </script>

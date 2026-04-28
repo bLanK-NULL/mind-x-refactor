@@ -8,7 +8,8 @@ import {
   type EdgeStyle,
   type NodeShellStyle,
   type Point,
-  type Size
+  type Size,
+  type TopicNodeStyle
 } from '@mind-x/shared'
 import { createEmptyDocument } from '../documentFactory.js'
 import {
@@ -123,6 +124,32 @@ describe('commands', () => {
     const result = executeCommand(doc, setNodeStyleCommand, { nodeId: 'root', stylePatch })
 
     expect(result.document.nodes[0].shellStyle).toEqual({ ...DEFAULT_NODE_SHELL_STYLE, ...stylePatch })
+    expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
+  })
+
+  it('maps legacy text weight style patches to topic content style', () => {
+    const doc = addRootNode(createEmptyDocument({ projectId: 'project-1', title: 'Project One', now: '2026-04-26T00:00:00.000Z' }), {
+      id: 'root',
+      title: 'Root'
+    })
+    const stylePatch: Partial<TopicNodeStyle> = { textWeight: 'bold' }
+
+    const result = executeCommand(doc, setNodeStyleCommand, { nodeId: 'root', stylePatch })
+
+    expect(result.document.nodes[0].contentStyle).toEqual({ ...DEFAULT_TOPIC_CONTENT_STYLE, textWeight: 'bold' })
+    expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
+  })
+
+  it('maps legacy size style patches to explicit topic size', () => {
+    const doc = addRootNode(createEmptyDocument({ projectId: 'project-1', title: 'Project One', now: '2026-04-26T00:00:00.000Z' }), {
+      id: 'root',
+      title: 'Root'
+    })
+    const stylePatch: Partial<TopicNodeStyle> = { size: 'lg' }
+
+    const result = executeCommand(doc, setNodeStyleCommand, { nodeId: 'root', stylePatch })
+
+    expect(result.document.nodes[0].size).toEqual({ width: 220, height: 72 })
     expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
   })
 

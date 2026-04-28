@@ -1,30 +1,38 @@
 <script setup lang="ts">
-import type { NodeShellStyle } from '@mind-x/shared'
+import type { TopicNodeStyle } from '@mind-x/shared'
 import ColorTokenPicker from './ColorTokenPicker.vue'
 import StyleField from './StyleField.vue'
 
 defineProps<{
-  style: NodeShellStyle
+  style: TopicNodeStyle
 }>()
 
 const emit = defineEmits<{
-  styleChange: [stylePatch: Partial<NodeShellStyle>]
+  styleChange: [stylePatch: Partial<TopicNodeStyle>]
 }>()
 
 function emitToneChange(tone: unknown): void {
-  emit('styleChange', { tone: tone as NodeShellStyle['tone'] })
+  emit('styleChange', { tone: tone as TopicNodeStyle['tone'] })
 }
 
 function emitShapeChange(shape: unknown): void {
-  emit('styleChange', { shape: shape as NodeShellStyle['shape'] })
+  emit('styleChange', { shape: shape as TopicNodeStyle['shape'] })
+}
+
+function emitSizeChange(size: unknown): void {
+  emit('styleChange', { size: size as TopicNodeStyle['size'] })
 }
 
 function emitBorderStyleChange(borderStyle: unknown): void {
-  emit('styleChange', { borderStyle: borderStyle as NodeShellStyle['borderStyle'] })
+  emit('styleChange', { borderStyle: borderStyle as TopicNodeStyle['borderStyle'] })
 }
 
 function emitShadowLevelChange(shadowLevel: unknown): void {
-  emit('styleChange', { shadowLevel: shadowLevel as NodeShellStyle['shadowLevel'] })
+  emit('styleChange', { shadowLevel: shadowLevel as TopicNodeStyle['shadowLevel'] })
+}
+
+function emitTextWeightChange(textWeight: unknown): void {
+  emit('styleChange', { textWeight: textWeight as TopicNodeStyle['textWeight'] })
 }
 </script>
 
@@ -52,6 +60,14 @@ function emitShadowLevelChange(shadowLevel: unknown): void {
         <a-select-option value="pill">Pill</a-select-option>
       </a-select>
     </StyleField>
+    <StyleField label="Size">
+      <a-segmented
+        :options="['sm', 'md', 'lg']"
+        :value="style.size"
+        size="small"
+        @change="emitSizeChange"
+      />
+    </StyleField>
     <StyleField label="Border">
       <a-select
         :value="style.borderStyle"
@@ -70,6 +86,17 @@ function emitShadowLevelChange(shadowLevel: unknown): void {
         size="small"
         @change="emitShadowLevelChange"
       />
+    </StyleField>
+    <StyleField label="Text">
+      <a-select
+        :value="style.textWeight"
+        size="small"
+        @change="emitTextWeightChange"
+      >
+        <a-select-option value="regular">Regular</a-select-option>
+        <a-select-option value="medium">Medium</a-select-option>
+        <a-select-option value="bold">Bold</a-select-option>
+      </a-select>
     </StyleField>
   </section>
 </template>

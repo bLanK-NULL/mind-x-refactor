@@ -521,17 +521,19 @@ describe('mind document versions', () => {
     }
   })
 
-  it('rejects invalid object color tokens and missing v2 styles', () => {
+  it('rejects invalid v3 shell and content styles', () => {
     expect(
       mindDocumentSchema.safeParse(
-        v2Document({
+        v3Document({
           nodes: [
             {
               id: 'root',
               type: 'topic',
               position: { x: 0, y: 0 },
+              size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+              shellStyle: { ...DEFAULT_NODE_SHELL_STYLE, colorToken: 'teal' },
               data: { title: 'Root' },
-              style: { ...DEFAULT_TOPIC_STYLE, colorToken: 'teal' }
+              contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
             }
           ]
         })
@@ -540,13 +542,16 @@ describe('mind document versions', () => {
 
     expect(
       mindDocumentSchema.safeParse(
-        v2Document({
+        v3Document({
           nodes: [
             {
               id: 'root',
               type: 'topic',
               position: { x: 0, y: 0 },
-              data: { title: 'Root' }
+              size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+              shellStyle: DEFAULT_NODE_SHELL_STYLE,
+              data: { title: 'Root' },
+              contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE, textWeight: 'heavy' }
             }
           ]
         })
@@ -554,10 +559,10 @@ describe('mind document versions', () => {
     ).toBe(false)
   })
 
-  it('rejects invalid and missing v2 edge styles', () => {
+  it('rejects invalid and missing v3 edge styles', () => {
     expect(
       mindDocumentSchema.safeParse(
-        v2Document({
+        v3Document({
           edges: [
             {
               id: 'root->child',
@@ -573,7 +578,7 @@ describe('mind document versions', () => {
 
     expect(
       mindDocumentSchema.safeParse(
-        v2Document({
+        v3Document({
           edges: [
             {
               id: 'root->child',
@@ -587,17 +592,19 @@ describe('mind document versions', () => {
     ).toBe(false)
   })
 
-  it('rejects unknown v2 style keys including nested edge style keys', () => {
+  it('rejects unknown v3 style keys including nested edge style keys', () => {
     expect(
       mindDocumentSchema.safeParse(
-        v2Document({
+        v3Document({
           nodes: [
             {
               id: 'root',
               type: 'topic',
               position: { x: 0, y: 0 },
+              size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+              shellStyle: { ...DEFAULT_NODE_SHELL_STYLE, rogue: true },
               data: { title: 'Root' },
-              style: { ...DEFAULT_TOPIC_STYLE, rogue: true }
+              contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
             }
           ]
         })
@@ -606,7 +613,7 @@ describe('mind document versions', () => {
 
     expect(
       mindDocumentSchema.safeParse(
-        v2Document({
+        v3Document({
           edges: [
             {
               id: 'root->child',
@@ -622,7 +629,7 @@ describe('mind document versions', () => {
 
     expect(
       mindDocumentSchema.safeParse(
-        v2Document({
+        v3Document({
           edges: [
             {
               id: 'root->child',
@@ -637,10 +644,10 @@ describe('mind document versions', () => {
     ).toBe(false)
   })
 
-  it('rejects legacy edge component fields on v2 documents', () => {
+  it('rejects legacy edge component fields on v3 documents', () => {
     expect(
       mindDocumentSchema.safeParse(
-        v2Document({
+        v3Document({
           edges: [
             {
               id: 'root->child',
@@ -676,14 +683,16 @@ describe('mind document versions', () => {
   })
 
   it('returns a failed safeParse result for invalid document request styles instead of throwing', () => {
-    const invalidDocument = v2Document({
+    const invalidDocument = v3Document({
       nodes: [
         {
           id: 'root',
           type: 'topic',
           position: { x: 0, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+          shellStyle: { ...DEFAULT_NODE_SHELL_STYLE, colorToken: 'teal' },
           data: { title: 'Root' },
-          style: { ...DEFAULT_TOPIC_STYLE, colorToken: 'teal' }
+          contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
         }
       ]
     })
@@ -717,7 +726,7 @@ describe('mind document versions', () => {
 
   it('rejects HTML in meta titles', () => {
     const result = mindDocumentSchema.safeParse(
-      v2Document({
+      v3Document({
         meta: {
           projectId: 'project-1',
           title: '<script>alert(1)</script>',
