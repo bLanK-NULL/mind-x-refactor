@@ -2,7 +2,7 @@
 import type { ThemeName } from '@mind-x/shared'
 import { BulbOutlined } from '@ant-design/icons-vue'
 import { computed } from 'vue'
-import { THEME_LABELS, THEME_NAMES, isThemeName, useTheme } from '@/composables/useTheme'
+import { THEME_LABELS, THEME_NAMES, isThemeName, useTheme } from '@/shared/composables/theme/useTheme'
 
 const emit = defineEmits<{
   change: [theme: ThemeName]

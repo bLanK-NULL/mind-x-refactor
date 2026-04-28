@@ -1,6 +1,6 @@
 import type { ProjectSummaryDto } from '@mind-x/shared'
 import { defineStore } from 'pinia'
-import { apiClient, getApiErrorMessage } from '@/api/client'
+import { apiClient, getApiErrorMessage } from '@/shared/api/client'
 
 type ProjectsResponse = {
   projects: ProjectSummaryDto[]

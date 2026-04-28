@@ -4,7 +4,7 @@ import { DeleteOutlined, EditOutlined, LogoutOutlined, PlusOutlined } from '@ant
 import { message, Modal } from 'ant-design-vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import ThemeToggle from '@/components/ThemeToggle.vue'
+import ThemeToggle from '@/shared/components/ThemeToggle.vue'
 import { publishCrossTabEvent, subscribeCrossTabEvents, type CrossTabEvent } from '@/services/crossTab'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'

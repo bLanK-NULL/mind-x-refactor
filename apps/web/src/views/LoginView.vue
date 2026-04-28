@@ -3,7 +3,7 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { sanitizeRedirect } from '@/router/redirect'
+import { sanitizeRedirect } from '@/app/router/redirect'
 import { useAuthStore } from '@/stores/auth'
 
 type LoginFormState = {

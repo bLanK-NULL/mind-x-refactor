@@ -1,7 +1,7 @@
 import { createEmptyDocument } from '@mind-x/mind-engine'
 import { DEFAULT_TOPIC_STYLE, type MindDocument, type MindDocumentV1 } from '@mind-x/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiClient } from '@/api/client'
+import { apiClient } from '@/shared/api/client'
 
 const localForageMock = vi.hoisted(() => {
   const store = {
@@ -22,7 +22,7 @@ vi.mock('localforage', () => ({
   }
 }))
 
-vi.mock('@/api/client', () => ({
+vi.mock('@/shared/api/client', () => ({
   apiClient: {
     get: vi.fn(),
     put: vi.fn()

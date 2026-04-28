@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createThemeController, isThemeName } from './useTheme'
+import { createThemeController, isThemeName } from '../useTheme'
 
 class FakeThemeRoot {
   attributes = new Map<string, string>()

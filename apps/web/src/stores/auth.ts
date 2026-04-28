@@ -1,6 +1,6 @@
 import type { LoginResponse, UserDto } from '@mind-x/shared'
 import { defineStore } from 'pinia'
-import { apiClient, clearStoredToken, getApiErrorMessage, isUnauthorizedError, readStoredToken, writeStoredToken } from '@/api/client'
+import { apiClient, clearStoredToken, getApiErrorMessage, isUnauthorizedError, readStoredToken, writeStoredToken } from '@/shared/api/client'
 
 type AuthState = {
   error: string | null

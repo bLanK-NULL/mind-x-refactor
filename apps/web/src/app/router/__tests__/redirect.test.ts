@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeRedirect } from './redirect'
+import { sanitizeRedirect } from '../redirect'
 
 describe('sanitizeRedirect', () => {
   it('falls back to projects for missing or non-string redirect values', () => {

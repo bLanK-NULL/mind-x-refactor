@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { clearStoredToken, readStoredToken, writeStoredToken } from './client'
+import { clearStoredToken, readStoredToken, writeStoredToken } from '../client'
 
 function stubStorage(storage: Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>): void {
   vi.stubGlobal('window', {

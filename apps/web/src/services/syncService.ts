@@ -1,6 +1,6 @@
 import { migrateMindDocument, type MindDocument } from '@mind-x/shared'
 import localforage from 'localforage'
-import { apiClient } from '@/api/client'
+import { apiClient } from '@/shared/api/client'
 
 export type LocalDraft = {
   document: MindDocument
