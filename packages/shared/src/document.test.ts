@@ -68,6 +68,14 @@ function v1Document(overrides: Record<string, unknown> = {}) {
         type: 'mind-parent',
         component: 'dashed-arrow',
         data: { direction: 'source-target' }
+      },
+      {
+        id: 'child->root',
+        source: 'child',
+        target: 'root',
+        type: 'mind-parent',
+        component: 'plain',
+        data: { direction: 'source-target' }
       }
     ],
     ...overrides
@@ -131,10 +139,39 @@ describe('mind document versions', () => {
           target: 'child',
           type: 'mind-parent',
           style: DEFAULT_EDGE_STYLE
+        },
+        {
+          id: 'child->root',
+          source: 'child',
+          target: 'root',
+          type: 'mind-parent',
+          style: DEFAULT_EDGE_STYLE
         }
       ]
     })
     expect(migrated.nodes[1].size).toEqual({ width: 180, height: 72 })
+  })
+
+  it('migrates default styles as fresh objects for each node and edge', () => {
+    const migrated = migrateMindDocument(v1Document())
+
+    expect(migrated.nodes).toHaveLength(2)
+    expect(migrated.edges).toHaveLength(2)
+    expect(migrated.nodes[0].style).not.toBe(migrated.nodes[1].style)
+    expect(migrated.nodes[0].style).not.toBe(DEFAULT_TOPIC_STYLE)
+    expect(migrated.nodes[1].style).not.toBe(DEFAULT_TOPIC_STYLE)
+    expect(migrated.edges[0].style).not.toBe(migrated.edges[1].style)
+    expect(migrated.edges[0].style).not.toBe(DEFAULT_EDGE_STYLE)
+    expect(migrated.edges[1].style).not.toBe(DEFAULT_EDGE_STYLE)
+    expect(migrated.edges[0].style.animation).not.toBe(migrated.edges[1].style.animation)
+    expect(migrated.edges[0].style.animation).not.toBe(DEFAULT_EDGE_STYLE.animation)
+    expect(migrated.edges[1].style.animation).not.toBe(DEFAULT_EDGE_STYLE.animation)
+    expect(migrated.edges[0].style.endpointStyle).not.toBe(migrated.edges[1].style.endpointStyle)
+    expect(migrated.edges[0].style.endpointStyle).not.toBe(DEFAULT_EDGE_STYLE.endpointStyle)
+    expect(migrated.edges[1].style.endpointStyle).not.toBe(DEFAULT_EDGE_STYLE.endpointStyle)
+    expect(migrated.edges[0].style.labelStyle).not.toBe(migrated.edges[1].style.labelStyle)
+    expect(migrated.edges[0].style.labelStyle).not.toBe(DEFAULT_EDGE_STYLE.labelStyle)
+    expect(migrated.edges[1].style.labelStyle).not.toBe(DEFAULT_EDGE_STYLE.labelStyle)
   })
 
   it('returns parsed v2 documents unchanged through migration', () => {

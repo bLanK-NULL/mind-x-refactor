@@ -122,6 +122,17 @@ export const DEFAULT_EDGE_STYLE = {
   width: 'regular'
 } as const satisfies z.infer<typeof edgeStyleSchema>
 
+export const createDefaultTopicStyle = (): z.infer<typeof topicNodeStyleSchema> => ({
+  ...DEFAULT_TOPIC_STYLE
+})
+
+export const createDefaultEdgeStyle = (): z.infer<typeof edgeStyleSchema> => ({
+  ...DEFAULT_EDGE_STYLE,
+  animation: { ...DEFAULT_EDGE_STYLE.animation },
+  endpointStyle: { ...DEFAULT_EDGE_STYLE.endpointStyle },
+  labelStyle: { ...DEFAULT_EDGE_STYLE.labelStyle }
+})
+
 export const mindNodeSchema = z.object({
   id: z.string().min(1),
   type: z.literal('topic'),
@@ -170,14 +181,14 @@ const migrateV1MindDocument = (v1: z.infer<typeof mindDocumentV1Schema>) =>
       position: node.position,
       ...(node.size ? { size: node.size } : {}),
       data: node.data,
-      style: DEFAULT_TOPIC_STYLE
+      style: createDefaultTopicStyle()
     })),
     edges: v1.edges.map((edge) => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
       type: edge.type,
-      style: DEFAULT_EDGE_STYLE
+      style: createDefaultEdgeStyle()
     }))
   }) satisfies z.infer<typeof mindDocumentV2Schema>
 
