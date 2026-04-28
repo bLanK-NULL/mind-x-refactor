@@ -99,6 +99,13 @@ function moveNode(nodeId: string, delta: Point): void {
   editor.previewMoveSelectedByScreenDelta(delta)
 }
 
+function resizeNode(nodeId: string, delta: { width: number; height: number }): void {
+  if (!editor.selectedNodeIds.includes(nodeId)) {
+    editor.selectOnly(nodeId)
+  }
+  editor.previewResizeSelectedByDelta(delta)
+}
+
 function save(): void {
   if (!editor.document) {
     return
@@ -253,7 +260,9 @@ onUnmounted(() => {
         :selected-node-ids="editor.selectedNodeIds"
         @drag="moveNode"
         @drag-end="editor.finishInteraction"
-        @edit="editor.editNodeTitle"
+        @edit-commit="editor.updateNodeData"
+        @resize="resizeNode"
+        @resize-end="editor.finishInteraction"
         @select="editor.selectOnly"
       />
     </ViewportPane>

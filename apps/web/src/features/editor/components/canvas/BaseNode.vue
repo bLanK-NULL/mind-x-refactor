@@ -1,90 +1,52 @@
 <script setup lang="ts">
 import type { MindNode, Point } from '@mind-x/shared'
-import { computed, nextTick, ref, watch } from 'vue'
-import { resolveTopicContentClass, resolveTopicNodeClass, resolveTopicNodeStyle } from '../../utils/objectStyles'
-
-type TopicNodeModel = Extract<MindNode, { type: 'topic' }>
+import { computed, ref } from 'vue'
+import { resolveNodeShellClass, resolveNodeShellStyle } from '../../utils/objectStyles'
 
 const props = defineProps<{
-  node: TopicNodeModel
+  node: MindNode
   selected: boolean
 }>()
 
 const emit = defineEmits<{
+  cancelEdit: [nodeId: string]
   drag: [nodeId: string, delta: Point]
   dragEnd: []
-  edit: [nodeId: string, title: string]
+  editCommit: [nodeId: string, payload: unknown]
+  resize: [nodeId: string, delta: { width: number; height: number }]
+  resizeEnd: []
   select: [nodeId: string]
 }>()
 
 const editing = ref(false)
-const draftTitle = ref(props.node.data.title)
-const editError = ref('')
-const titleInputRef = ref<HTMLInputElement | null>(null)
 const draggingPointerId = ref<number | null>(null)
+const resizingPointerId = ref<number | null>(null)
 const lastPointer = ref<Point | null>(null)
 
 const nodeStyle = computed(() => ({
-  ...resolveTopicNodeStyle(props.node.shellStyle),
+  ...resolveNodeShellStyle(props.node.shellStyle),
   height: `${props.node.size.height}px`,
   transform: `translate(${props.node.position.x}px, ${props.node.position.y}px)`,
   width: `${props.node.size.width}px`
 }))
 
 const nodeClass = computed(() => [
-  ...resolveTopicNodeClass(props.node.shellStyle),
-  ...resolveTopicContentClass(props.node.contentStyle),
+  ...resolveNodeShellClass(props.node.shellStyle),
   { 'topic-node--selected': props.selected }
 ])
 
-watch(
-  () => props.node.data.title,
-  (title) => {
-    if (!editing.value) {
-      draftTitle.value = title
-    }
-  }
-)
-
-async function startEditing(): Promise<void> {
+function startEditing(): void {
   editing.value = true
-  editError.value = ''
-  draftTitle.value = props.node.data.title
-  await nextTick()
-  titleInputRef.value?.focus()
-  titleInputRef.value?.select()
 }
 
-function validateTitle(title: string): string {
-  if (title.length === 0 || /[<>]/.test(title)) {
-    return 'Use non-empty plain text.'
-  }
-  return ''
-}
-
-async function commitEdit(): Promise<void> {
-  const title = draftTitle.value.trim()
-  const error = validateTitle(title)
-  if (error) {
-    editError.value = error
-    await nextTick()
-    titleInputRef.value?.focus()
-    return
-  }
-
-  editError.value = ''
-  if (title.length > 0 && title !== props.node.data.title) {
-    emit('edit', props.node.id, title)
-  } else {
-    draftTitle.value = props.node.data.title
-  }
+function commitEdit(payload: unknown): void {
   editing.value = false
+  emit('editCommit', props.node.id, payload)
 }
 
 function cancelEdit(): void {
   editing.value = false
-  editError.value = ''
-  draftTitle.value = props.node.data.title
+  emit('cancelEdit', props.node.id)
 }
 
 function onPointerDown(event: PointerEvent): void {
@@ -123,11 +85,48 @@ function endDrag(event: PointerEvent): void {
   lastPointer.value = null
   emit('dragEnd')
 }
+
+function onResizePointerDown(event: PointerEvent): void {
+  if (editing.value) {
+    return
+  }
+
+  event.stopPropagation()
+  emit('select', props.node.id)
+  resizingPointerId.value = event.pointerId
+  lastPointer.value = { x: event.clientX, y: event.clientY }
+  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+}
+
+function onResizePointerMove(event: PointerEvent): void {
+  if (resizingPointerId.value !== event.pointerId || !lastPointer.value) {
+    return
+  }
+
+  event.stopPropagation()
+  const nextPointer = { x: event.clientX, y: event.clientY }
+  emit('resize', props.node.id, {
+    height: nextPointer.y - lastPointer.value.y,
+    width: nextPointer.x - lastPointer.value.x
+  })
+  lastPointer.value = nextPointer
+}
+
+function endResize(event: PointerEvent): void {
+  if (resizingPointerId.value !== event.pointerId) {
+    return
+  }
+
+  event.stopPropagation()
+  resizingPointerId.value = null
+  lastPointer.value = null
+  emit('resizeEnd')
+}
 </script>
 
 <template>
   <div
-    class="topic-node"
+    class="base-node"
     data-editor-node
     :data-editor-node-id="node.id"
     :class="nodeClass"
@@ -138,34 +137,32 @@ function endDrag(event: PointerEvent): void {
     @pointermove="onPointerMove"
     @pointerup="endDrag"
   >
-    <template v-if="editing">
-      <input
-        ref="titleInputRef"
-        v-model="draftTitle"
-        :aria-invalid="editError.length > 0"
-        class="topic-node__input"
-        maxlength="120"
-        @blur="commitEdit"
-        @input="editError = ''"
-        @keydown.enter.prevent="commitEdit"
-        @keydown.esc.prevent="cancelEdit"
-        @pointerdown.stop
+    <div class="base-node__content" :class="{ 'base-node__content--blocked': !editing }">
+      <slot
+        :cancel-edit="cancelEdit"
+        :commit-edit="commitEdit"
+        :editing="editing"
       />
-      <span v-if="editError" class="topic-node__error">{{ editError }}</span>
-    </template>
-    <span v-else class="topic-node__title">{{ node.data.title }}</span>
+    </div>
+    <span
+      aria-hidden="true"
+      class="base-node__resize-handle"
+      @pointercancel="endResize"
+      @pointerdown="onResizePointerDown"
+      @pointermove="onResizePointerMove"
+      @pointerup="endResize"
+    />
   </div>
 </template>
 
 <style scoped>
-.topic-node {
+.base-node {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 140px;
-  max-width: 240px;
+  box-sizing: border-box;
   padding: 10px 14px;
   border: 1px solid var(--object-border);
   border-radius: 8px;
@@ -176,8 +173,35 @@ function endDrag(event: PointerEvent): void {
   user-select: none;
 }
 
-.topic-node:active {
+.base-node:active {
   cursor: grabbing;
+}
+
+.base-node__content {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.base-node__content--blocked {
+  pointer-events: none;
+}
+
+.base-node__resize-handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--color-primary);
+  border-radius: 2px;
+  background: var(--color-surface);
+  cursor: nwse-resize;
 }
 
 .topic-node--tone-outline {
@@ -219,50 +243,5 @@ function endDrag(event: PointerEvent): void {
 .topic-node--selected {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-node-selected);
-}
-
-.topic-node--weight-regular .topic-node__title,
-.topic-node--weight-regular .topic-node__input {
-  font-weight: 400;
-}
-
-.topic-node--weight-medium .topic-node__title,
-.topic-node--weight-medium .topic-node__input {
-  font-weight: 650;
-}
-
-.topic-node--weight-bold .topic-node__title,
-.topic-node--weight-bold .topic-node__input {
-  font-weight: 750;
-}
-
-.topic-node__title {
-  display: block;
-  width: 100%;
-  overflow: hidden;
-  font-size: 14px;
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.topic-node__input {
-  width: 100%;
-  min-width: 0;
-  padding: 2px 0;
-  border: 0;
-  outline: 0;
-  color: inherit;
-  font-size: 14px;
-}
-
-.topic-node__error {
-  align-self: stretch;
-  overflow: hidden;
-  color: var(--color-danger);
-  font-size: 11px;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 </style>
