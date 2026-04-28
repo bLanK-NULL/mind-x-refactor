@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { MindNode, Point } from '@mind-x/shared'
 import { computed, nextTick, ref, watch } from 'vue'
+import { resolveTopicNodeClass, resolveTopicNodeStyle } from './objectStyles'
 
 const props = defineProps<{
   node: MindNode
@@ -22,10 +23,16 @@ const draggingPointerId = ref<number | null>(null)
 const lastPointer = ref<Point | null>(null)
 
 const nodeStyle = computed(() => ({
+  ...resolveTopicNodeStyle(props.node.style),
   height: `${props.node.size?.height ?? 56}px`,
   transform: `translate(${props.node.position.x}px, ${props.node.position.y}px)`,
   width: `${props.node.size?.width ?? 180}px`
 }))
+
+const nodeClass = computed(() => [
+  ...resolveTopicNodeClass(props.node.style),
+  { 'topic-node--selected': props.selected }
+])
 
 watch(
   () => props.node.data.title,
@@ -120,7 +127,7 @@ function endDrag(event: PointerEvent): void {
     class="topic-node"
     data-editor-node
     :data-editor-node-id="node.id"
-    :class="{ 'topic-node--selected': selected }"
+    :class="nodeClass"
     :style="nodeStyle"
     @dblclick.stop="startEditing"
     @pointercancel="endDrag"
@@ -157,11 +164,11 @@ function endDrag(event: PointerEvent): void {
   min-width: 140px;
   max-width: 240px;
   padding: 10px 14px;
-  border: 1px solid var(--color-border-node);
+  border: 1px solid var(--object-border);
   border-radius: 8px;
-  background: var(--color-surface);
+  background: var(--object-fill);
   box-shadow: var(--shadow-node);
-  color: var(--color-text-strong);
+  color: var(--object-text);
   cursor: grab;
   user-select: none;
 }
@@ -170,9 +177,72 @@ function endDrag(event: PointerEvent): void {
   cursor: grabbing;
 }
 
+.topic-node--tone-outline {
+  background: var(--color-surface);
+}
+
+.topic-node--shape-rectangle {
+  border-radius: 2px;
+}
+
+.topic-node--shape-rounded {
+  border-radius: 8px;
+}
+
+.topic-node--shape-pill {
+  border-radius: 999px;
+}
+
+.topic-node--size-sm {
+  padding: 7px 10px;
+}
+
+.topic-node--size-md {
+  padding: 10px 14px;
+}
+
+.topic-node--size-lg {
+  padding: 13px 18px;
+}
+
+.topic-node--border-none {
+  border-color: transparent;
+}
+
+.topic-node--border-dashed {
+  border-style: dashed;
+}
+
+.topic-node--shadow-none {
+  box-shadow: none;
+}
+
+.topic-node--shadow-sm {
+  box-shadow: var(--shadow-node);
+}
+
+.topic-node--shadow-md {
+  box-shadow: 0 10px 26px rgb(15 23 42 / 14%);
+}
+
 .topic-node--selected {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-node-selected);
+}
+
+.topic-node--weight-regular .topic-node__title,
+.topic-node--weight-regular .topic-node__input {
+  font-weight: 400;
+}
+
+.topic-node--weight-medium .topic-node__title,
+.topic-node--weight-medium .topic-node__input {
+  font-weight: 650;
+}
+
+.topic-node--weight-bold .topic-node__title,
+.topic-node--weight-bold .topic-node__input {
+  font-weight: 750;
 }
 
 .topic-node__title {
@@ -180,7 +250,6 @@ function endDrag(event: PointerEvent): void {
   width: 100%;
   overflow: hidden;
   font-size: 14px;
-  font-weight: 650;
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -194,7 +263,6 @@ function endDrag(event: PointerEvent): void {
   outline: 0;
   color: inherit;
   font-size: 14px;
-  font-weight: 650;
 }
 
 .topic-node__error {

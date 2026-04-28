@@ -5,7 +5,7 @@ let edgeRendererInstanceCounter = 0
 <script setup lang="ts">
 import type { MindEdge, MindNode } from '@mind-x/shared'
 import { computed, ref } from 'vue'
-import { getEdgeComponent, hasArrow, hasDash } from './edgeComponents'
+import { getEdgeMarkerEnd, resolveEdgeStyle } from './objectStyles'
 
 const props = defineProps<{
   edges: MindEdge[]
@@ -67,22 +67,23 @@ function isEdgeActive(edge: MindEdge): boolean {
 }
 
 function getVisiblePathClass(edge: MindEdge) {
-  const component = getEdgeComponent(edge)
-  return {
-    'edge-renderer__path': true,
-    'edge-renderer__path--active': isEdgeActive(edge),
-    'edge-renderer__path--selected': props.selectedEdgeId === edge.id,
-    'edge-renderer__path--dashed': hasDash(component)
-  }
+  const resolved = resolveEdgeStyle(edge.style)
+  return [
+    ...resolved.classNames,
+    {
+      'edge-renderer__path--active': isEdgeActive(edge),
+      'edge-renderer__path--selected': props.selectedEdgeId === edge.id
+    }
+  ]
+}
+
+function getVisiblePathStyle(edge: MindEdge) {
+  return resolveEdgeStyle(edge.style).style
 }
 
 function getMarkerEnd(edge: MindEdge): string | undefined {
-  const component = getEdgeComponent(edge)
-  if (!hasArrow(component)) {
-    return undefined
-  }
-
-  return props.selectedEdgeId === edge.id ? `url(#${selectedEdgeArrowMarkerId})` : `url(#${edgeArrowMarkerId})`
+  const markerId = props.selectedEdgeId === edge.id ? selectedEdgeArrowMarkerId : edgeArrowMarkerId
+  return getEdgeMarkerEnd(edge.style, markerId)
 }
 
 function getNodeCenter(node: MindNode) {
@@ -161,6 +162,7 @@ function getPath(edge: MindEdge): string | null {
           :class="getVisiblePathClass(edge)"
           :d="getPath(edge) ?? undefined"
           :marker-end="getMarkerEnd(edge)"
+          :style="getVisiblePathStyle(edge)"
         />
       </g>
     </template>
@@ -185,34 +187,29 @@ function getPath(edge: MindEdge): string | null {
 .edge-renderer__path {
   fill: none;
   pointer-events: none;
-  stroke: var(--color-edge);
+  stroke: var(--edge-stroke);
+  stroke-dasharray: var(--edge-dasharray);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2;
+  stroke-width: var(--edge-width);
   transition:
     stroke 120ms ease,
     stroke-width 120ms ease;
 }
 
 .edge-renderer__path--active {
-  stroke: var(--color-primary-hover);
-  stroke-width: 2.5;
+  filter: drop-shadow(0 0 2px rgb(15 23 42 / 18%));
 }
 
 .edge-renderer__path--selected {
-  stroke: var(--color-primary);
-  stroke-width: 3;
-}
-
-.edge-renderer__path--dashed {
-  stroke-dasharray: 8 8;
+  stroke-width: calc(var(--edge-width) + 1px);
 }
 
 .edge-renderer__marker {
-  fill: var(--color-edge);
+  fill: var(--edge-stroke);
 }
 
 .edge-renderer__marker--selected {
-  fill: var(--color-primary);
+  fill: var(--edge-stroke);
 }
 </style>
