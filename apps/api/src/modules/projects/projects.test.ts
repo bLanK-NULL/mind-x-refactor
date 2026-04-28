@@ -479,7 +479,7 @@ describe('project routes', () => {
     })
   })
 
-  it('normalizes legacy v1 document saves and loads to v2', async () => {
+  it('rejects legacy v1 document saves', async () => {
     installProjectStore()
     const headers = authHeaders()
     const createResponse = await requestApp('/api/projects', {
@@ -490,33 +490,30 @@ describe('project routes', () => {
     const projectId = (createResponse.body as { project: { id: string } }).project.id
     const legacy = legacyDocument(projectId)
 
-    const saveResponse = await requestApp(`/api/projects/${projectId}/document`, {
-      body: { document: legacy },
-      headers,
-      method: 'PUT'
+    await expect(
+      requestApp(`/api/projects/${projectId}/document`, {
+        body: { document: legacy },
+        headers,
+        method: 'PUT'
+      })
+    ).resolves.toMatchObject({
+      body: {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Request validation failed'
+        }
+      },
+      status: 422
     })
 
-    expect(saveResponse.status).toBe(200)
-    const saved = (saveResponse.body as { document: MindDocument }).document
-    expect(saved.version).toBe(2)
-    expect(saved.meta).toEqual({
-      projectId,
-      title: 'Legacy',
-      updatedAt: '2026-04-26T12:00:00.000Z'
-    })
-    expect(saved.nodes.map((node) => node.style)).toEqual([DEFAULT_TOPIC_STYLE, DEFAULT_TOPIC_STYLE])
-    expect(saved.edges[0]).toEqual({
-      id: 'root->child',
-      source: 'root',
-      target: 'child',
-      type: 'mind-parent',
-      style: DEFAULT_EDGE_STYLE
-    })
-
-    await expect(requestApp(`/api/projects/${projectId}/document`, { headers })).resolves.toEqual({
-      body: { document: saved },
-      status: 200
-    })
+    const loadResponse = await requestApp(`/api/projects/${projectId}/document`, { headers })
+    expect(loadResponse.status).toBe(200)
+    const loaded = (loadResponse.body as { document: MindDocument }).document
+    expect(loaded.version).toBe(2)
+    expect(loaded.meta.projectId).toBe(projectId)
+    expect(loaded.meta.title).toBe('Legacy')
+    expect(loaded.nodes).toEqual([])
+    expect(loaded.edges).toEqual([])
   })
 
   it('returns JSON not found responses for unknown nested project routes', async () => {
