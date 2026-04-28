@@ -1,7 +1,14 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Readable, Writable } from 'node:stream'
 import { createEmptyDocument } from '@mind-x/mind-engine'
-import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE, type MindDocument, type MindDocumentV1 } from '@mind-x/shared'
+import {
+  DEFAULT_EDGE_STYLE,
+  DEFAULT_NODE_SHELL_STYLE,
+  DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TOPIC_CONTENT_STYLE,
+  type MindDocument,
+  type MindDocumentV1
+} from '@mind-x/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../../app.js'
 import { signAuthToken } from '../auth/auth.service.js'
@@ -152,7 +159,9 @@ function withDanglingEdge(document: MindDocument): MindDocument {
         data: { title: 'Root' },
         id: 'root',
         position: { x: 0, y: 0 },
-        style: DEFAULT_TOPIC_STYLE,
+        size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+        shellStyle: DEFAULT_NODE_SHELL_STYLE,
+        contentStyle: DEFAULT_TOPIC_CONTENT_STYLE,
         type: 'topic'
       }
     ],
@@ -509,7 +518,7 @@ describe('project routes', () => {
     const loadResponse = await requestApp(`/api/projects/${projectId}/document`, { headers })
     expect(loadResponse.status).toBe(200)
     const loaded = (loadResponse.body as { document: MindDocument }).document
-    expect(loaded.version).toBe(2)
+    expect(loaded.version).toBe(3)
     expect(loaded.meta.projectId).toBe(projectId)
     expect(loaded.meta.title).toBe('Legacy')
     expect(loaded.nodes).toEqual([])
@@ -809,7 +818,7 @@ describe('projects repository', () => {
     await expect(findProject('user-1', 'project-1')).resolves.toMatchObject({ document })
   })
 
-  it('migrates v1 JSON columns to v2 records', async () => {
+  it('migrates v1 JSON columns to v3 records', async () => {
     const legacy = legacyDocument('project-1')
     mockPool.execute.mockResolvedValueOnce([
       [
@@ -826,10 +835,18 @@ describe('projects repository', () => {
 
     await expect(findProject('user-1', 'project-1')).resolves.toMatchObject({
       document: {
-        version: 2,
+        version: 3,
         nodes: [
-          expect.objectContaining({ style: DEFAULT_TOPIC_STYLE }),
-          expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })
+          expect.objectContaining({
+            size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+            shellStyle: DEFAULT_NODE_SHELL_STYLE,
+            contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
+          }),
+          expect.objectContaining({
+            size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+            shellStyle: DEFAULT_NODE_SHELL_STYLE,
+            contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
+          })
         ],
         edges: [expect.objectContaining({ style: DEFAULT_EDGE_STYLE })]
       }
