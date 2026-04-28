@@ -6,8 +6,10 @@ import {
   DEFAULT_NODE_SHELL_STYLE,
   DEFAULT_NODE_SIZE_BY_TYPE,
   DEFAULT_TOPIC_CONTENT_STYLE,
+  DEFAULT_TOPIC_STYLE,
   type MindDocument,
-  type MindDocumentV1
+  type MindDocumentV1,
+  type MindDocumentV2
 } from '@mind-x/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../../app.js'
@@ -148,6 +150,43 @@ function legacyDocument(projectId: string): MindDocumentV1 {
       { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
     ],
     edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'dashed-arrow' }]
+  }
+}
+
+function legacyV2Document(projectId: string): MindDocumentV2 {
+  return {
+    version: 2,
+    meta: {
+      projectId,
+      title: 'Legacy V2',
+      updatedAt: '2026-04-26T12:00:00.000Z'
+    },
+    viewport: { x: 4, y: 8, zoom: 1 },
+    nodes: [
+      {
+        id: 'root',
+        type: 'topic',
+        position: { x: 0, y: 0 },
+        data: { title: 'Root' },
+        style: DEFAULT_TOPIC_STYLE
+      },
+      {
+        id: 'child',
+        type: 'topic',
+        position: { x: 240, y: 0 },
+        data: { title: 'Child' },
+        style: DEFAULT_TOPIC_STYLE
+      }
+    ],
+    edges: [
+      {
+        id: 'root->child',
+        source: 'root',
+        target: 'child',
+        type: 'mind-parent',
+        style: DEFAULT_EDGE_STYLE
+      }
+    ]
   }
 }
 
@@ -523,6 +562,68 @@ describe('project routes', () => {
     expect(loaded.meta.title).toBe('Legacy')
     expect(loaded.nodes).toEqual([])
     expect(loaded.edges).toEqual([])
+  })
+
+  it('rejects legacy v2 document saves', async () => {
+    installProjectStore()
+    const headers = authHeaders()
+    const createResponse = await requestApp('/api/projects', {
+      body: { name: 'Legacy V2' },
+      headers,
+      method: 'POST'
+    })
+    const projectId = (createResponse.body as { project: { id: string } }).project.id
+    const legacy = legacyV2Document(projectId)
+
+    await expect(
+      requestApp(`/api/projects/${projectId}/document`, {
+        body: { document: legacy },
+        headers,
+        method: 'PUT'
+      })
+    ).resolves.toMatchObject({
+      body: {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Request validation failed'
+        }
+      },
+      status: 422
+    })
+  })
+
+  it('migrates legacy v2 stored documents when loading', async () => {
+    const projects = installProjectStore()
+    const headers = authHeaders()
+    const createResponse = await requestApp('/api/projects', {
+      body: { name: 'Legacy V2' },
+      headers,
+      method: 'POST'
+    })
+    const projectId = (createResponse.body as { project: { id: string } }).project.id
+    const project = projects.find((item) => item.id === projectId)
+    expect(project).toBeDefined()
+    project!.document_json = JSON.stringify(legacyV2Document(projectId))
+
+    const loadResponse = await requestApp(`/api/projects/${projectId}/document`, { headers })
+
+    expect(loadResponse.status).toBe(200)
+    expect((loadResponse.body as { document: MindDocument }).document).toMatchObject({
+      version: 3,
+      meta: {
+        projectId,
+        title: 'Legacy V2',
+        updatedAt: '2026-04-26T12:00:00.000Z'
+      },
+      nodes: expect.arrayContaining([
+        expect.objectContaining({
+          size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
+        })
+      ]),
+      edges: expect.arrayContaining([expect.objectContaining({ style: DEFAULT_EDGE_STYLE })])
+    })
   })
 
   it('returns JSON not found responses for unknown nested project routes', async () => {
