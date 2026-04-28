@@ -9,9 +9,9 @@ import MindEditor from '@/components/editor/MindEditor.vue'
 import { getApiErrorMessage } from '@/shared/api/client'
 import { exportDocumentAsPng } from '@/services/exportPng'
 import { selectFailedSaveDraftDocument } from '@/services/saveFailureDraft'
-import { subscribeCrossTabEvents, type CrossTabEvent } from '@/services/crossTab'
+import { subscribeCrossTabEvents, type CrossTabEvent } from '@/features/projects/services/crossTab'
 import { getLocalDraft, loadServerDocument, saveLocalDraft, saveServerDocument } from '@/services/syncService'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/features/auth/stores/auth'
 import { serializeMindDocument, useEditorStore } from '@/stores/editor'
 
 const auth = useAuthStore()

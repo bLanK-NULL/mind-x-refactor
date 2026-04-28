@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectSummaryDto } from '@mind-x/shared'
-import { publishCrossTabEvent, resetCrossTabChannelForTests, subscribeCrossTabEvents, type CrossTabEvent } from './crossTab'
+import { publishCrossTabEvent, resetCrossTabChannelForTests, subscribeCrossTabEvents, type CrossTabEvent } from '../services/crossTab'
 
 type Listener = (message: MessageEvent<CrossTabEvent>) => void
 

@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/features/auth/stores/auth'
 import EditorView from '@/views/EditorView.vue'
-import LoginView from '@/views/LoginView.vue'
-import ProjectsView from '@/views/ProjectsView.vue'
+import LoginView from '@/features/auth/views/LoginView.vue'
+import ProjectsView from '@/features/projects/views/ProjectsView.vue'
 import { sanitizeRedirect } from './redirect'
 
 declare module 'vue-router' {

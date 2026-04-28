@@ -6,7 +6,7 @@ import App from './App.vue'
 import { setUnauthorizedHandler } from '@/shared/api/client'
 import { initializeTheme } from '@/shared/composables/theme/useTheme'
 import router from './router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/features/auth/stores/auth'
 import '@/shared/styles/global.css'
 
 const pinia = createPinia()

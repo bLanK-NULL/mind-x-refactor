@@ -2,7 +2,7 @@ import type { ProjectSummaryDto } from '@mind-x/shared'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '@/shared/api/client'
-import { useProjectsStore } from './projects'
+import { useProjectsStore } from '@/features/projects/stores/projects'
 
 vi.mock('@/shared/api/client', () => ({
   apiClient: {

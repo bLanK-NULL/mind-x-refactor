@@ -5,9 +5,9 @@ import { message, Modal } from 'ant-design-vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ThemeToggle from '@/shared/components/ThemeToggle.vue'
-import { publishCrossTabEvent, subscribeCrossTabEvents, type CrossTabEvent } from '@/services/crossTab'
-import { useAuthStore } from '@/stores/auth'
-import { useProjectsStore } from '@/stores/projects'
+import { publishCrossTabEvent, subscribeCrossTabEvents, type CrossTabEvent } from '@/features/projects/services/crossTab'
+import { useAuthStore } from '@/features/auth/stores/auth'
+import { useProjectsStore } from '@/features/projects/stores/projects'
 
 const auth = useAuthStore()
 const projects = useProjectsStore()

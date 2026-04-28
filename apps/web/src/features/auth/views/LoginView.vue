@@ -4,7 +4,7 @@ import { message } from 'ant-design-vue'
 import { reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { sanitizeRedirect } from '@/app/router/redirect'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/features/auth/stores/auth'
 
 type LoginFormState = {
   password: string
