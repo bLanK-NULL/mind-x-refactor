@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { replaceWithPatchResult } from './patches.js'
+import { replaceWithPatchResult } from '../patches.js'
 
 describe('patch utilities', () => {
   it('returns empty patches for unchanged roots', () => {

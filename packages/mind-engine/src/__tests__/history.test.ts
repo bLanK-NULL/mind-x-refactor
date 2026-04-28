@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_TOPIC_STYLE } from '@mind-x/shared'
-import { createEmptyDocument } from './documentFactory.js'
-import { createHistory } from './history.js'
-import { replaceWithPatchResult } from './patches.js'
+import { createEmptyDocument } from '../documentFactory.js'
+import { createHistory } from '../history.js'
+import { replaceWithPatchResult } from '../patches.js'
 
 describe('history', () => {
   it('undoes and redoes document patch entries', () => {

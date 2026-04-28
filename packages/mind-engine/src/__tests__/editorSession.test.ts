@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE, type MindDocument } from '@mind-x/shared'
-import { createEmptyDocument } from './documentFactory.js'
-import { createEditorSession, serializeMindDocument } from './editorSession.js'
+import { createEmptyDocument } from '../documentFactory.js'
+import { createEditorSession, serializeMindDocument } from '../editorSession.js'
 
 function emptyDocument(overrides: Partial<MindDocument> = {}): MindDocument {
   return {
