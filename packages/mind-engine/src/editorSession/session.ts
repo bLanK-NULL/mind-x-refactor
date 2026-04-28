@@ -1,16 +1,26 @@
-import { type EdgeStyle, type MindDocument, type Point, type TopicNodeStyle, type Viewport } from '@mind-x/shared'
+import {
+  type EdgeStyle,
+  type MindDocument,
+  type NodeShellStyle,
+  type Point,
+  type TopicNodeStyle,
+  type Viewport
+} from '@mind-x/shared'
 import { produce } from 'immer'
 import {
-  addChildNodeCommand,
-  addRootNodeCommand,
+  addChildMindNodeCommand,
+  addRootMindNodeCommand,
   deleteEdgeDetachChildCommand,
   deleteNodesPromoteChildrenCommand,
   editNodeTitleCommand,
   executeCommand,
   moveNodes,
   moveNodesCommand,
+  setNodeContentStyleCommand,
+  setNodeShellStyleCommand,
   setEdgeStyleCommand,
   setNodeStyleCommand,
+  updateNodeDataCommand,
   type CommandResult
 } from '../commands.js'
 import { createHistory, type History } from '../history.js'
@@ -19,7 +29,7 @@ import { cloneDocument, preserveUntrackedDocumentState, retitleDocument, seriali
 import { compactSelectedEdge, compactSelection } from './selection.js'
 import { DEFAULT_TOPIC_TITLE, type InternalState, updateDirty } from './state.js'
 import { isStylePatchNoop } from './styles.js'
-import type { AddChildTopicInput, AddTopicInput, EditorSession } from './types.js'
+import type { AddChildMindNodeSessionInput, AddChildTopicInput, AddMindNodeInput, AddTopicInput, EditorSession } from './types.js'
 
 function assertTopicInput(id: string, title: string): void {
   if (id.trim().length === 0) {
@@ -128,49 +138,77 @@ export function createEditorSession(): EditorSession {
     syncAfterDocumentChange(next)
   }
 
+  function addRootNodeThroughSession(input: AddMindNodeInput, validate?: (id: string) => void): string | null {
+    if (!state.document || state.document.nodes.length > 0) {
+      return null
+    }
+
+    finalizePendingPreview()
+    const id = input.id ?? createNodeId(state.document)
+    validate?.(id)
+    const result = executeCommand(cloneDocument(state.document), addRootMindNodeCommand, {
+      id,
+      type: input.type,
+      data: input.data
+    })
+    setState((draft) => {
+      draft.selectedNodeIds = [id]
+      draft.selectedEdgeId = null
+    })
+    commitCommandResult(result)
+    return id
+  }
+
+  function addChildNodeThroughSession(
+    input: AddChildMindNodeSessionInput,
+    validate?: (id: string) => void
+  ): string | null {
+    if (!state.document) {
+      return null
+    }
+
+    finalizePendingPreview()
+    const parentId = input.parentId ?? state.selectedNodeIds[0]
+    if (!parentId) {
+      return null
+    }
+
+    const id = input.id ?? createNodeId(state.document)
+    validate?.(id)
+    const result = executeCommand(cloneDocument(state.document), addChildMindNodeCommand, {
+      parentId,
+      id,
+      type: input.type,
+      data: input.data
+    })
+    setState((draft) => {
+      draft.selectedNodeIds = [id]
+      draft.selectedEdgeId = null
+    })
+    commitCommandResult(result)
+    return id
+  }
+
   return {
+    addChildNode: addChildNodeThroughSession,
     addChildTopic(input: AddChildTopicInput = {}) {
-      if (!state.document) {
-        return null
-      }
-
-      finalizePendingPreview()
-      const parentId = input.parentId ?? state.selectedNodeIds[0]
-      if (!parentId) {
-        return null
-      }
-
-      const id = input.id ?? createNodeId(state.document)
       const title = input.title ?? DEFAULT_TOPIC_TITLE
-      assertTopicInput(id, title)
-      const result = executeCommand(cloneDocument(state.document), addChildNodeCommand, {
-        parentId,
-        id,
-        title
-      })
-      setState((draft) => {
-        draft.selectedNodeIds = [id]
-        draft.selectedEdgeId = null
-      })
-      commitCommandResult(result)
-      return id
+      return addChildNodeThroughSession(
+        {
+          parentId: input.parentId,
+          id: input.id,
+          type: 'topic',
+          data: { title }
+        },
+        (id) => assertTopicInput(id, title)
+      )
     },
+    addRootNode: addRootNodeThroughSession,
     addRootTopic(input: AddTopicInput = {}) {
-      if (!state.document || state.document.nodes.length > 0) {
-        return null
-      }
-
-      finalizePendingPreview()
-      const id = input.id ?? createNodeId(state.document)
       const title = input.title ?? DEFAULT_TOPIC_TITLE
-      assertTopicInput(id, title)
-      const result = executeCommand(cloneDocument(state.document), addRootNodeCommand, { id, title })
-      setState((draft) => {
-        draft.selectedNodeIds = [id]
-        draft.selectedEdgeId = null
-      })
-      commitCommandResult(result)
-      return id
+      return addRootNodeThroughSession({ id: input.id, type: 'topic', data: { title } }, (id) =>
+        assertTopicInput(id, title)
+      )
     },
     clearSelection() {
       if (state.selectedNodeIds.length === 0 && state.selectedEdgeId === null) {
@@ -364,6 +402,60 @@ export function createEditorSession(): EditorSession {
         })
       )
     },
+    setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>) {
+      if (!state.document || state.selectedNodeIds.length !== 1) {
+        return
+      }
+
+      const nodeId = state.selectedNodeIds[0]
+      const selectedNode = state.document.nodes.find((node) => node.id === nodeId)
+      if (!selectedNode) {
+        setState((draft) => {
+          draft.selectedNodeIds = []
+          draft.revision += 1
+        })
+        return
+      }
+
+      if (isStylePatchNoop(selectedNode.shellStyle, stylePatch)) {
+        return
+      }
+
+      finalizePendingPreview()
+      commitCommandResult(
+        executeCommand(cloneDocument(state.document), setNodeShellStyleCommand, {
+          nodeId,
+          stylePatch
+        })
+      )
+    },
+    setSelectedNodeContentStyle(stylePatch: Record<string, unknown>) {
+      if (!state.document || state.selectedNodeIds.length !== 1) {
+        return
+      }
+
+      const nodeId = state.selectedNodeIds[0]
+      const selectedNode = state.document.nodes.find((node) => node.id === nodeId)
+      if (!selectedNode) {
+        setState((draft) => {
+          draft.selectedNodeIds = []
+          draft.revision += 1
+        })
+        return
+      }
+
+      if (isStylePatchNoop(selectedNode.contentStyle, stylePatch)) {
+        return
+      }
+
+      finalizePendingPreview()
+      commitCommandResult(
+        executeCommand(cloneDocument(state.document), setNodeContentStyleCommand, {
+          nodeId,
+          stylePatch
+        })
+      )
+    },
     setSelection(nodeIds: string[]) {
       setState((draft) => {
         draft.selectedNodeIds = compactSelection(draft.document, [...nodeIds])
@@ -390,6 +482,14 @@ export function createEditorSession(): EditorSession {
 
       const currentDocument = state.document
       syncAfterDocumentChange(preserveUntrackedDocumentState(history.undo(), currentDocument))
+    },
+    updateNodeData(nodeId: string, dataPatch: Record<string, unknown>) {
+      if (!state.document) {
+        return
+      }
+
+      finalizePendingPreview()
+      commitCommandResult(executeCommand(cloneDocument(state.document), updateNodeDataCommand, { nodeId, dataPatch }))
     },
     updateDocumentTitle(title: string) {
       if (!state.document) {

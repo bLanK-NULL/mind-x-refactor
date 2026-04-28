@@ -1,5 +1,12 @@
-import type { EdgeStyle, MindDocument, Point, TopicNodeStyle, Viewport } from '@mind-x/shared'
-import { createEditorSession, type AddChildTopicInput, type AddTopicInput, type EditorSession } from '@mind-x/mind-engine'
+import type { EdgeStyle, MindDocument, NodeShellStyle, Point, TopicNodeStyle, Viewport } from '@mind-x/shared'
+import {
+  createEditorSession,
+  type AddChildMindNodeSessionInput,
+  type AddChildTopicInput,
+  type AddMindNodeInput,
+  type AddTopicInput,
+  type EditorSession
+} from '@mind-x/mind-engine'
 import { defineStore } from 'pinia'
 import { markRaw, ref, shallowRef, toRaw } from 'vue'
 
@@ -92,14 +99,31 @@ export const useEditorStore = defineStore('editor', () => {
     return id
   }
 
+  function addRootNode(input: AddMindNodeInput): string | null {
+    const id = session.addRootNode(input)
+    syncFromSession()
+    return id
+  }
+
   function addChildTopic(input: AddChildTopicInput = {}): string | null {
     const id = session.addChildTopic(input)
     syncFromSession()
     return id
   }
 
+  function addChildNode(input: AddChildMindNodeSessionInput): string | null {
+    const id = session.addChildNode(input)
+    syncFromSession()
+    return id
+  }
+
   function editNodeTitle(nodeId: string, title: string): void {
     session.editNodeTitle(nodeId, title)
+    syncFromSession()
+  }
+
+  function updateNodeData(nodeId: string, dataPatch: Record<string, unknown>): void {
+    session.updateNodeData(nodeId, dataPatch)
     syncFromSession()
   }
 
@@ -125,6 +149,16 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
     session.setSelectedNodeStyle(stylePatch)
+    syncFromSession()
+  }
+
+  function setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void {
+    session.setSelectedNodeShellStyle(stylePatch)
+    syncFromSession()
+  }
+
+  function setSelectedNodeContentStyle(stylePatch: Record<string, unknown>): void {
+    session.setSelectedNodeContentStyle(stylePatch)
     syncFromSession()
   }
 
@@ -155,7 +189,9 @@ export const useEditorStore = defineStore('editor', () => {
 
   return {
     $reset,
+    addChildNode,
     addChildTopic,
+    addRootNode,
     addRootTopic,
     canRedo,
     canUndo,
@@ -180,10 +216,13 @@ export const useEditorStore = defineStore('editor', () => {
     selectedNodeIds,
     selectOnly,
     setSelectedEdgeStyle,
+    setSelectedNodeContentStyle,
+    setSelectedNodeShellStyle,
     setSelectedNodeStyle,
     setSelection,
     setViewport,
     undo,
+    updateNodeData,
     updateDocumentTitle
   }
 })

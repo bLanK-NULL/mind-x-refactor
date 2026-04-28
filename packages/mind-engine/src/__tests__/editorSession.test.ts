@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DEFAULT_CODE_CONTENT_STYLE,
   DEFAULT_EDGE_STYLE,
+  DEFAULT_IMAGE_CONTENT_STYLE,
   DEFAULT_NODE_SHELL_STYLE,
   DEFAULT_NODE_SIZE_BY_TYPE,
   DEFAULT_TOPIC_CONTENT_STYLE,
@@ -92,6 +94,31 @@ describe('editor session', () => {
     expect(state.selectedEdgeId).toBeNull()
     expect(state.dirty).toBe(true)
     expect(state.canUndo).toBe(true)
+  })
+
+  it('adds generic nodes and updates their data and content style through history', () => {
+    const session = createEditorSession()
+    session.load(emptyDocument())
+
+    const rootId = session.addRootNode({ id: 'root-image', type: 'image', data: { url: 'https://example.com/root.png' } })
+    const childId = session.addChildNode({ id: 'code-child', type: 'code', data: { code: 'let value = 1' } })
+
+    session.updateNodeData('code-child', { code: 'const value = 2' })
+    session.setSelectedNodeContentStyle({ wrap: false })
+
+    const state = session.getState()
+    expect(rootId).toBe('root-image')
+    expect(childId).toBe('code-child')
+    expect(state.document?.nodes.map((node) => node.type)).toEqual(['image', 'code'])
+    expect(state.document?.nodes.map((node) => node.contentStyle)).toEqual([
+      DEFAULT_IMAGE_CONTENT_STYLE,
+      { ...DEFAULT_CODE_CONTENT_STYLE, wrap: false }
+    ])
+    expect(state.document?.nodes[1]).toMatchObject({ data: { code: 'const value = 2' } })
+    expect(state.selectedNodeIds).toEqual(['code-child'])
+
+    session.undo()
+    expect(session.getState().document?.nodes[1].contentStyle).toEqual(DEFAULT_CODE_CONTENT_STYLE)
   })
 
   it('keeps node and edge selection mutually exclusive', () => {

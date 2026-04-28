@@ -1,14 +1,27 @@
 import {
+  DEFAULT_ATTACHMENT_CONTENT_STYLE,
+  DEFAULT_CODE_CONTENT_STYLE,
   DEFAULT_EDGE_STYLE,
+  DEFAULT_IMAGE_CONTENT_STYLE,
+  DEFAULT_LINK_CONTENT_STYLE,
   DEFAULT_NODE_SHELL_STYLE,
   DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TASK_CONTENT_STYLE,
   DEFAULT_TOPIC_STYLE,
   DEFAULT_TOPIC_CONTENT_STYLE,
+  mindNodeSchema,
   mindDocumentSchema,
+  type AttachmentContentStyle,
+  type CodeContentStyle,
   type EdgeStyle,
+  type ImageContentStyle,
+  type LinkContentStyle,
   type MindDocument,
+  type MindNode,
+  type MindNodeType,
   type NodeShellStyle,
   type Point,
+  type TaskContentStyle,
   type TopicNodeStyle,
   type TopicContentStyle
 } from '@mind-x/shared'
@@ -92,7 +105,90 @@ export type AddRootNodeInput = {
   title: string
 }
 
-export function addRootNodeCommand(draft: Draft<MindDocument>, input: AddRootNodeInput): void {
+type NodeDataByType = {
+  attachment: Extract<MindNode, { type: 'attachment' }>['data']
+  code: Extract<MindNode, { type: 'code' }>['data']
+  image: Extract<MindNode, { type: 'image' }>['data']
+  link: Extract<MindNode, { type: 'link' }>['data']
+  task: Extract<MindNode, { type: 'task' }>['data']
+  topic: Extract<MindNode, { type: 'topic' }>['data']
+}
+
+type NodeContentStyleByType = {
+  attachment: AttachmentContentStyle
+  code: CodeContentStyle
+  image: ImageContentStyle
+  link: LinkContentStyle
+  task: TaskContentStyle
+  topic: TopicContentStyle
+}
+
+export type AddNodeInput<TType extends MindNodeType = MindNodeType> = {
+  id: string
+  type: TType
+  data?: Partial<NodeDataByType[TType]>
+}
+
+export type AddChildMindNodeInput<TType extends MindNodeType = MindNodeType> = AddNodeInput<TType> & {
+  parentId: string
+}
+
+function defaultNodeData(type: MindNodeType): NodeDataByType[MindNodeType] {
+  if (type === 'topic') {
+    return { title: 'New topic' }
+  }
+  if (type === 'image') {
+    return { url: 'https://example.com/image.png' }
+  }
+  if (type === 'link') {
+    return { title: 'New link', url: 'https://example.com' }
+  }
+  if (type === 'attachment') {
+    return { fileName: 'attachment.pdf', url: 'https://example.com/attachment.pdf' }
+  }
+  if (type === 'code') {
+    return { code: '' }
+  }
+  return { items: [{ id: 'task-1', title: 'New task', done: false }] }
+}
+
+function defaultContentStyle(type: MindNodeType): NodeContentStyleByType[MindNodeType] {
+  if (type === 'topic') {
+    return { ...DEFAULT_TOPIC_CONTENT_STYLE }
+  }
+  if (type === 'image') {
+    return { ...DEFAULT_IMAGE_CONTENT_STYLE }
+  }
+  if (type === 'link') {
+    return { ...DEFAULT_LINK_CONTENT_STYLE }
+  }
+  if (type === 'attachment') {
+    return { ...DEFAULT_ATTACHMENT_CONTENT_STYLE }
+  }
+  if (type === 'code') {
+    return { ...DEFAULT_CODE_CONTENT_STYLE }
+  }
+  return { ...DEFAULT_TASK_CONTENT_STYLE }
+}
+
+function createNode(input: AddNodeInput & { position: Point }): MindNode {
+  const data = {
+    ...defaultNodeData(input.type),
+    ...(input.data ?? {})
+  }
+
+  return mindNodeSchema.parse({
+    id: input.id,
+    type: input.type,
+    position: input.position,
+    size: DEFAULT_NODE_SIZE_BY_TYPE[input.type],
+    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
+    data,
+    contentStyle: defaultContentStyle(input.type)
+  })
+}
+
+export function addRootMindNodeCommand(draft: Draft<MindDocument>, input: AddNodeInput): void {
   if (input.id.trim().length === 0) {
     throw new Error('Node id must be non-empty')
   }
@@ -102,21 +198,20 @@ export function addRootNodeCommand(draft: Draft<MindDocument>, input: AddRootNod
   if (findNode(asDocument(draft), input.id)) {
     throw new Error(`Node ${input.id} already exists`)
   }
-  assertPlainTextTitle(input.title)
 
-  draft.nodes.push({
-    id: input.id,
-    type: 'topic',
-    position: { x: 0, y: 0 },
-    size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
-    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
-    data: { title: input.title },
-    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
-  })
+  draft.nodes.push(createNode({ ...input, position: { x: 0, y: 0 } }) as Draft<MindNode>)
   assertMindTree(asDocument(draft))
 }
 
-export function addRootNode(document: MindDocument, input: AddRootNodeInput): MindDocument {
+export function addRootNodeCommand(draft: Draft<MindDocument>, input: AddRootNodeInput): void {
+  assertPlainTextTitle(input.title)
+  addRootMindNodeCommand(draft, { id: input.id, type: 'topic', data: { title: input.title } })
+}
+
+export function addRootNode(document: MindDocument, input: AddNodeInput | AddRootNodeInput): MindDocument {
+  if ('type' in input) {
+    return executeCommand(document, addRootMindNodeCommand, input).document
+  }
   return executeCommand(document, addRootNodeCommand, input).document
 }
 
@@ -126,14 +221,13 @@ export type AddChildNodeInput = {
   title: string
 }
 
-export function addChildNodeCommand(draft: Draft<MindDocument>, input: AddChildNodeInput): void {
+export function addChildMindNodeCommand(draft: Draft<MindDocument>, input: AddChildMindNodeInput): void {
   if (input.id.trim().length === 0) {
     throw new Error('Node id must be non-empty')
   }
   if (findNode(asDocument(draft), input.id)) {
     throw new Error(`Node ${input.id} already exists`)
   }
-  assertPlainTextTitle(input.title)
   const parent = findNode(asDocument(draft), input.parentId)
   if (!parent) {
     throw new Error(`Parent node ${input.parentId} does not exist`)
@@ -145,20 +239,25 @@ export function addChildNodeCommand(draft: Draft<MindDocument>, input: AddChildN
     x: parent.position.x + parentWidth + CHILD_GAP_X,
     y: parent.position.y + childCount * SIBLING_GAP_Y
   }
-  draft.nodes.push({
-    id: input.id,
-    type: 'topic',
-    position,
-    size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
-    shellStyle: { ...DEFAULT_NODE_SHELL_STYLE },
-    data: { title: input.title },
-    contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE }
-  })
+  draft.nodes.push(createNode({ ...input, position }) as Draft<MindNode>)
   draft.edges.push(createParentEdge(input.parentId, input.id))
   assertMindTree(asDocument(draft))
 }
 
-export function addChildNode(document: MindDocument, input: AddChildNodeInput): MindDocument {
+export function addChildNodeCommand(draft: Draft<MindDocument>, input: AddChildNodeInput): void {
+  assertPlainTextTitle(input.title)
+  addChildMindNodeCommand(draft, {
+    parentId: input.parentId,
+    id: input.id,
+    type: 'topic',
+    data: { title: input.title }
+  })
+}
+
+export function addChildNode(document: MindDocument, input: AddChildMindNodeInput | AddChildNodeInput): MindDocument {
+  if ('type' in input) {
+    return executeCommand(document, addChildMindNodeCommand, input).document
+  }
   return executeCommand(document, addChildNodeCommand, input).document
 }
 
@@ -216,6 +315,16 @@ export type SetNodeStyleInput = {
   stylePatch: Partial<TopicNodeStyle>
 }
 
+export type UpdateNodeDataInput = {
+  nodeId: string
+  dataPatch: Record<string, unknown>
+}
+
+export type SetNodeContentStyleInput = {
+  nodeId: string
+  stylePatch: Record<string, unknown>
+}
+
 export function setNodeShellStyleCommand(draft: Draft<MindDocument>, input: SetNodeShellStyleInput): void {
   const node = findNode(asDocument(draft), input.nodeId)
   if (!node) {
@@ -258,6 +367,32 @@ export function setNodeStyleCommand(draft: Draft<MindDocument>, input: SetNodeSt
     }
   }
 
+  assertMindTree(asDocument(draft))
+}
+
+export function updateNodeDataCommand(draft: Draft<MindDocument>, input: UpdateNodeDataInput): void {
+  const node = findNode(asDocument(draft), input.nodeId)
+  if (!node) {
+    throw new Error(`Node ${input.nodeId} does not exist`)
+  }
+
+  node.data = {
+    ...node.data,
+    ...input.dataPatch
+  } as Draft<MindNode>['data']
+  assertMindTree(asDocument(draft))
+}
+
+export function setNodeContentStyleCommand(draft: Draft<MindDocument>, input: SetNodeContentStyleInput): void {
+  const node = findNode(asDocument(draft), input.nodeId)
+  if (!node) {
+    throw new Error(`Node ${input.nodeId} does not exist`)
+  }
+
+  node.contentStyle = {
+    ...node.contentStyle,
+    ...input.stylePatch
+  } as Draft<MindNode>['contentStyle']
   assertMindTree(asDocument(draft))
 }
 

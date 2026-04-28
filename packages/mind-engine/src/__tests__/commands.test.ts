@@ -1,10 +1,16 @@
 import { applyPatches } from 'immer'
 import { describe, expect, it } from 'vitest'
 import {
+  DEFAULT_ATTACHMENT_CONTENT_STYLE,
+  DEFAULT_CODE_CONTENT_STYLE,
   DEFAULT_EDGE_STYLE,
+  DEFAULT_IMAGE_CONTENT_STYLE,
+  DEFAULT_LINK_CONTENT_STYLE,
   DEFAULT_NODE_SHELL_STYLE,
   DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TASK_CONTENT_STYLE,
   DEFAULT_TOPIC_CONTENT_STYLE,
+  type MindNodeType,
   type EdgeStyle,
   type NodeShellStyle,
   type Point,
@@ -27,7 +33,9 @@ import {
   moveNodes,
   moveNodesCommand,
   setEdgeStyleCommand,
-  setNodeStyleCommand
+  setNodeContentStyleCommand,
+  setNodeStyleCommand,
+  updateNodeDataCommand
 } from '../commands.js'
 import { getParentId } from '../graph.js'
 
@@ -112,6 +120,71 @@ describe('commands', () => {
       }
     ])
     expect(withChild.edges[0].style).not.toBe(DEFAULT_EDGE_STYLE)
+  })
+
+  it('adds every node type as a child and keeps graph rules type-agnostic', () => {
+    const doc = addRootNode(createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-29T00:00:00.000Z' }), {
+      id: 'root',
+      type: 'image',
+      data: { url: 'https://example.com/root.png' }
+    })
+
+    const types: MindNodeType[] = ['topic', 'image', 'link', 'attachment', 'code', 'task']
+    const result = types.reduce((current, type, index) => {
+      return addChildNode(current, {
+        parentId: index === 0 ? 'root' : `node-${index - 1}`,
+        id: `node-${index}`,
+        type,
+        data:
+          type === 'topic'
+            ? { title: 'Topic child' }
+            : type === 'image'
+              ? { url: 'https://example.com/image.png' }
+              : type === 'link'
+                ? { title: 'Link child', url: 'https://example.com/link' }
+                : type === 'attachment'
+                  ? { fileName: 'brief.pdf', url: 'https://example.com/brief.pdf' }
+                  : type === 'code'
+                    ? { code: 'const x = 1' }
+                    : { items: [{ id: 'task-1', title: 'Task child', done: false }] }
+      })
+    }, doc)
+
+    expect(result.nodes.map((node) => node.type)).toEqual(['image', 'topic', 'image', 'link', 'attachment', 'code', 'task'])
+    expect(result.nodes.map((node) => node.contentStyle)).toEqual([
+      DEFAULT_IMAGE_CONTENT_STYLE,
+      DEFAULT_TOPIC_CONTENT_STYLE,
+      DEFAULT_IMAGE_CONTENT_STYLE,
+      DEFAULT_LINK_CONTENT_STYLE,
+      DEFAULT_ATTACHMENT_CONTENT_STYLE,
+      DEFAULT_CODE_CONTENT_STYLE,
+      DEFAULT_TASK_CONTENT_STYLE
+    ])
+    expect(result.nodes.map((node) => node.shellStyle)).toEqual(Array.from({ length: 7 }, () => DEFAULT_NODE_SHELL_STYLE))
+    expect(getParentId(result, 'node-5')).toBe('node-4')
+  })
+
+  it('updates node data and content styles as undoable patches', () => {
+    const doc = addRootNode(createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-29T00:00:00.000Z' }), {
+      id: 'code',
+      type: 'code',
+      data: { code: 'let a = 1' }
+    })
+
+    const edited = executeCommand(doc, updateNodeDataCommand, {
+      nodeId: 'code',
+      dataPatch: { code: 'const a = 2' }
+    })
+    const styled = executeCommand(edited.document, setNodeContentStyleCommand, {
+      nodeId: 'code',
+      stylePatch: { wrap: false }
+    })
+
+    expect(styled.document.nodes[0]).toMatchObject({
+      data: { code: 'const a = 2' },
+      contentStyle: { wrap: false }
+    })
+    expect(applyPatches(styled.document, styled.inversePatches)).toEqual(edited.document)
   })
 
   it('updates node style as an undoable patch command', () => {

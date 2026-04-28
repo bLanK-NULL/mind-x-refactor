@@ -1,7 +1,17 @@
-import type { EdgeStyle, MindDocument, Point, TopicNodeStyle, Viewport } from '@mind-x/shared'
+import type {
+  EdgeStyle,
+  MindDocument,
+  MindNodeType,
+  NodeShellStyle,
+  Point,
+  TopicNodeStyle,
+  Viewport
+} from '@mind-x/shared'
 
 export type AddTopicInput = { id?: string; title?: string }
 export type AddChildTopicInput = AddTopicInput & { parentId?: string }
+export type AddMindNodeInput = { id?: string; type: MindNodeType; data?: Record<string, unknown> }
+export type AddChildMindNodeSessionInput = AddMindNodeInput & { parentId?: string }
 
 export type EditorSessionState = Readonly<{
   canRedo: boolean
@@ -14,7 +24,9 @@ export type EditorSessionState = Readonly<{
 }>
 
 export type EditorSession = {
+  addChildNode(input: AddChildMindNodeSessionInput): string | null
   addChildTopic(input?: AddChildTopicInput): string | null
+  addRootNode(input: AddMindNodeInput): string | null
   addRootTopic(input?: AddTopicInput): string | null
   clearSelection(): void
   commit(document: MindDocument): void
@@ -33,9 +45,12 @@ export type EditorSession = {
   selectEdge(edgeId: string): void
   selectOnly(nodeId: string): void
   setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void
+  setSelectedNodeContentStyle(stylePatch: Record<string, unknown>): void
+  setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void
   setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void
   setSelection(nodeIds: string[]): void
   setViewport(viewport: Viewport): void
   undo(): void
+  updateNodeData(nodeId: string, dataPatch: Record<string, unknown>): void
   updateDocumentTitle(title: string): void
 }
