@@ -115,6 +115,7 @@ function getPath(edge: MindEdge): string | null {
   return createEdgePath({
     endX,
     endY,
+    forward,
     routing: edge.style.routing,
     startX,
     startY

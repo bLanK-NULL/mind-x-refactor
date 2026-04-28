@@ -65,5 +65,8 @@ describe('object style resolvers', () => {
     expect(createEdgePath({ startX: 0, startY: 10, endX: 100, endY: 50, routing: 'curved' })).toBe(
       'M 0 10 C 64 10, 36 50, 100 50'
     )
+    expect(createEdgePath({ startX: 100, startY: 10, endX: 50, endY: 50, routing: 'curved', forward: true })).toBe(
+      'M 100 10 C 164 10, -14 50, 50 50'
+    )
   })
 })

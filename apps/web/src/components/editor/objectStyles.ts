@@ -45,6 +45,7 @@ export type CssVariableStyle = CSSProperties & Record<`--${string}`, string>
 export type EdgePathInput = {
   endX: number
   endY: number
+  forward?: boolean
   routing: EdgeStyle['routing']
   startX: number
   startY: number
@@ -87,7 +88,7 @@ export function getEdgeMarkerEnd(style: EdgeStyle, markerId: string): string | u
   return style.arrow === 'end' ? `url(#${markerId})` : undefined
 }
 
-export function createEdgePath({ endX, endY, routing, startX, startY }: EdgePathInput): string {
+export function createEdgePath({ endX, endY, forward, routing, startX, startY }: EdgePathInput): string {
   if (routing === 'straight') {
     return `M ${startX} ${startY} L ${endX} ${endY}`
   }
@@ -97,9 +98,9 @@ export function createEdgePath({ endX, endY, routing, startX, startY }: EdgePath
     return `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`
   }
 
-  const forward = endX >= startX
+  const curveForward = forward ?? endX >= startX
   const curve = Math.max(64, Math.abs(endX - startX) * 0.45)
-  const c1x = startX + (forward ? curve : -curve)
-  const c2x = endX + (forward ? -curve : curve)
+  const c1x = startX + (curveForward ? curve : -curve)
+  const c2x = endX + (curveForward ? -curve : curve)
   return `M ${startX} ${startY} C ${c1x} ${startY}, ${c2x} ${endY}, ${endX} ${endY}`
 }
