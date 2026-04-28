@@ -1,4 +1,4 @@
-import { mindDocumentSchema, type MindDocument } from '@mind-x/shared'
+import { migrateMindDocument, type MindDocument } from '@mind-x/shared'
 import localforage from 'localforage'
 import { apiClient } from '@/api/client'
 
@@ -18,20 +18,20 @@ const draftsStore = localforage.createInstance({
 
 export async function loadServerDocument(projectId: string): Promise<MindDocument> {
   const { data } = await apiClient.get<DocumentResponse>(documentUrl(projectId))
-  return mindDocumentSchema.parse(data.document)
+  return migrateMindDocument(data.document)
 }
 
 export async function saveServerDocument(projectId: string, document: MindDocument): Promise<MindDocument> {
-  const validDocument = mindDocumentSchema.parse(document)
+  const validDocument = migrateMindDocument(document)
   const { data } = await apiClient.put<DocumentResponse>(documentUrl(projectId), { document: validDocument })
-  const savedDocument = mindDocumentSchema.parse(data.document)
+  const savedDocument = migrateMindDocument(data.document)
   await clearLocalDraftBestEffort(projectId, 'Unable to clear local draft after server save')
   return savedDocument
 }
 
 export async function saveLocalDraft(projectId: string, document: MindDocument): Promise<LocalDraft> {
   const draft = {
-    document: mindDocumentSchema.parse(document),
+    document: migrateMindDocument(document),
     savedAt: new Date().toISOString()
   }
   await draftsStore.setItem(projectId, draft)
@@ -87,7 +87,7 @@ function parseLocalDraft(value: unknown): LocalDraft | null {
 
   try {
     return {
-      document: mindDocumentSchema.parse(value.document),
+      document: migrateMindDocument(value.document),
       savedAt: value.savedAt
     }
   } catch {

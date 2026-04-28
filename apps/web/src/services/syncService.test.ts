@@ -1,5 +1,5 @@
-import type { MindDocument } from '@mind-x/shared'
 import { createEmptyDocument } from '@mind-x/mind-engine'
+import { DEFAULT_TOPIC_STYLE, type MindDocument, type MindDocumentV1 } from '@mind-x/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '@/api/client'
 
@@ -42,6 +42,21 @@ function document(overrides: Partial<MindDocument> = {}): MindDocument {
   }
 }
 
+function legacyDocument(): MindDocumentV1 {
+  return {
+    version: 1,
+    meta: {
+      projectId: 'project-1',
+      title: 'Legacy',
+      theme: 'dark',
+      updatedAt: '2026-04-26T00:00:00.000Z'
+    },
+    viewport: { x: 0, y: 0, zoom: 1 },
+    nodes: [{ id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } }],
+    edges: []
+  }
+}
+
 describe('syncService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -56,6 +71,16 @@ describe('syncService', () => {
 
     expect(localForageMock.createInstance).toHaveBeenCalledWith({ name: 'mind-x', storeName: 'pending_drafts' })
     expect(mockedApiClient.get).toHaveBeenCalledWith('/projects/project%2Fone/document')
+  })
+
+  it('migrates legacy server documents when loading', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({ data: { document: legacyDocument() } })
+    const { loadServerDocument } = await import('./syncService')
+
+    await expect(loadServerDocument('project/one')).resolves.toMatchObject({
+      version: 2,
+      nodes: [expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })]
+    })
   })
 
   it('saves the document to the server, validates the response, and clears a local draft', async () => {
@@ -100,6 +125,22 @@ describe('syncService', () => {
     expect(localForageMock.store.setItem).toHaveBeenCalledWith('project/one', {
       document: draftDocument,
       savedAt: expect.any(String)
+    })
+  })
+
+  it('migrates legacy local drafts when reading', async () => {
+    localForageMock.store.getItem.mockResolvedValueOnce({
+      document: legacyDocument(),
+      savedAt: '2026-04-26T00:00:00.000Z'
+    })
+    const { getLocalDraft } = await import('./syncService')
+
+    await expect(getLocalDraft('project-1')).resolves.toMatchObject({
+      document: {
+        version: 2,
+        nodes: [expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })]
+      },
+      savedAt: '2026-04-26T00:00:00.000Z'
     })
   })
 

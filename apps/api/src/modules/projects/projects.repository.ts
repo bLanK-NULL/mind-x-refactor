@@ -1,5 +1,5 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
-import { mindDocumentSchema, type MindDocument } from '@mind-x/shared'
+import { migrateMindDocument, type MindDocument } from '@mind-x/shared'
 import { pool } from '../../db/pool.js'
 
 export type ProjectSummaryRecord = {
@@ -150,7 +150,7 @@ function toProjectRecord(row: ProjectRow): ProjectRecord {
 function parseDocumentJson(value: MindDocument | string): MindDocument {
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value) : value
-    return mindDocumentSchema.parse(parsed)
+    return migrateMindDocument(parsed)
   } catch (error) {
     throw new StoredProjectDocumentError(error)
   }

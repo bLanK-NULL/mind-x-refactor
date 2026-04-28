@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Readable, Writable } from 'node:stream'
 import { createEmptyDocument } from '@mind-x/mind-engine'
-import type { MindDocument } from '@mind-x/shared'
+import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE, type MindDocument, type MindDocumentV1 } from '@mind-x/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../../app.js'
 import { signAuthToken } from '../auth/auth.service.js'
@@ -126,6 +126,24 @@ function duplicateEntryError(): Error & { code: string; errno: number } {
   return Object.assign(new Error('Duplicate entry'), { code: 'ER_DUP_ENTRY', errno: 1062 })
 }
 
+function legacyDocument(projectId: string): MindDocumentV1 {
+  return {
+    version: 1,
+    meta: {
+      projectId,
+      title: 'Legacy',
+      theme: 'vivid',
+      updatedAt: '2026-04-26T12:00:00.000Z'
+    },
+    viewport: { x: 4, y: 8, zoom: 1 },
+    nodes: [
+      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+      { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+    ],
+    edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'dashed-arrow' }]
+  }
+}
+
 function withDanglingEdge(document: MindDocument): MindDocument {
   return {
     ...document,
@@ -134,6 +152,7 @@ function withDanglingEdge(document: MindDocument): MindDocument {
         data: { title: 'Root' },
         id: 'root',
         position: { x: 0, y: 0 },
+        style: DEFAULT_TOPIC_STYLE,
         type: 'topic'
       }
     ],
@@ -142,7 +161,8 @@ function withDanglingEdge(document: MindDocument): MindDocument {
         id: 'root->missing',
         source: 'root',
         target: 'missing-node',
-        type: 'mind-parent'
+        type: 'mind-parent',
+        style: DEFAULT_EDGE_STYLE
       }
     ]
   }
@@ -459,6 +479,46 @@ describe('project routes', () => {
     })
   })
 
+  it('normalizes legacy v1 document saves and loads to v2', async () => {
+    installProjectStore()
+    const headers = authHeaders()
+    const createResponse = await requestApp('/api/projects', {
+      body: { name: 'Legacy' },
+      headers,
+      method: 'POST'
+    })
+    const projectId = (createResponse.body as { project: { id: string } }).project.id
+    const legacy = legacyDocument(projectId)
+
+    const saveResponse = await requestApp(`/api/projects/${projectId}/document`, {
+      body: { document: legacy },
+      headers,
+      method: 'PUT'
+    })
+
+    expect(saveResponse.status).toBe(200)
+    const saved = (saveResponse.body as { document: MindDocument }).document
+    expect(saved.version).toBe(2)
+    expect(saved.meta).toEqual({
+      projectId,
+      title: 'Legacy',
+      updatedAt: '2026-04-26T12:00:00.000Z'
+    })
+    expect(saved.nodes.map((node) => node.style)).toEqual([DEFAULT_TOPIC_STYLE, DEFAULT_TOPIC_STYLE])
+    expect(saved.edges[0]).toEqual({
+      id: 'root->child',
+      source: 'root',
+      target: 'child',
+      type: 'mind-parent',
+      style: DEFAULT_EDGE_STYLE
+    })
+
+    await expect(requestApp(`/api/projects/${projectId}/document`, { headers })).resolves.toEqual({
+      body: { document: saved },
+      status: 200
+    })
+  })
+
   it('returns JSON not found responses for unknown nested project routes', async () => {
     installProjectStore()
 
@@ -750,6 +810,33 @@ describe('projects repository', () => {
 
     await expect(findProject('user-1', 'project-1')).resolves.toMatchObject({ document })
     await expect(findProject('user-1', 'project-1')).resolves.toMatchObject({ document })
+  })
+
+  it('migrates v1 JSON columns to v2 records', async () => {
+    const legacy = legacyDocument('project-1')
+    mockPool.execute.mockResolvedValueOnce([
+      [
+        {
+          created_at: new Date('2026-04-26T12:00:00.000Z'),
+          document_json: JSON.stringify(legacy),
+          id: 'project-1',
+          name: 'Legacy',
+          updated_at: new Date('2026-04-26T12:05:00.000Z'),
+          user_id: 'user-1'
+        }
+      ]
+    ])
+
+    await expect(findProject('user-1', 'project-1')).resolves.toMatchObject({
+      document: {
+        version: 2,
+        nodes: [
+          expect.objectContaining({ style: DEFAULT_TOPIC_STYLE }),
+          expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })
+        ],
+        edges: [expect.objectContaining({ style: DEFAULT_EDGE_STYLE })]
+      }
+    })
   })
 
   it('rejects invalid stored documents with a storage-specific error', async () => {
