@@ -7,6 +7,7 @@ import EdgeRenderer from './EdgeRenderer.vue'
 import EditorContextMenu from './EditorContextMenu.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import InspectorPanel from './InspectorPanel.vue'
+import { readStoredInspectorPosition, writeStoredInspectorPosition } from './inspectorPosition'
 import { isTextEditingTarget } from './keyboardTargets'
 import NodeInspector from './NodeInspector.vue'
 import NodeRenderer from './NodeRenderer.vue'
@@ -31,6 +32,7 @@ const contextMenu = reactive({
   x: 0,
   y: 0
 })
+const inspectorPosition = ref<Point>(readStoredInspectorPosition())
 
 const documentState = computed(() => editor.document)
 const hasDocument = computed(() => documentState.value !== null)
@@ -130,6 +132,11 @@ function clearSelectionFromCanvas(event: PointerEvent): void {
   editor.clearSelection()
 }
 
+function setInspectorPosition(position: Point): void {
+  inspectorPosition.value = position
+  writeStoredInspectorPosition(position)
+}
+
 function setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
   editor.setSelectedNodeStyle(stylePatch)
 }
@@ -227,11 +234,23 @@ onUnmounted(() => {
       />
     </ViewportPane>
 
-    <InspectorPanel v-if="selectedNode" title="Node" @close="editor.clearSelection">
+    <InspectorPanel
+      v-if="selectedNode"
+      :position="inspectorPosition"
+      title="Node"
+      @close="editor.clearSelection"
+      @position-change="setInspectorPosition"
+    >
       <NodeInspector :style="selectedNode.style" @style-change="setSelectedNodeStyle" />
     </InspectorPanel>
 
-    <InspectorPanel v-if="selectedEdge" title="Edge" @close="editor.clearSelection">
+    <InspectorPanel
+      v-if="selectedEdge"
+      :position="inspectorPosition"
+      title="Edge"
+      @close="editor.clearSelection"
+      @position-change="setInspectorPosition"
+    >
       <EdgeInspector
         :style="selectedEdge.style"
         @delete="deleteSelectedEdgeFromInspector"
