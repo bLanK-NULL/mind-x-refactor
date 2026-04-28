@@ -94,22 +94,15 @@ describe('syncService', () => {
     expect(localForageMock.store.removeItem).toHaveBeenCalledWith('project/one')
   })
 
-  it('migrates legacy documents before saving to the server', async () => {
+  it('sends save requests without migrating legacy-shaped runtime input', async () => {
     const legacy = legacyDocument('project/one')
-    mockedApiClient.put.mockResolvedValueOnce({ data: { document: legacy } })
+    const savedDocument = document({ meta: { ...document().meta, title: 'Saved' } })
+    mockedApiClient.put.mockResolvedValueOnce({ data: { document: savedDocument } })
     const { saveServerDocument } = await import('./syncService')
 
-    const saved = await saveServerDocument('project/one', legacy as any)
-    const payload = mockedApiClient.put.mock.calls[0]?.[1] as { document: MindDocument }
+    await expect(saveServerDocument('project/one', legacy as any)).resolves.toEqual(savedDocument)
 
-    expect(payload.document.version).toBe(2)
-    expect(payload.document.nodes).toEqual([expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })])
-    expect(payload.document.meta).not.toHaveProperty('theme')
-    expect(saved).toMatchObject({
-      version: 2,
-      nodes: [expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })]
-    })
-    expect(saved.meta).not.toHaveProperty('theme')
+    expect(mockedApiClient.put).toHaveBeenCalledWith('/projects/project%2Fone/document', { document: legacy })
   })
 
   it('returns the saved server document when post-save draft cleanup fails', async () => {
@@ -146,21 +139,17 @@ describe('syncService', () => {
     })
   })
 
-  it('migrates legacy documents before saving local drafts', async () => {
+  it('stores local drafts without migrating legacy-shaped runtime input', async () => {
     const legacy = legacyDocument('project/one')
     const { saveLocalDraft } = await import('./syncService')
 
     const draft = await saveLocalDraft('project/one', legacy as any)
-    const storedDraft = localForageMock.store.setItem.mock.calls[0]?.[1] as { document: MindDocument }
 
-    expect(storedDraft.document.version).toBe(2)
-    expect(storedDraft.document.nodes).toEqual([expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })])
-    expect(storedDraft.document.meta).not.toHaveProperty('theme')
-    expect(draft.document).toMatchObject({
-      version: 2,
-      nodes: [expect.objectContaining({ style: DEFAULT_TOPIC_STYLE })]
+    expect(localForageMock.store.setItem).toHaveBeenCalledWith('project/one', {
+      document: legacy,
+      savedAt: expect.any(String)
     })
-    expect(draft.document.meta).not.toHaveProperty('theme')
+    expect(draft.document).toBe(legacy)
   })
 
   it('migrates legacy local drafts when reading', async () => {

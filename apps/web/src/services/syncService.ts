@@ -22,8 +22,7 @@ export async function loadServerDocument(projectId: string): Promise<MindDocumen
 }
 
 export async function saveServerDocument(projectId: string, document: MindDocument): Promise<MindDocument> {
-  const validDocument = migrateMindDocument(document)
-  const { data } = await apiClient.put<DocumentResponse>(documentUrl(projectId), { document: validDocument })
+  const { data } = await apiClient.put<DocumentResponse>(documentUrl(projectId), { document })
   const savedDocument = migrateMindDocument(data.document)
   await clearLocalDraftBestEffort(projectId, 'Unable to clear local draft after server save')
   return savedDocument
@@ -31,7 +30,7 @@ export async function saveServerDocument(projectId: string, document: MindDocume
 
 export async function saveLocalDraft(projectId: string, document: MindDocument): Promise<LocalDraft> {
   const draft = {
-    document: migrateMindDocument(document),
+    document,
     savedAt: new Date().toISOString()
   }
   await draftsStore.setItem(projectId, draft)
