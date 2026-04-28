@@ -1,16 +1,104 @@
+import { applyPatches } from 'immer'
 import { describe, expect, it } from 'vitest'
 import { createEmptyDocument } from './documentFactory.js'
 import {
   addChildNode,
+  addChildNodeCommand,
+  addRootNode,
+  addRootNodeCommand,
   deleteEdgeDetachChild,
   deleteNodePromoteChildren,
+  deleteNodePromoteChildrenCommand,
+  deleteNodesPromoteChildrenCommand,
   editNodeTitle,
+  editNodeTitleCommand,
+  executeCommand,
   moveNodes,
-  setEdgeComponent
+  moveNodesCommand,
+  setDocumentThemeCommand,
+  setEdgeComponent,
+  setEdgeComponentCommand
 } from './commands.js'
 import { getParentId } from './graph.js'
 
 describe('commands', () => {
+  it('executes command recipes with forward and inverse patches', () => {
+    const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
+
+    const result = executeCommand(doc, addRootNodeCommand, {
+      id: 'root',
+      title: 'Root'
+    })
+
+    expect(result.document.nodes.map((node) => node.id)).toEqual(['root'])
+    expect(result.patches.length).toBeGreaterThan(0)
+    expect(result.inversePatches.length).toBeGreaterThan(0)
+    expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
+    expect(applyPatches(doc, result.patches)).toEqual(result.document)
+  })
+
+  it('keeps compatibility command wrappers returning documents', () => {
+    const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
+
+    const withRoot = addRootNode(doc, { id: 'root', title: 'Root' })
+    const result = addChildNode(withRoot, {
+      parentId: 'root',
+      id: 'child',
+      title: 'Child'
+    })
+
+    expect(result.nodes.map((node) => node.id)).toEqual(['root', 'child'])
+    expect(getParentId(result, 'child')).toBe('root')
+  })
+
+  it('generates inverse patches for title, movement, edge, theme, and delete commands', () => {
+    const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
+    doc.nodes.push(
+      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+      { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+    )
+    doc.edges.push({ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent' })
+
+    const edited = executeCommand(doc, editNodeTitleCommand, { nodeId: 'root', title: 'Edited Root' })
+    const moved = executeCommand(edited.document, moveNodesCommand, {
+      nodeIds: ['root', 'child'],
+      delta: { x: 5, y: -2 }
+    })
+    const styled = executeCommand(moved.document, setEdgeComponentCommand, {
+      edgeId: 'root->child',
+      component: 'dashed-arrow'
+    })
+    const themed = executeCommand(styled.document, setDocumentThemeCommand, { theme: 'dark' })
+    const deleted = executeCommand(themed.document, deleteNodePromoteChildrenCommand, { nodeId: 'root' })
+
+    let reverted = applyPatches(deleted.document, deleted.inversePatches)
+    reverted = applyPatches(reverted, themed.inversePatches)
+    reverted = applyPatches(reverted, styled.inversePatches)
+    reverted = applyPatches(reverted, moved.inversePatches)
+    reverted = applyPatches(reverted, edited.inversePatches)
+
+    expect(reverted).toEqual(doc)
+  })
+
+  it('deletes multiple selected nodes as one command result', () => {
+    const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
+    doc.nodes.push(
+      { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
+      { id: 'left', type: 'topic', position: { x: 240, y: -72 }, data: { title: 'Left' } },
+      { id: 'right', type: 'topic', position: { x: 240, y: 72 }, data: { title: 'Right' } }
+    )
+    doc.edges.push(
+      { id: 'root->left', source: 'root', target: 'left', type: 'mind-parent' },
+      { id: 'root->right', source: 'root', target: 'right', type: 'mind-parent' }
+    )
+
+    const result = executeCommand(doc, deleteNodesPromoteChildrenCommand, { nodeIds: ['left', 'right'] })
+
+    expect(result.document.nodes.map((node) => node.id)).toEqual(['root'])
+    expect(result.document.edges).toEqual([])
+    expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
+  })
+
   it('adds a child node to the right of its parent', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push({ id: 'root', type: 'topic', position: { x: 10, y: 20 }, size: { width: 160, height: 48 }, data: { title: 'Root' } })
