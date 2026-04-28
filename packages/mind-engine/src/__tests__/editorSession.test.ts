@@ -172,16 +172,16 @@ describe('editor session', () => {
     expect(session.getState().selectedEdgeId).toBeNull()
   })
 
-  it('skips selected node style no-ops without dropping redo history', () => {
+  it('skips selected node shell style no-ops without dropping redo history', () => {
     const session = createEditorSession()
     session.load(documentWithRoot())
     session.selectOnly('root')
 
-    session.setSelectedNodeStyle({ colorToken: 'purple' })
+    session.setSelectedNodeShellStyle({ colorToken: 'purple' })
     session.undo()
     expect(session.getState().canRedo).toBe(true)
 
-    session.setSelectedNodeStyle({ colorToken: DEFAULT_NODE_SHELL_STYLE.colorToken })
+    session.setSelectedNodeShellStyle({ colorToken: DEFAULT_NODE_SHELL_STYLE.colorToken })
 
     expect(session.getState().document?.nodes[0].shellStyle).toEqual(DEFAULT_NODE_SHELL_STYLE)
     expect(session.getState().dirty).toBe(false)

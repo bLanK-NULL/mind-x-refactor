@@ -4,21 +4,21 @@ import {
   createEdgePath,
   getEdgeMarkerEnd,
   resolveEdgeStyle,
+  resolveNodeShellClass,
+  resolveNodeShellStyle,
   resolveTopicContentClass,
-  resolveTopicNodeClass,
-  resolveTopicNodeStyle
 } from '@/features/editor/utils/objectStyles'
 
 describe('object style resolvers', () => {
   it('resolves default topic style to CSS variables and classes', () => {
-    expect(resolveTopicNodeClass(DEFAULT_NODE_SHELL_STYLE)).toEqual([
+    expect(resolveNodeShellClass(DEFAULT_NODE_SHELL_STYLE)).toEqual([
       'topic-node--tone-soft',
       'topic-node--shape-rounded',
       'topic-node--border-solid',
       'topic-node--shadow-sm'
     ])
     expect(resolveTopicContentClass(DEFAULT_TOPIC_CONTENT_STYLE)).toEqual(['topic-node--weight-medium'])
-    expect(resolveTopicNodeStyle(DEFAULT_NODE_SHELL_STYLE)).toMatchObject({
+    expect(resolveNodeShellStyle(DEFAULT_NODE_SHELL_STYLE)).toMatchObject({
       '--object-border': '#cbd5e1',
       '--object-fill': '#ffffff',
       '--object-text': '#111827'
@@ -26,7 +26,7 @@ describe('object style resolvers', () => {
   })
 
   it('resolves solid purple topic styles', () => {
-    expect(resolveTopicNodeStyle({ ...DEFAULT_NODE_SHELL_STYLE, colorToken: 'purple', tone: 'solid' })).toMatchObject({
+    expect(resolveNodeShellStyle({ ...DEFAULT_NODE_SHELL_STYLE, colorToken: 'purple', tone: 'solid' })).toMatchObject({
       '--object-border': '#7c3aed',
       '--object-fill': '#7c3aed',
       '--object-text': '#ffffff'

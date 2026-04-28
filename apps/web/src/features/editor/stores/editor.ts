@@ -1,4 +1,4 @@
-import type { EdgeStyle, MindDocument, NodeShellStyle, Point, TopicNodeStyle, Viewport } from '@mind-x/shared'
+import type { EdgeStyle, MindDocument, NodeShellStyle, Point, Viewport } from '@mind-x/shared'
 import {
   createEditorSession,
   type AddChildMindNodeSessionInput,
@@ -157,11 +157,6 @@ export const useEditorStore = defineStore('editor', () => {
     syncFromSession()
   }
 
-  function setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
-    session.setSelectedNodeStyle(stylePatch)
-    syncFromSession()
-  }
-
   function setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void {
     session.setSelectedNodeShellStyle(stylePatch)
     syncFromSession()
@@ -230,7 +225,6 @@ export const useEditorStore = defineStore('editor', () => {
     setSelectedEdgeStyle,
     setSelectedNodeContentStyle,
     setSelectedNodeShellStyle,
-    setSelectedNodeStyle,
     setSelection,
     setViewport,
     undo,

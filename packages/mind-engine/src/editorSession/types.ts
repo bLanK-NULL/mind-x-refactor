@@ -4,7 +4,6 @@ import type {
   MindNodeType,
   NodeShellStyle,
   Point,
-  TopicNodeStyle,
   Viewport
 } from '@mind-x/shared'
 
@@ -49,7 +48,6 @@ export type EditorSession = {
   setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void
   setSelectedNodeContentStyle(stylePatch: Record<string, unknown>): void
   setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void
-  setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void
   setSelection(nodeIds: string[]): void
   setViewport(viewport: Viewport): void
   undo(): void

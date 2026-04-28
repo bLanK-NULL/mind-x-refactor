@@ -75,9 +75,6 @@ export function resolveTopicContentClass(style: TopicContentStyle): string[] {
   return [`topic-node--weight-${style.textWeight}`]
 }
 
-export const resolveTopicNodeClass = resolveNodeShellClass
-export const resolveTopicNodeStyle = resolveNodeShellStyle
-
 export function resolveEdgeStyle(style: EdgeStyle): { classNames: string[]; style: CssVariableStyle } {
   return {
     classNames: ['edge-renderer__path', `edge-renderer__path--routing-${style.routing}`],

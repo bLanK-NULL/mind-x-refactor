@@ -14,8 +14,7 @@ import {
   type EdgeStyle,
   type NodeShellStyle,
   type Point,
-  type Size,
-  type TopicNodeStyle
+  type Size
 } from '@mind-x/shared'
 import { createEmptyDocument } from '../documentFactory.js'
 import {
@@ -35,7 +34,7 @@ import {
   resizeNodesCommand,
   setEdgeStyleCommand,
   setNodeContentStyleCommand,
-  setNodeStyleCommand,
+  setNodeShellStyleCommand,
   updateNodeDataCommand
 } from '../commands.js'
 import { getParentId } from '../graph.js'
@@ -188,42 +187,31 @@ describe('commands', () => {
     expect(applyPatches(styled.document, styled.inversePatches)).toEqual(edited.document)
   })
 
-  it('updates node style as an undoable patch command', () => {
+  it('updates node shell style as an undoable patch command', () => {
     const doc = addRootNode(createEmptyDocument({ projectId: 'project-1', title: 'Project One', now: '2026-04-26T00:00:00.000Z' }), {
       id: 'root',
       title: 'Root'
     })
     const stylePatch: Partial<NodeShellStyle> = { colorToken: 'purple', shape: 'pill' }
 
-    const result = executeCommand(doc, setNodeStyleCommand, { nodeId: 'root', stylePatch })
+    const result = executeCommand(doc, setNodeShellStyleCommand, { nodeId: 'root', stylePatch })
 
     expect(result.document.nodes[0].shellStyle).toEqual({ ...DEFAULT_NODE_SHELL_STYLE, ...stylePatch })
     expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
   })
 
-  it('maps legacy text weight style patches to topic content style', () => {
+  it('updates topic content style as an undoable patch command', () => {
     const doc = addRootNode(createEmptyDocument({ projectId: 'project-1', title: 'Project One', now: '2026-04-26T00:00:00.000Z' }), {
       id: 'root',
       title: 'Root'
     })
-    const stylePatch: Partial<TopicNodeStyle> = { textWeight: 'bold' }
 
-    const result = executeCommand(doc, setNodeStyleCommand, { nodeId: 'root', stylePatch })
+    const result = executeCommand(doc, setNodeContentStyleCommand, {
+      nodeId: 'root',
+      stylePatch: { textWeight: 'bold' }
+    })
 
     expect(result.document.nodes[0].contentStyle).toEqual({ ...DEFAULT_TOPIC_CONTENT_STYLE, textWeight: 'bold' })
-    expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
-  })
-
-  it('maps legacy size style patches to explicit topic size', () => {
-    const doc = addRootNode(createEmptyDocument({ projectId: 'project-1', title: 'Project One', now: '2026-04-26T00:00:00.000Z' }), {
-      id: 'root',
-      title: 'Root'
-    })
-    const stylePatch: Partial<TopicNodeStyle> = { size: 'lg' }
-
-    const result = executeCommand(doc, setNodeStyleCommand, { nodeId: 'root', stylePatch })
-
-    expect(result.document.nodes[0].size).toEqual({ width: 220, height: 72 })
     expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
   })
 
@@ -265,7 +253,7 @@ describe('commands', () => {
       title: 'Project One'
     })
 
-    expect(() => executeCommand(doc, setNodeStyleCommand, { nodeId: 'missing', stylePatch: { colorToken: 'danger' } })).toThrow(
+    expect(() => executeCommand(doc, setNodeShellStyleCommand, { nodeId: 'missing', stylePatch: { colorToken: 'danger' } })).toThrow(
       'Node missing does not exist'
     )
     expect(() => executeCommand(doc, setEdgeStyleCommand, { edgeId: 'missing', stylePatch: { colorToken: 'danger' } })).toThrow(
@@ -284,7 +272,7 @@ describe('commands', () => {
     const original = structuredClone(doc)
 
     expect(() =>
-      executeCommand(doc, setNodeStyleCommand, {
+      executeCommand(doc, setNodeShellStyleCommand, {
         nodeId: 'root',
         stylePatch: { colorToken: 'purple', rogue: 'x' } as any
       })

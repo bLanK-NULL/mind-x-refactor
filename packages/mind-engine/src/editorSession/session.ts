@@ -3,7 +3,6 @@ import {
   type MindDocument,
   type NodeShellStyle,
   type Point,
-  type TopicNodeStyle,
   type Viewport
 } from '@mind-x/shared'
 import { produce } from 'immer'
@@ -21,7 +20,6 @@ import {
   setNodeContentStyleCommand,
   setNodeShellStyleCommand,
   setEdgeStyleCommand,
-  setNodeStyleCommand,
   updateNodeDataCommand,
   type CommandResult
 } from '../commands.js'
@@ -401,33 +399,6 @@ export function createEditorSession(): EditorSession {
       commitCommandResult(
         executeCommand(cloneDocument(state.document), setEdgeStyleCommand, {
           edgeId,
-          stylePatch
-        })
-      )
-    },
-    setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>) {
-      if (!state.document || state.selectedNodeIds.length !== 1) {
-        return
-      }
-
-      const nodeId = state.selectedNodeIds[0]
-      const selectedNode = state.document.nodes.find((node) => node.id === nodeId)
-      if (!selectedNode) {
-        setState((draft) => {
-          draft.selectedNodeIds = []
-          draft.revision += 1
-        })
-        return
-      }
-
-      if (isStylePatchNoop({ ...selectedNode.shellStyle, ...selectedNode.contentStyle }, stylePatch)) {
-        return
-      }
-
-      finalizePendingPreview()
-      commitCommandResult(
-        executeCommand(cloneDocument(state.document), setNodeStyleCommand, {
-          nodeId,
           stylePatch
         })
       )
