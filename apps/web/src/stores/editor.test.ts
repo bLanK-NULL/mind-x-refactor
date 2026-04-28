@@ -1,4 +1,10 @@
-import type { MindDocument } from '@mind-x/shared'
+import {
+  DEFAULT_EDGE_STYLE,
+  DEFAULT_TOPIC_STYLE,
+  type EdgeStyle,
+  type MindDocument,
+  type TopicNodeStyle
+} from '@mind-x/shared'
 import { createEmptyDocument } from '@mind-x/mind-engine'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -28,7 +34,9 @@ describe('editor store', () => {
 
   it('loads a document cleanly with empty selection and initialized history', () => {
     const document = emptyDocument({
-      nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+      nodes: [
+        { id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE }
+      ]
     })
     const store = loadedStore(document)
 
@@ -52,7 +60,7 @@ describe('editor store', () => {
       { id: 'child', title: 'Child topic' }
     ])
     expect(store.document?.edges).toEqual([
-      { id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'plain' }
+      { id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }
     ])
     expect(store.selectedNodeIds).toEqual(['child'])
     expect(store.dirty).toBe(true)
@@ -63,10 +71,16 @@ describe('editor store', () => {
     const store = loadedStore(
       emptyDocument({
         nodes: [
-          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
-          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
+          {
+            id: 'child',
+            type: 'topic',
+            position: { x: 240, y: 0 },
+            data: { title: 'Child' },
+            style: DEFAULT_TOPIC_STYLE
+          }
         ],
-        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'plain' }]
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }]
       })
     )
 
@@ -87,63 +101,163 @@ describe('editor store', () => {
     expect(store.selectedNodeIds).toEqual(['root', 'child'])
   })
 
-  it('updates a selected edge component as an undoable dirty change', () => {
+  it('updates selected node style as an undoable dirty change', () => {
     const store = loadedStore(
       emptyDocument({
         nodes: [
-          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
-          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
-        ],
-        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'plain' }]
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE }
+        ]
       })
     )
 
-    store.selectEdge('root->child')
-    store.setSelectedEdgeComponent('dashed-arrow')
+    const stylePatch: Partial<TopicNodeStyle> = { colorToken: 'purple', shape: 'pill', textWeight: 'bold' }
+    store.selectOnly('root')
+    store.setSelectedNodeStyle(stylePatch)
 
-    expect(store.document?.edges[0].component).toBe('dashed-arrow')
-    expect(store.selectedEdgeId).toBe('root->child')
+    expect(store.document?.nodes[0].style).toEqual({
+      ...DEFAULT_TOPIC_STYLE,
+      colorToken: 'purple',
+      shape: 'pill',
+      textWeight: 'bold'
+    })
     expect(store.dirty).toBe(true)
     expect(store.canUndo).toBe(true)
 
     store.undo()
 
-    expect(store.document?.edges[0].component).toBe('plain')
-    expect(store.selectedEdgeId).toBe('root->child')
+    expect(store.document?.nodes[0].style).toEqual(DEFAULT_TOPIC_STYLE)
     expect(store.dirty).toBe(false)
   })
 
-  it('ignores selected edge component updates when the effective component is unchanged', () => {
+  it('ignores unchanged selected node style without dropping redo history', () => {
     const store = loadedStore(
       emptyDocument({
         nodes: [
-          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
-          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE }
+        ]
+      })
+    )
+
+    store.selectOnly('root')
+    store.setSelectedNodeStyle({ colorToken: DEFAULT_TOPIC_STYLE.colorToken, shape: DEFAULT_TOPIC_STYLE.shape })
+
+    expect(store.document?.nodes[0].style).toEqual(DEFAULT_TOPIC_STYLE)
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
+
+    store.setSelectedNodeStyle({ colorToken: 'purple' })
+    store.undo()
+    expect(store.canRedo).toBe(true)
+
+    store.setSelectedNodeStyle({ colorToken: DEFAULT_TOPIC_STYLE.colorToken })
+
+    expect(store.document?.nodes[0].style).toEqual(DEFAULT_TOPIC_STYLE)
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
+    expect(store.canRedo).toBe(true)
+
+    store.redo()
+    expect(store.document?.nodes[0].style.colorToken).toBe('purple')
+  })
+
+  it('updates selected edge style as an undoable dirty change', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
+          {
+            id: 'child',
+            type: 'topic',
+            position: { x: 240, y: 0 },
+            data: { title: 'Child' },
+            style: DEFAULT_TOPIC_STYLE
+          }
         ],
-        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'plain' }]
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }]
+      })
+    )
+
+    const stylePatch: Partial<EdgeStyle> = {
+      arrow: 'end',
+      colorToken: 'warning',
+      linePattern: 'dotted',
+      width: 'thick'
+    }
+    store.selectEdge('root->child')
+    store.setSelectedEdgeStyle(stylePatch)
+
+    expect(store.document?.edges[0].style).toEqual({
+      ...DEFAULT_EDGE_STYLE,
+      arrow: 'end',
+      colorToken: 'warning',
+      linePattern: 'dotted',
+      width: 'thick'
+    })
+    expect(store.dirty).toBe(true)
+    expect(store.canUndo).toBe(true)
+
+    store.undo()
+
+    expect(store.document?.edges[0].style).toEqual(DEFAULT_EDGE_STYLE)
+    expect(store.dirty).toBe(false)
+  })
+
+  it('ignores unchanged selected edge style without dropping redo history', () => {
+    const store = loadedStore(
+      emptyDocument({
+        nodes: [
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
+          {
+            id: 'child',
+            type: 'topic',
+            position: { x: 240, y: 0 },
+            data: { title: 'Child' },
+            style: DEFAULT_TOPIC_STYLE
+          }
+        ],
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }]
       })
     )
 
     store.selectEdge('root->child')
-    store.setSelectedEdgeComponent('plain')
+    store.setSelectedEdgeStyle({ colorToken: DEFAULT_EDGE_STYLE.colorToken, width: DEFAULT_EDGE_STYLE.width })
 
-    expect(store.document?.edges[0].component).toBe('plain')
-    expect(store.selectedEdgeId).toBe('root->child')
+    expect(store.document?.edges[0].style).toEqual(DEFAULT_EDGE_STYLE)
     expect(store.dirty).toBe(false)
     expect(store.canUndo).toBe(false)
+
+    store.setSelectedEdgeStyle({ colorToken: 'warning' })
+    store.undo()
+    expect(store.canRedo).toBe(true)
+
+    store.setSelectedEdgeStyle({ colorToken: DEFAULT_EDGE_STYLE.colorToken })
+
+    expect(store.document?.edges[0].style).toEqual(DEFAULT_EDGE_STYLE)
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
+    expect(store.canRedo).toBe(true)
+
+    store.redo()
+    expect(store.document?.edges[0].style.colorToken).toBe('warning')
   })
 
   it('deletes a selected edge and leaves the child node as a root', () => {
     const store = loadedStore(
       emptyDocument({
         nodes: [
-          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
-          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } },
-          { id: 'leaf', type: 'topic', position: { x: 480, y: 0 }, data: { title: 'Leaf' } }
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
+          {
+            id: 'child',
+            type: 'topic',
+            position: { x: 240, y: 0 },
+            data: { title: 'Child' },
+            style: DEFAULT_TOPIC_STYLE
+          },
+          { id: 'leaf', type: 'topic', position: { x: 480, y: 0 }, data: { title: 'Leaf' }, style: DEFAULT_TOPIC_STYLE }
         ],
         edges: [
-          { id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'arrow' },
-          { id: 'child->leaf', source: 'child', target: 'leaf', type: 'mind-parent', component: 'dashed' }
+          { id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },
+          { id: 'child->leaf', source: 'child', target: 'leaf', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }
         ]
       })
     )
@@ -152,7 +266,7 @@ describe('editor store', () => {
     store.deleteSelected()
 
     expect(store.document?.edges).toEqual([
-      { id: 'child->leaf', source: 'child', target: 'leaf', type: 'mind-parent', component: 'dashed' }
+      { id: 'child->leaf', source: 'child', target: 'leaf', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }
     ])
     expect(store.selectedEdgeId).toBeNull()
     expect(store.selectedNodeIds).toEqual([])
@@ -167,10 +281,16 @@ describe('editor store', () => {
     const store = loadedStore(
       emptyDocument({
         nodes: [
-          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
-          { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+          { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
+          {
+            id: 'child',
+            type: 'topic',
+            position: { x: 240, y: 0 },
+            data: { title: 'Child' },
+            style: DEFAULT_TOPIC_STYLE
+          }
         ],
-        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'arrow' }]
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }]
       })
     )
 
@@ -181,14 +301,26 @@ describe('editor store', () => {
 
     const documentWithEdge = emptyDocument({
       nodes: [
-        { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } },
-        { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' } }
+        { id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE },
+        { id: 'child', type: 'topic', position: { x: 240, y: 0 }, data: { title: 'Child' }, style: DEFAULT_TOPIC_STYLE }
       ],
-      edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', component: 'arrow' }]
+      edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }]
     })
     store.load(documentWithEdge)
     store.selectEdge('root->child')
-    store.commit(emptyDocument({ nodes: [{ id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } }] }))
+    store.commit(
+      emptyDocument({
+        nodes: [
+          {
+            id: 'root',
+            type: 'topic',
+            position: { x: 0, y: 0 },
+            data: { title: 'Root' },
+            style: DEFAULT_TOPIC_STYLE
+          }
+        ]
+      })
+    )
 
     expect(store.selectedEdgeId).toBeNull()
   })
@@ -202,6 +334,7 @@ describe('editor store', () => {
             id: 'node-1',
             position: { x: 0, y: 0 },
             size: { height: 56, width: 180 },
+            style: DEFAULT_TOPIC_STYLE,
             type: 'topic'
           },
           {
@@ -209,10 +342,11 @@ describe('editor store', () => {
             id: 'node-2',
             position: { x: 260, y: 0 },
             size: { height: 56, width: 180 },
+            style: DEFAULT_TOPIC_STYLE,
             type: 'topic'
           }
         ],
-        edges: [{ id: 'node-1->node-2', source: 'node-1', target: 'node-2', type: 'mind-parent' }]
+        edges: [{ id: 'node-1->node-2', source: 'node-1', target: 'node-2', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }]
       })
     )
     store.selectOnly('node-1')
@@ -264,7 +398,9 @@ describe('editor store', () => {
 
   it('previews repeated drag moves as one undoable history entry when the interaction ends', () => {
     const document = emptyDocument({
-      nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+      nodes: [
+        { id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE }
+      ]
     })
     const store = loadedStore(document)
     store.selectOnly('root')
@@ -319,7 +455,9 @@ describe('editor store', () => {
 
   it('keeps a freshly loaded clean document unchanged when undo and redo are unavailable', () => {
     const document = emptyDocument({
-      nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+      nodes: [
+        { id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE }
+      ]
     })
     const store = loadedStore(document)
     store.selectOnly('root')
@@ -338,7 +476,9 @@ describe('editor store', () => {
 
   it('tracks dirty state against the loaded document and explicit clean marks', () => {
     const document = emptyDocument({
-      nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+      nodes: [
+        { id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' }, style: DEFAULT_TOPIC_STYLE }
+      ]
     })
     const store = loadedStore(document)
 
@@ -364,56 +504,27 @@ describe('editor store', () => {
     expect(store.dirty).toBe(true)
   })
 
-  it('updates document theme as a non-undoable dirty document change', () => {
-    const store = loadedStore(
-      emptyDocument({
-        nodes: [{ id: 'root', type: 'topic', position: { x: 0, y: 0 }, data: { title: 'Root' } }]
-      })
-    )
-
-    store.editNodeTitle('root', 'Renamed')
-    store.setDocumentTheme('dark')
-
-    expect(store.document?.meta.theme).toBe('dark')
-    expect(store.document?.nodes[0].data.title).toBe('Renamed')
-    expect(store.dirty).toBe(true)
-    expect(store.canUndo).toBe(true)
-
-    store.undo()
-
-    expect(store.document?.meta.theme).toBe('dark')
-    expect(store.document?.nodes[0].data.title).toBe('Root')
-    expect(store.dirty).toBe(true)
-    expect(store.canRedo).toBe(true)
-
-    store.redo()
-
-    expect(store.document?.meta.theme).toBe('dark')
-    expect(store.document?.nodes[0].data.title).toBe('Renamed')
-    expect(store.dirty).toBe(true)
-  })
-
-  it('updates document theme to a color theme for persistence', () => {
+  it('ignores style updates when no matching selection exists', () => {
     const store = loadedStore()
 
-    store.setDocumentTheme('vivid')
-
-    expect(store.document?.meta.theme).toBe('vivid')
-    expect(store.dirty).toBe(true)
-  })
-
-  it('ignores document theme updates before a document is loaded', () => {
-    const store = useEditorStore()
-
-    expect(() => store.setDocumentTheme('dark')).not.toThrow()
-    expect(store.document).toBeNull()
+    expect(() => store.setSelectedNodeStyle({ colorToken: 'danger' })).not.toThrow()
+    expect(() => store.setSelectedEdgeStyle({ colorToken: 'danger' })).not.toThrow()
     expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
   })
 
   it('compares the current document against a serialized save snapshot', () => {
     const store = loadedStore(
       emptyDocument({
-        nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+        nodes: [
+          {
+            id: 'root',
+            type: 'topic',
+            position: { x: 10, y: 20 },
+            data: { title: 'Root' },
+            style: DEFAULT_TOPIC_STYLE
+          }
+        ]
       })
     )
     const saveSnapshot = serializeMindDocument(store.document)
@@ -430,7 +541,15 @@ describe('editor store', () => {
   it('updates the document title from an external project rename while preserving dirty semantics', () => {
     const store = loadedStore(
       emptyDocument({
-        nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+        nodes: [
+          {
+            id: 'root',
+            type: 'topic',
+            position: { x: 10, y: 20 },
+            data: { title: 'Root' },
+            style: DEFAULT_TOPIC_STYLE
+          }
+        ]
       })
     )
 
@@ -450,7 +569,15 @@ describe('editor store', () => {
   it('keeps external project renames through undo and redo on a dirty document', () => {
     const store = loadedStore(
       emptyDocument({
-        nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+        nodes: [
+          {
+            id: 'root',
+            type: 'topic',
+            position: { x: 10, y: 20 },
+            data: { title: 'Root' },
+            style: DEFAULT_TOPIC_STYLE
+          }
+        ]
       })
     )
     store.editNodeTitle('root', 'Unsaved root')
@@ -472,7 +599,15 @@ describe('editor store', () => {
   it('keeps external project renames through redo history after undo', () => {
     const store = loadedStore(
       emptyDocument({
-        nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+        nodes: [
+          {
+            id: 'root',
+            type: 'topic',
+            position: { x: 10, y: 20 },
+            data: { title: 'Root' },
+            style: DEFAULT_TOPIC_STYLE
+          }
+        ]
       })
     )
     store.editNodeTitle('root', 'First edit')
@@ -548,7 +683,15 @@ describe('editor store', () => {
   it('keeps the current viewport when undoing and redoing content changes', () => {
     const store = loadedStore(
       emptyDocument({
-        nodes: [{ id: 'root', type: 'topic', position: { x: 10, y: 20 }, data: { title: 'Root' } }]
+        nodes: [
+          {
+            id: 'root',
+            type: 'topic',
+            position: { x: 10, y: 20 },
+            data: { title: 'Root' },
+            style: DEFAULT_TOPIC_STYLE
+          }
+        ]
       })
     )
     store.editNodeTitle('root', 'Renamed root')

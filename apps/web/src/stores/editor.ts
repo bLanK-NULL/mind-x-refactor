@@ -1,10 +1,9 @@
 import {
-  DEFAULT_EDGE_COMPONENT,
   mindDocumentSchema,
+  type EdgeStyle,
   type MindDocument,
-  type MindEdgeComponent,
   type Point,
-  type ThemeName,
+  type TopicNodeStyle,
   type Viewport
 } from '@mind-x/shared'
 import {
@@ -18,7 +17,8 @@ import {
   moveNodes,
   moveNodesCommand,
   replaceWithPatchResult,
-  setEdgeComponentCommand,
+  setEdgeStyleCommand,
+  setNodeStyleCommand,
   type CommandResult,
   type History
 } from '@mind-x/mind-engine'
@@ -79,15 +79,50 @@ function preserveUntrackedDocumentState(
   document: MindDocument,
   currentDocument: MindDocument | null | undefined
 ): MindDocument {
-  const next = {
-    ...document,
-    meta: {
-      ...document.meta,
-      theme: currentDocument?.meta.theme ?? document.meta.theme
-    }
+  return currentDocument?.viewport ? { ...document, viewport: { ...currentDocument.viewport } } : document
+}
+
+function styleValueEquals(currentValue: unknown, nextValue: unknown): boolean {
+  if (Object.is(currentValue, nextValue)) {
+    return true
   }
 
-  return currentDocument?.viewport ? { ...next, viewport: { ...currentDocument.viewport } } : next
+  if (Array.isArray(currentValue) || Array.isArray(nextValue)) {
+    return (
+      Array.isArray(currentValue) &&
+      Array.isArray(nextValue) &&
+      currentValue.length === nextValue.length &&
+      currentValue.every((value, index) => styleValueEquals(value, nextValue[index]))
+    )
+  }
+
+  if (
+    typeof currentValue !== 'object' ||
+    currentValue === null ||
+    typeof nextValue !== 'object' ||
+    nextValue === null
+  ) {
+    return false
+  }
+
+  const currentRecord = currentValue as Record<string, unknown>
+  const nextRecord = nextValue as Record<string, unknown>
+  const currentKeys = Object.keys(currentRecord)
+  const nextKeys = Object.keys(nextRecord)
+
+  return (
+    currentKeys.length === nextKeys.length &&
+    currentKeys.every(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(nextRecord, key) && styleValueEquals(currentRecord[key], nextRecord[key])
+    )
+  )
+}
+
+function isStylePatchNoop<TStyle extends object>(style: TStyle, stylePatch: Partial<TStyle>): boolean {
+  return (Object.entries(stylePatch) as Array<[keyof TStyle, TStyle[keyof TStyle]]>).every(([key, value]) =>
+    styleValueEquals(style[key], value)
+  )
 }
 
 function assertTopicInput(id: string, title: string): void {
@@ -218,21 +253,6 @@ export const useEditorStore = defineStore('editor', {
       }
       this.syncDirtyState()
     },
-    setDocumentTheme(theme: ThemeName): void {
-      if (!this.document || this.document.meta.theme === theme) {
-        return
-      }
-
-      this.document = {
-        ...this.document,
-        meta: {
-          ...this.document.meta,
-          theme
-        }
-      }
-      this.syncDirtyState()
-      this.syncHistoryState()
-    },
     selectOnly(nodeId: string): void {
       this.selectedNodeIds = compactSelection(this.document, [nodeId])
       this.selectedEdgeId = null
@@ -330,25 +350,49 @@ export const useEditorStore = defineStore('editor', {
       const zoom = this.document.viewport.zoom || 1
       this.previewMoveSelectedByWorldDelta({ x: delta.x / zoom, y: delta.y / zoom })
     },
-    setSelectedEdgeComponent(component: MindEdgeComponent): void {
+    setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
+      if (!this.document || this.selectedNodeIds.length !== 1) {
+        return
+      }
+
+      const nodeId = this.selectedNodeIds[0]
+      const selectedNode = this.document.nodes.find((node) => node.id === nodeId)
+      if (!selectedNode) {
+        this.selectedNodeIds = []
+        return
+      }
+
+      if (isStylePatchNoop(selectedNode.style, stylePatch)) {
+        return
+      }
+
+      this.commitCommandResult(
+        executeCommand(cloneDocument(this.document), setNodeStyleCommand, {
+          nodeId,
+          stylePatch
+        })
+      )
+    },
+    setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void {
       if (!this.document || !this.selectedEdgeId) {
         return
       }
 
-      const selectedEdge = this.document.edges.find((edge) => edge.id === this.selectedEdgeId)
+      const edgeId = this.selectedEdgeId
+      const selectedEdge = this.document.edges.find((edge) => edge.id === edgeId)
       if (!selectedEdge) {
         this.selectedEdgeId = null
         return
       }
 
-      if ((selectedEdge.component ?? DEFAULT_EDGE_COMPONENT) === component) {
+      if (isStylePatchNoop(selectedEdge.style, stylePatch)) {
         return
       }
 
       this.commitCommandResult(
-        executeCommand(cloneDocument(this.document), setEdgeComponentCommand, {
-          edgeId: this.selectedEdgeId,
-          component
+        executeCommand(cloneDocument(this.document), setEdgeStyleCommand, {
+          edgeId,
+          stylePatch
         })
       )
     },
