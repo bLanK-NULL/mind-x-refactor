@@ -133,6 +133,63 @@ describe('commands', () => {
     )
   })
 
+  it('rejects unknown node style patch keys without mutating the document', () => {
+    const doc = addRootNode(
+      createEmptyDocument({ projectId: 'project-1', title: 'Project One', now: '2026-04-26T00:00:00.000Z' }),
+      {
+        id: 'root',
+        title: 'Root'
+      }
+    )
+    const original = structuredClone(doc)
+
+    expect(() =>
+      executeCommand(doc, setNodeStyleCommand, {
+        nodeId: 'root',
+        stylePatch: { colorToken: 'purple', rogue: 'x' } as any
+      })
+    ).toThrow()
+    expect(doc).toEqual(original)
+  })
+
+  it('rejects unknown edge style patch keys without mutating the document', () => {
+    const doc = addChildNode(
+      addRootNode(createEmptyDocument({ projectId: 'project-1', title: 'Project One', now: '2026-04-26T00:00:00.000Z' }), {
+        id: 'root',
+        title: 'Root'
+      }),
+      { parentId: 'root', id: 'child', title: 'Child' }
+    )
+    const original = structuredClone(doc)
+
+    expect(() =>
+      executeCommand(doc, setEdgeStyleCommand, {
+        edgeId: 'root->child',
+        stylePatch: { colorToken: 'warning', rogue: 'x' } as any
+      })
+    ).toThrow()
+    expect(doc).toEqual(original)
+  })
+
+  it('rejects malformed nested edge style patches without mutating the document', () => {
+    const doc = addChildNode(
+      addRootNode(createEmptyDocument({ projectId: 'project-1', title: 'Project One', now: '2026-04-26T00:00:00.000Z' }), {
+        id: 'root',
+        title: 'Root'
+      }),
+      { parentId: 'root', id: 'child', title: 'Child' }
+    )
+    const original = structuredClone(doc)
+
+    expect(() =>
+      executeCommand(doc, setEdgeStyleCommand, {
+        edgeId: 'root->child',
+        stylePatch: { labelStyle: { visible: false, rogue: true } } as any
+      })
+    ).toThrow()
+    expect(doc).toEqual(original)
+  })
+
   it('generates inverse patches for title, movement, edge, and delete commands', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(
@@ -307,7 +364,13 @@ describe('commands', () => {
     )
     doc.edges.push(
       { id: 'root->middle', source: 'root', target: 'middle', type: 'mind-parent', style: DEFAULT_EDGE_STYLE },
-      { id: 'middle->leaf', source: 'middle', target: 'leaf', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }
+      {
+        id: 'middle->leaf',
+        source: 'middle',
+        target: 'leaf',
+        type: 'mind-parent',
+        style: { ...DEFAULT_EDGE_STYLE, arrow: 'end', colorToken: 'warning', linePattern: 'dotted', width: 'thick' }
+      }
     )
 
     const result = deleteNodePromoteChildren(doc, { nodeId: 'middle' })

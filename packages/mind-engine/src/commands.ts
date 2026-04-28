@@ -1,4 +1,6 @@
 import {
+  DEFAULT_EDGE_STYLE,
+  DEFAULT_TOPIC_STYLE,
   createDefaultTopicStyle,
   mindDocumentSchema,
   type EdgeStyle,
@@ -15,6 +17,11 @@ const ROOT_NODE_WIDTH = 180
 const ROOT_NODE_HEIGHT = 56
 const CHILD_GAP_X = 80
 const SIBLING_GAP_Y = 72
+const TOPIC_STYLE_KEYS = new Set(Object.keys(DEFAULT_TOPIC_STYLE))
+const EDGE_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE))
+const EDGE_LABEL_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE.labelStyle))
+const EDGE_ENDPOINT_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE.endpointStyle))
+const EDGE_ANIMATION_STYLE_KEYS = new Set(Object.keys(DEFAULT_EDGE_STYLE.animation))
 
 export type CommandRecipe<TInput> = (draft: Draft<MindDocument>, input: TInput) => void
 export type CommandResult = PatchResult<MindDocument>
@@ -27,6 +34,29 @@ function assertPlainTextTitle(title: string): void {
   if (/[<>]/.test(title) || title.trim().length === 0) {
     throw new Error('Node title must be non-empty plain text')
   }
+}
+
+function assertKnownKeys(value: unknown, allowedKeys: Set<string>, label: string): void {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return
+  }
+
+  for (const key of Object.keys(value)) {
+    if (!allowedKeys.has(key)) {
+      throw new Error(`Unknown ${label} style field ${key}`)
+    }
+  }
+}
+
+function assertKnownTopicStylePatchKeys(stylePatch: Partial<TopicNodeStyle>): void {
+  assertKnownKeys(stylePatch, TOPIC_STYLE_KEYS, 'node')
+}
+
+function assertKnownEdgeStylePatchKeys(stylePatch: Partial<EdgeStyle>): void {
+  assertKnownKeys(stylePatch, EDGE_STYLE_KEYS, 'edge')
+  assertKnownKeys(stylePatch.labelStyle, EDGE_LABEL_STYLE_KEYS, 'edge label')
+  assertKnownKeys(stylePatch.endpointStyle, EDGE_ENDPOINT_STYLE_KEYS, 'edge endpoint')
+  assertKnownKeys(stylePatch.animation, EDGE_ANIMATION_STYLE_KEYS, 'edge animation')
 }
 
 export function executeCommand<TInput>(
@@ -164,6 +194,7 @@ export function setNodeStyleCommand(draft: Draft<MindDocument>, input: SetNodeSt
   if (!node) {
     throw new Error(`Node ${input.nodeId} does not exist`)
   }
+  assertKnownTopicStylePatchKeys(input.stylePatch)
 
   node.style = {
     ...node.style,
@@ -186,6 +217,7 @@ export function setEdgeStyleCommand(draft: Draft<MindDocument>, input: SetEdgeSt
   if (!edge) {
     throw new Error(`Edge ${input.edgeId} does not exist`)
   }
+  assertKnownEdgeStylePatchKeys(input.stylePatch)
 
   edge.style = {
     ...edge.style,

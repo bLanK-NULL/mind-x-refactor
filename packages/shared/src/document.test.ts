@@ -288,6 +288,56 @@ describe('mind document versions', () => {
     ).toBe(false)
   })
 
+  it('rejects unknown v2 style keys including nested edge style keys', () => {
+    expect(
+      mindDocumentSchema.safeParse(
+        v2Document({
+          nodes: [
+            {
+              id: 'root',
+              type: 'topic',
+              position: { x: 0, y: 0 },
+              data: { title: 'Root' },
+              style: { ...DEFAULT_TOPIC_STYLE, rogue: true }
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
+
+    expect(
+      mindDocumentSchema.safeParse(
+        v2Document({
+          edges: [
+            {
+              id: 'root->child',
+              source: 'root',
+              target: 'child',
+              type: 'mind-parent',
+              style: { ...DEFAULT_EDGE_STYLE, rogue: true }
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
+
+    expect(
+      mindDocumentSchema.safeParse(
+        v2Document({
+          edges: [
+            {
+              id: 'root->child',
+              source: 'root',
+              target: 'child',
+              type: 'mind-parent',
+              style: { ...DEFAULT_EDGE_STYLE, labelStyle: { visible: false, rogue: true } }
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
+  })
+
   it('migrates save document request bodies to v2', () => {
     const parsed = saveDocumentRequestSchema.parse({ document: v1Document() })
 

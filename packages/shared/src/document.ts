@@ -75,20 +75,20 @@ export const topicNodeStyleSchema = z.object({
   borderStyle: z.enum(['none', 'solid', 'dashed']),
   shadowLevel: z.enum(['none', 'sm', 'md']),
   textWeight: z.enum(['regular', 'medium', 'bold'])
-})
+}).strict()
 
 export const edgeLabelStyleSchema = z.object({
   visible: z.literal(false)
-})
+}).strict()
 
 export const edgeEndpointStyleSchema = z.object({
   source: z.literal('none'),
   target: z.literal('none')
-})
+}).strict()
 
 export const edgeAnimationStyleSchema = z.object({
   enabled: z.literal(false)
-})
+}).strict()
 
 export const edgeStyleSchema = z.object({
   colorToken: objectColorTokenSchema,
@@ -99,7 +99,7 @@ export const edgeStyleSchema = z.object({
   labelStyle: edgeLabelStyleSchema,
   endpointStyle: edgeEndpointStyleSchema,
   animation: edgeAnimationStyleSchema
-})
+}).strict()
 
 export const DEFAULT_TOPIC_STYLE = {
   borderStyle: 'solid',
