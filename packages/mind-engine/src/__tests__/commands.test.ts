@@ -32,6 +32,7 @@ import {
   executeCommand,
   moveNodes,
   moveNodesCommand,
+  resizeNodesCommand,
   setEdgeStyleCommand,
   setNodeContentStyleCommand,
   setNodeStyleCommand,
@@ -224,6 +225,21 @@ describe('commands', () => {
 
     expect(result.document.nodes[0].size).toEqual({ width: 220, height: 72 })
     expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
+  })
+
+  it('resizes nodes with minimum dimensions', () => {
+    const doc = addRootNode(createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-29T00:00:00.000Z' }), {
+      id: 'root',
+      type: 'topic',
+      data: { title: 'Root' }
+    })
+
+    const result = executeCommand(doc, resizeNodesCommand, {
+      nodeIds: ['root'],
+      delta: { width: 40, height: 20 }
+    })
+
+    expect(result.document.nodes[0].size).toEqual({ width: 220, height: 76 })
   })
 
   it('updates edge style as an undoable patch command', () => {

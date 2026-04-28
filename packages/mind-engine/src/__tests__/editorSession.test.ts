@@ -226,6 +226,24 @@ describe('editor session', () => {
     expect(session.getState().canRedo).toBe(true)
   })
 
+  it('previews repeated resize as one undoable history entry', () => {
+    const session = createEditorSession()
+    session.load(documentWithRoot())
+    session.selectOnly('root')
+
+    session.previewResizeSelectedByDelta({ width: 20, height: 10 })
+    session.previewResizeSelectedByDelta({ width: 20, height: 10 })
+
+    expect(session.getState().document?.nodes[0].size).toEqual({ width: 220, height: 76 })
+    expect(session.getState().canUndo).toBe(false)
+
+    session.finishInteraction()
+
+    expect(session.getState().canUndo).toBe(true)
+    session.undo()
+    expect(session.getState().document?.nodes[0].size).toEqual({ width: 180, height: 56 })
+  })
+
   it('allows screen-delta methods to be called without a session this binding', () => {
     const previewSession = createEditorSession()
     previewSession.load(documentWithRoot())

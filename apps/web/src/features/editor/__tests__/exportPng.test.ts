@@ -62,12 +62,12 @@ describe('exportPng', () => {
     })
   })
 
-  it('calculates document bounds with node size fallback and padding', async () => {
+  it('calculates document bounds from explicit v3 node sizes and padding', async () => {
     const { calculateDocumentBounds } = await import('@/features/editor/services/exportPng')
     const bounds = calculateDocumentBounds(
       document({
         nodes: [
-          topicNode('root', 'Root', { x: -20, y: 10 }),
+          topicNode('root', 'Root', { x: -20, y: 10 }, { height: 56, width: 180 }),
           topicNode('child', 'Child', { x: 220, y: -30 }, { height: 80, width: 200 })
         ]
       })

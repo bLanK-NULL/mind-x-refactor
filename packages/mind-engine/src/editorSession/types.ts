@@ -41,7 +41,9 @@ export type EditorSession = {
   moveSelectedByWorldDelta(delta: Point): void
   previewMoveSelectedByScreenDelta(delta: Point): void
   previewMoveSelectedByWorldDelta(delta: Point): void
+  previewResizeSelectedByDelta(delta: { width: number; height: number }): void
   redo(): void
+  resizeSelectedByDelta(delta: { width: number; height: number }): void
   selectEdge(edgeId: string): void
   selectOnly(nodeId: string): void
   setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void

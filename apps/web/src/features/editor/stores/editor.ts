@@ -147,6 +147,16 @@ export const useEditorStore = defineStore('editor', () => {
     syncFromSession()
   }
 
+  function previewResizeSelectedByDelta(delta: { width: number; height: number }): void {
+    session.previewResizeSelectedByDelta(delta)
+    syncFromSession()
+  }
+
+  function resizeSelectedByDelta(delta: { width: number; height: number }): void {
+    session.resizeSelectedByDelta(delta)
+    syncFromSession()
+  }
+
   function setSelectedNodeStyle(stylePatch: Partial<TopicNodeStyle>): void {
     session.setSelectedNodeStyle(stylePatch)
     syncFromSession()
@@ -209,7 +219,9 @@ export const useEditorStore = defineStore('editor', () => {
     moveSelectedByWorldDelta,
     previewMoveSelectedByScreenDelta,
     previewMoveSelectedByWorldDelta,
+    previewResizeSelectedByDelta,
     redo,
+    resizeSelectedByDelta,
     revision,
     selectEdge,
     selectedEdgeId,

@@ -31,6 +31,8 @@ import { createPatchResult, type PatchResult } from './patches.js'
 
 const CHILD_GAP_X = 80
 const SIBLING_GAP_Y = 72
+const MIN_NODE_WIDTH = 120
+const MIN_NODE_HEIGHT = 44
 const NODE_SHELL_STYLE_KEYS = new Set(Object.keys(DEFAULT_NODE_SHELL_STYLE))
 const TOPIC_STYLE_KEYS = new Set(Object.keys(DEFAULT_TOPIC_STYLE))
 const TOPIC_CONTENT_STYLE_KEYS = new Set(Object.keys(DEFAULT_TOPIC_CONTENT_STYLE))
@@ -303,6 +305,28 @@ export function moveNodesCommand(draft: Draft<MindDocument>, input: MoveNodesInp
 
 export function moveNodes(document: MindDocument, input: MoveNodesInput): MindDocument {
   return executeCommand(document, moveNodesCommand, input).document
+}
+
+export type ResizeNodesInput = {
+  nodeIds: string[]
+  delta: { width: number; height: number }
+}
+
+export function resizeNodesCommand(draft: Draft<MindDocument>, input: ResizeNodesInput): void {
+  const selected = new Set(input.nodeIds)
+  for (const node of draft.nodes) {
+    if (selected.has(node.id)) {
+      node.size = {
+        width: Math.max(MIN_NODE_WIDTH, node.size.width + input.delta.width),
+        height: Math.max(MIN_NODE_HEIGHT, node.size.height + input.delta.height)
+      }
+    }
+  }
+  assertMindTree(asDocument(draft))
+}
+
+export function resizeNodes(document: MindDocument, input: ResizeNodesInput): MindDocument {
+  return executeCommand(document, resizeNodesCommand, input).document
 }
 
 export type SetNodeShellStyleInput = {

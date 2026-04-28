@@ -16,6 +16,8 @@ import {
   executeCommand,
   moveNodes,
   moveNodesCommand,
+  resizeNodes,
+  resizeNodesCommand,
   setNodeContentStyleCommand,
   setNodeShellStyleCommand,
   setEdgeStyleCommand,
@@ -116,6 +118,32 @@ export function createEditorSession(): EditorSession {
     }
 
     syncAfterDocumentChange(moveNodes(cloneDocument(state.document), { nodeIds: state.selectedNodeIds, delta }))
+  }
+
+  function resizeSelectedByDelta(delta: { width: number; height: number }): void {
+    if (!state.document || state.selectedNodeIds.length === 0 || (delta.width === 0 && delta.height === 0)) {
+      return
+    }
+
+    finalizePendingPreview()
+    commitCommandResult(
+      executeCommand(cloneDocument(state.document), resizeNodesCommand, {
+        nodeIds: state.selectedNodeIds,
+        delta
+      })
+    )
+  }
+
+  function previewResizeSelectedByDelta(delta: { width: number; height: number }): void {
+    if (!state.document || state.selectedNodeIds.length === 0 || (delta.width === 0 && delta.height === 0)) {
+      return
+    }
+
+    if (!pendingPreviewBaseline) {
+      pendingPreviewBaseline = preserveUntrackedDocumentState(history?.current() ?? state.document, state.document)
+    }
+
+    syncAfterDocumentChange(resizeNodes(cloneDocument(state.document), { nodeIds: state.selectedNodeIds, delta }))
   }
 
   function finalizePendingPreview(): void {
@@ -322,6 +350,7 @@ export function createEditorSession(): EditorSession {
       previewMoveSelectedByWorldDelta({ x: delta.x / zoom, y: delta.y / zoom })
     },
     previewMoveSelectedByWorldDelta,
+    previewResizeSelectedByDelta,
     redo() {
       finalizePendingPreview()
       if (!history?.canRedo()) {
@@ -331,6 +360,7 @@ export function createEditorSession(): EditorSession {
       const currentDocument = state.document
       syncAfterDocumentChange(preserveUntrackedDocumentState(history.redo(), currentDocument))
     },
+    resizeSelectedByDelta,
     selectEdge(edgeId: string) {
       const selectedEdgeId = compactSelectedEdge(state.document, edgeId)
       setState((draft) => {
