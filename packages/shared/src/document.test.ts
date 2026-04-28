@@ -1,13 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DEFAULT_ATTACHMENT_CONTENT_STYLE,
+  DEFAULT_CODE_CONTENT_STYLE,
   DEFAULT_EDGE_STYLE,
+  DEFAULT_IMAGE_CONTENT_STYLE,
+  DEFAULT_LINK_CONTENT_STYLE,
+  DEFAULT_NODE_SHELL_STYLE,
+  DEFAULT_NODE_SIZE_BY_TYPE,
+  DEFAULT_TASK_CONTENT_STYLE,
+  DEFAULT_TOPIC_CONTENT_STYLE,
   DEFAULT_TOPIC_STYLE,
   apiErrorBodySchema,
   createProjectRequestSchema,
   migrateMindDocument,
+  migrateMindDocumentToV3,
   mindDocumentSchema,
   mindDocumentV1Schema,
   mindDocumentV2Schema,
+  mindDocumentV3Schema,
   renameProjectRequestSchema,
   saveDocumentRequestSchema
 } from './index.js'
@@ -28,6 +38,31 @@ function v2Document(overrides: Record<string, unknown> = {}) {
         position: { x: 0, y: 0 },
         data: { title: 'Root' },
         style: DEFAULT_TOPIC_STYLE
+      }
+    ],
+    edges: [],
+    ...overrides
+  }
+}
+
+function v3Document(overrides: Record<string, unknown> = {}) {
+  return {
+    version: 3,
+    meta: {
+      projectId: 'project-1',
+      title: 'Planning',
+      updatedAt: '2026-04-26T00:00:00.000Z'
+    },
+    viewport: { x: 0, y: 0, zoom: 1 },
+    nodes: [
+      {
+        id: 'root',
+        type: 'topic',
+        position: { x: 0, y: 0 },
+        size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+        shellStyle: DEFAULT_NODE_SHELL_STYLE,
+        data: { title: 'Root' },
+        contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
       }
     ],
     edges: [],
@@ -220,6 +255,131 @@ describe('mind document versions', () => {
     })
 
     expect(migrateMindDocument(document)).toEqual(mindDocumentV2Schema.parse(document))
+  })
+
+  it('accepts v3 documents with every supported node type', () => {
+    const document = v3Document({
+      nodes: [
+        {
+          id: 'topic',
+          type: 'topic',
+          position: { x: 0, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { title: 'Topic' },
+          contentStyle: DEFAULT_TOPIC_CONTENT_STYLE
+        },
+        {
+          id: 'image',
+          type: 'image',
+          position: { x: 260, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.image,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { url: 'https://example.com/image.png' },
+          contentStyle: DEFAULT_IMAGE_CONTENT_STYLE
+        },
+        {
+          id: 'link',
+          type: 'link',
+          position: { x: 520, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.link,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { title: 'Docs', url: 'https://example.com/docs' },
+          contentStyle: DEFAULT_LINK_CONTENT_STYLE
+        },
+        {
+          id: 'attachment',
+          type: 'attachment',
+          position: { x: 780, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.attachment,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { fileName: 'brief.pdf', url: 'https://example.com/brief.pdf' },
+          contentStyle: DEFAULT_ATTACHMENT_CONTENT_STYLE
+        },
+        {
+          id: 'code',
+          type: 'code',
+          position: { x: 1040, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.code,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { code: 'const answer = 42' },
+          contentStyle: DEFAULT_CODE_CONTENT_STYLE
+        },
+        {
+          id: 'task',
+          type: 'task',
+          position: { x: 1380, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.task,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { items: [{ id: 'task-1', title: 'Write plan', done: true }] },
+          contentStyle: DEFAULT_TASK_CONTENT_STYLE
+        }
+      ]
+    })
+
+    expect(mindDocumentV3Schema.parse(document)).toEqual(document)
+  })
+
+  it('migrates v2 topic documents to v3 topic documents', () => {
+    const migrated = migrateMindDocumentToV3(v2Document())
+
+    expect(migrated).toMatchObject({
+      version: 3,
+      nodes: [
+        {
+          id: 'root',
+          type: 'topic',
+          size: DEFAULT_NODE_SIZE_BY_TYPE.topic,
+          shellStyle: {
+            borderStyle: DEFAULT_TOPIC_STYLE.borderStyle,
+            colorToken: DEFAULT_TOPIC_STYLE.colorToken,
+            shadowLevel: DEFAULT_TOPIC_STYLE.shadowLevel,
+            shape: DEFAULT_TOPIC_STYLE.shape,
+            tone: DEFAULT_TOPIC_STYLE.tone
+          },
+          data: { title: 'Root' },
+          contentStyle: { textWeight: DEFAULT_TOPIC_STYLE.textWeight }
+        }
+      ]
+    })
+  })
+
+  it('rejects invalid v3 URLs and empty task lists', () => {
+    expect(
+      mindDocumentV3Schema.safeParse(
+        v3Document({
+          nodes: [
+            {
+              id: 'image',
+              type: 'image',
+              position: { x: 0, y: 0 },
+              size: DEFAULT_NODE_SIZE_BY_TYPE.image,
+              shellStyle: DEFAULT_NODE_SHELL_STYLE,
+              data: { url: 'not a url' },
+              contentStyle: DEFAULT_IMAGE_CONTENT_STYLE
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
+
+    expect(
+      mindDocumentV3Schema.safeParse(
+        v3Document({
+          nodes: [
+            {
+              id: 'task',
+              type: 'task',
+              position: { x: 0, y: 0 },
+              size: DEFAULT_NODE_SIZE_BY_TYPE.task,
+              shellStyle: DEFAULT_NODE_SHELL_STYLE,
+              data: { items: [] },
+              contentStyle: DEFAULT_TASK_CONTENT_STYLE
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
   })
 
   it('rejects invalid object color tokens and missing v2 styles', () => {
