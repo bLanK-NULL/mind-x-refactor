@@ -120,6 +120,7 @@ function onFocusout(event: FocusEvent): void {
       <span class="attachment-node__meta">
         <span class="attachment-node__name">{{ node.data.fileName }}</span>
         <span v-if="node.data.fileSizeLabel" class="attachment-node__size">{{ node.data.fileSizeLabel }}</span>
+        <span class="attachment-node__url">{{ node.data.url }}</span>
       </span>
     </a>
   </div>
@@ -169,10 +170,14 @@ function onFocusout(event: FocusEvent): void {
   white-space: nowrap;
 }
 
-.attachment-node__size {
+.attachment-node__size,
+.attachment-node__url {
+  overflow: hidden;
   color: color-mix(in srgb, currentColor 68%, transparent);
   font-size: 11px;
   line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attachment-node__input {

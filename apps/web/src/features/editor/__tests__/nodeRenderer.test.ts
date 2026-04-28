@@ -32,6 +32,34 @@ function createImageNode(): Extract<MindNode, { type: 'image' }> {
   }
 }
 
+function createAttachmentNode(): Extract<MindNode, { type: 'attachment' }> {
+  return {
+    id: 'attachment-1',
+    type: 'attachment',
+    position: { x: 10, y: 20 },
+    size: { height: 72, width: 240 },
+    shellStyle: {
+      borderStyle: 'solid',
+      colorToken: 'default',
+      shadowLevel: 'sm',
+      shape: 'rounded',
+      tone: 'soft'
+    },
+    data: {
+      fileName: 'Brief.pdf',
+      fileSizeLabel: '48 KB',
+      url: 'https://example.com/brief.pdf'
+    },
+    contentStyle: {
+      icon: 'file'
+    }
+  }
+}
+
+function readTaskNodeContentSource(): string {
+  return readFileSync(new URL('../components/canvas/node-content/TaskNodeContent.vue', import.meta.url), 'utf8')
+}
+
 describe('NodeRenderer', () => {
   it('renders nodes through BaseNode and dynamic content components', () => {
     const source = readNodeRendererSource()
@@ -83,11 +111,34 @@ describe('NodeRenderer', () => {
     expect(html).not.toContain('node-fallback')
   })
 
+  it('renders attachment nodes with file name and visible URL', async () => {
+    const html = await renderToString(
+      createSSRApp(NodeRenderer, {
+        nodes: [createAttachmentNode()],
+        selectedNodeIds: []
+      })
+    )
+
+    expect(html).toContain('attachment-node__name')
+    expect(html).toContain('Brief.pdf')
+    expect(html).toContain('attachment-node__url')
+    expect(html).toContain('https://example.com/brief.pdf')
+    expect(html).toContain('48 KB')
+  })
+
   it('routes topic title commits and object data patch commits', () => {
     const source = readNodeRendererSource()
 
     expect(source).not.toContain('getTopicContentNode')
     expect(source).toContain("emit('editCommit', node.id, { title })")
     expect(source).toContain("emit('editCommit', node.id, dataPatch)")
+  })
+
+  it('keeps task no-op edits on the cancel path', () => {
+    const source = readTaskNodeContentSource()
+
+    expect(source).toContain('areItemsEqual(items, props.node.data.items)')
+    expect(source).toContain("emit('cancel')")
+    expect(source).toContain("emit('commit', { items })")
   })
 })

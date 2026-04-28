@@ -51,6 +51,18 @@ function validateItems(items: TaskItem[]): string {
   return ''
 }
 
+function areItemsEqual(left: TaskItem[], right: TaskItem[]): boolean {
+  return left.length === right.length && left.every((item, index) => {
+    const other = right[index]
+    return item.id === other.id
+      && item.title === other.title
+      && item.done === other.done
+      && item.notes === other.notes
+      && item.dueDate === other.dueDate
+      && item.priority === other.priority
+  })
+}
+
 async function commitEdit(): Promise<void> {
   const items = draftItems.value.map((item) => ({ ...item, title: item.title.trim() }))
   const error = validateItems(items)
@@ -62,6 +74,11 @@ async function commitEdit(): Promise<void> {
   }
 
   editError.value = ''
+  if (areItemsEqual(items, props.node.data.items)) {
+    emit('cancel')
+    return
+  }
+
   emit('commit', { items })
 }
 
