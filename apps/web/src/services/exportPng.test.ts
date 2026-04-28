@@ -1,5 +1,4 @@
-import type { MindDocument } from '@mind-x/shared'
-import { createEmptyDocument } from '@mind-x/mind-engine'
+import { DEFAULT_TOPIC_STYLE, type MindDocument } from '@mind-x/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const html2canvasMock = vi.hoisted(() => vi.fn())
@@ -10,11 +9,15 @@ vi.mock('html2canvas', () => ({
 
 function document(overrides: Partial<MindDocument> = {}): MindDocument {
   return {
-    ...createEmptyDocument({
-      now: '2026-04-26T00:00:00.000Z',
+    version: 2,
+    meta: {
       projectId: 'project-1',
-      title: 'Project One'
-    }),
+      title: 'Project One',
+      updatedAt: '2026-04-26T00:00:00.000Z'
+    },
+    viewport: { x: 0, y: 0, zoom: 1 },
+    nodes: [],
+    edges: [],
     ...overrides
   }
 }
@@ -45,12 +48,19 @@ describe('exportPng', () => {
     const bounds = calculateDocumentBounds(
       document({
         nodes: [
-          { data: { title: 'Root' }, id: 'root', position: { x: -20, y: 10 }, type: 'topic' },
+          {
+            data: { title: 'Root' },
+            id: 'root',
+            position: { x: -20, y: 10 },
+            style: DEFAULT_TOPIC_STYLE,
+            type: 'topic'
+          },
           {
             data: { title: 'Child' },
             id: 'child',
             position: { x: 220, y: -30 },
             size: { height: 80, width: 200 },
+            style: DEFAULT_TOPIC_STYLE,
             type: 'topic'
           }
         ]
@@ -106,7 +116,15 @@ describe('exportPng', () => {
       exportDocumentAsPng({
         document: document({
           meta: { ...document().meta, title: 'Project/One' },
-          nodes: [{ data: { title: 'Root' }, id: 'root', position: { x: 120, y: 80 }, type: 'topic' }]
+          nodes: [
+            {
+              data: { title: 'Root' },
+              id: 'root',
+              position: { x: 120, y: 80 },
+              style: DEFAULT_TOPIC_STYLE,
+              type: 'topic'
+            }
+          ]
         }),
         root
       })
@@ -151,7 +169,15 @@ describe('exportPng', () => {
     const { exportDocumentAsPng } = await import('./exportPng')
     await exportDocumentAsPng({
       document: document({
-        nodes: [{ data: { title: 'Root' }, id: 'root', position: { x: -40, y: -12 }, type: 'topic' }]
+        nodes: [
+          {
+            data: { title: 'Root' },
+            id: 'root',
+            position: { x: -40, y: -12 },
+            style: DEFAULT_TOPIC_STYLE,
+            type: 'topic'
+          }
+        ]
       }),
       root
     })

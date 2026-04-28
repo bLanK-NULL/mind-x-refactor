@@ -5,7 +5,7 @@ let edgeRendererInstanceCounter = 0
 <script setup lang="ts">
 import type { MindEdge, MindNode } from '@mind-x/shared'
 import { computed, ref } from 'vue'
-import { getEdgeMarkerEnd, resolveEdgeStyle } from './objectStyles'
+import { createEdgePath, getEdgeMarkerEnd, resolveEdgeStyle } from './objectStyles'
 
 const props = defineProps<{
   edges: MindEdge[]
@@ -111,11 +111,14 @@ function getPath(edge: MindEdge): string | null {
   const endX = targetCenter.x + (forward ? -targetWidth / 2 : targetWidth / 2) - offsetX
   const startY = sourceCenter.y - offsetY
   const endY = targetCenter.y - offsetY
-  const curve = Math.max(64, Math.abs(endX - startX) * 0.45)
-  const c1x = startX + (forward ? curve : -curve)
-  const c2x = endX + (forward ? -curve : curve)
 
-  return `M ${startX} ${startY} C ${c1x} ${startY}, ${c2x} ${endY}, ${endX} ${endY}`
+  return createEdgePath({
+    endX,
+    endY,
+    routing: edge.style.routing,
+    startX,
+    startY
+  })
 }
 </script>
 

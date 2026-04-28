@@ -1,6 +1,7 @@
 import { DEFAULT_EDGE_STYLE, DEFAULT_TOPIC_STYLE } from '@mind-x/shared'
 import { describe, expect, it } from 'vitest'
 import {
+  createEdgePath,
   getEdgeMarkerEnd,
   resolveEdgeStyle,
   resolveTopicNodeClass,
@@ -52,5 +53,17 @@ describe('object style resolvers', () => {
     })
     expect(getEdgeMarkerEnd({ ...DEFAULT_EDGE_STYLE, arrow: 'none' }, 'marker')).toBeUndefined()
     expect(getEdgeMarkerEnd({ ...DEFAULT_EDGE_STYLE, arrow: 'end' }, 'marker')).toBe('url(#marker)')
+  })
+
+  it('creates routed edge paths', () => {
+    expect(createEdgePath({ startX: 0, startY: 10, endX: 100, endY: 50, routing: 'straight' })).toBe(
+      'M 0 10 L 100 50'
+    )
+    expect(createEdgePath({ startX: 0, startY: 10, endX: 100, endY: 50, routing: 'elbow' })).toBe(
+      'M 0 10 L 50 10 L 50 50 L 100 50'
+    )
+    expect(createEdgePath({ startX: 0, startY: 10, endX: 100, endY: 50, routing: 'curved' })).toBe(
+      'M 0 10 C 64 10, 36 50, 100 50'
+    )
   })
 })
