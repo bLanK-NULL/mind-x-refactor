@@ -234,6 +234,7 @@ export function createEditorSession(): EditorSession {
       return
     }
 
+    finalizePendingPreview()
     commitCommandResult(
       executeCommand(cloneDocument(state.document), moveNodesCommand, {
         nodeIds: state.selectedNodeIds,
@@ -254,7 +255,7 @@ export function createEditorSession(): EditorSession {
     syncAfterDocumentChange(moveNodes(cloneDocument(state.document), { nodeIds: state.selectedNodeIds, delta }))
   }
 
-  function finishInteraction(): void {
+  function finalizePendingPreview(): void {
     if (!state.document || !pendingPreviewBaseline) {
       return
     }
@@ -280,6 +281,7 @@ export function createEditorSession(): EditorSession {
         return null
       }
 
+      finalizePendingPreview()
       const parentId = input.parentId ?? state.selectedNodeIds[0]
       if (!parentId) {
         return null
@@ -305,6 +307,7 @@ export function createEditorSession(): EditorSession {
         return null
       }
 
+      finalizePendingPreview()
       const id = input.id ?? createNodeId(state.document)
       const title = input.title ?? DEFAULT_TOPIC_TITLE
       assertTopicInput(id, title)
@@ -328,6 +331,7 @@ export function createEditorSession(): EditorSession {
       })
     },
     commit(document: MindDocument) {
+      finalizePendingPreview()
       const next = cloneDocument(document)
       const current = history?.current() ?? state.document ?? next
       commitCommandResult(replaceWithPatchResult(current, next))
@@ -337,6 +341,7 @@ export function createEditorSession(): EditorSession {
         return
       }
 
+      finalizePendingPreview()
       if (state.selectedEdgeId) {
         const edgeId = state.selectedEdgeId
         if (!state.document.edges.some((edge) => edge.id === edgeId)) {
@@ -370,9 +375,10 @@ export function createEditorSession(): EditorSession {
         return
       }
 
+      finalizePendingPreview()
       commitCommandResult(executeCommand(cloneDocument(state.document), editNodeTitleCommand, { nodeId, title }))
     },
-    finishInteraction,
+    finishInteraction: finalizePendingPreview,
     getState() {
       return Object.freeze({
         canRedo: history?.canRedo() ?? false,
@@ -426,6 +432,7 @@ export function createEditorSession(): EditorSession {
     },
     previewMoveSelectedByWorldDelta,
     redo() {
+      finalizePendingPreview()
       if (!history?.canRedo()) {
         return
       }
@@ -469,6 +476,7 @@ export function createEditorSession(): EditorSession {
         return
       }
 
+      finalizePendingPreview()
       commitCommandResult(
         executeCommand(cloneDocument(state.document), setEdgeStyleCommand, {
           edgeId,
@@ -495,6 +503,7 @@ export function createEditorSession(): EditorSession {
         return
       }
 
+      finalizePendingPreview()
       commitCommandResult(
         executeCommand(cloneDocument(state.document), setNodeStyleCommand, {
           nodeId,
@@ -521,6 +530,7 @@ export function createEditorSession(): EditorSession {
       )
     },
     undo() {
+      finalizePendingPreview()
       if (!history?.canUndo()) {
         return
       }
@@ -533,6 +543,7 @@ export function createEditorSession(): EditorSession {
         return
       }
 
+      finalizePendingPreview()
       const next = retitleDocument(state.document, title)
       if (state.cleanDocumentJson !== null) {
         const cleanDocument = JSON.parse(state.cleanDocumentJson) as MindDocument

@@ -227,6 +227,43 @@ describe('editor session', () => {
     expect(moveSession.getState().canUndo).toBe(true)
   })
 
+  it('finalizes a pending preview before editing a node title', () => {
+    const session = createEditorSession()
+    session.load(documentWithRoot())
+    session.selectOnly('root')
+
+    session.previewMoveSelectedByScreenDelta({ x: 5, y: 0 })
+    session.editNodeTitle('root', 'Edited after preview')
+
+    expect(session.getState().document?.nodes[0].position).toEqual({ x: 15, y: 20 })
+    expect(session.getState().document?.nodes[0].data.title).toBe('Edited after preview')
+
+    session.undo()
+    expect(session.getState().document?.nodes[0].position).toEqual({ x: 15, y: 20 })
+    expect(session.getState().document?.nodes[0].data.title).toBe('Root')
+
+    session.undo()
+    expect(session.getState().document?.nodes[0].position).toEqual({ x: 10, y: 20 })
+  })
+
+  it('finalizes a pending preview before external title updates', () => {
+    const session = createEditorSession()
+    session.load(documentWithRoot())
+    session.selectOnly('root')
+
+    session.previewMoveSelectedByScreenDelta({ x: 5, y: 0 })
+    session.updateDocumentTitle('Renamed During Preview')
+    session.finishInteraction()
+
+    expect(session.getState().document?.meta.title).toBe('Renamed During Preview')
+    expect(session.getState().document?.nodes[0].position).toEqual({ x: 15, y: 20 })
+
+    session.undo()
+    expect(session.getState().document?.meta.title).toBe('Renamed During Preview')
+    expect(session.getState().document?.nodes[0].position).toEqual({ x: 10, y: 20 })
+    expect(session.getState().canUndo).toBe(false)
+  })
+
   it('updates viewport and marks dirty without adding undo history', () => {
     const session = createEditorSession()
     session.load(emptyDocument())
