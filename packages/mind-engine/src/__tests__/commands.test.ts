@@ -177,12 +177,12 @@ describe('commands', () => {
     })
     const styled = executeCommand(edited.document, setNodeContentStyleCommand, {
       nodeId: 'code',
-      stylePatch: { wrap: false }
+      stylePatch: { wrap: false, theme: 'dracula' }
     })
 
     expect(styled.document.nodes[0]).toMatchObject({
       data: { code: 'const a = 2' },
-      contentStyle: { wrap: false }
+      contentStyle: { ...DEFAULT_CODE_CONTENT_STYLE, wrap: false, theme: 'dracula' }
     })
     expect(applyPatches(styled.document, styled.inversePatches)).toEqual(edited.document)
   })

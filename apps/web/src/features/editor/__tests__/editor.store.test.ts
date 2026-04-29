@@ -88,14 +88,14 @@ describe('editor store adapter', () => {
     const rootId = store.addRootNode({ id: 'root', type: 'topic', data: { title: 'Root topic' } })
     const codeId = store.addChildNode({ id: 'code', type: 'code', data: { code: 'let a = 1' } })
     store.updateNodeData('code', { code: 'const a = 2' })
-    store.setSelectedNodeContentStyle({ wrap: false })
+    store.setSelectedNodeContentStyle({ wrap: false, theme: 'dracula' })
 
     expect(rootId).toBe('root')
     expect(codeId).toBe('code')
     expect(store.document?.nodes.map((node) => node.type)).toEqual(['topic', 'code'])
     expect(store.document?.nodes[1]).toMatchObject({
       data: { code: 'const a = 2' },
-      contentStyle: { ...DEFAULT_CODE_CONTENT_STYLE, wrap: false }
+      contentStyle: { ...DEFAULT_CODE_CONTENT_STYLE, wrap: false, theme: 'dracula' }
     })
     expect(store.selectedNodeIds).toEqual(['code'])
     expect(store.canUndo).toBe(true)

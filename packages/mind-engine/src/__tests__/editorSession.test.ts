@@ -116,7 +116,7 @@ describe('editor session', () => {
     const childId = session.addChildNode({ id: 'code-child', type: 'code', data: { code: 'let value = 1' } })
 
     session.updateNodeData('code-child', { code: 'const value = 2' })
-    session.setSelectedNodeContentStyle({ wrap: false })
+    session.setSelectedNodeContentStyle({ wrap: false, theme: 'dracula' })
 
     const state = session.getState()
     expect(rootId).toBe('root-image')
@@ -124,7 +124,7 @@ describe('editor session', () => {
     expect(state.document?.nodes.map((node) => node.type)).toEqual(['image', 'code'])
     expect(state.document?.nodes.map((node) => node.contentStyle)).toEqual([
       DEFAULT_IMAGE_CONTENT_STYLE,
-      { ...DEFAULT_CODE_CONTENT_STYLE, wrap: false }
+      { ...DEFAULT_CODE_CONTENT_STYLE, wrap: false, theme: 'dracula' }
     ])
     expect(state.document?.nodes[1]).toMatchObject({ data: { code: 'const value = 2' } })
     expect(state.selectedNodeIds).toEqual(['code-child'])
