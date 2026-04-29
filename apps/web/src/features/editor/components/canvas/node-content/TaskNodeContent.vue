@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { MindNode } from '@mind-x/shared'
+import { PLAIN_TEXT_MAX_LENGTH, type MindNode } from '@mind-x/shared'
 import { nextTick, ref, watch } from 'vue'
+import { isValidPlainText } from '../../../utils/nodeValidation'
 
 type TaskNodeModel = Extract<MindNode, { type: 'task' }>
 type TaskItem = TaskNodeModel['data']['items'][number]
-const PLAIN_TEXT_MAX_LENGTH = 500
 
 const props = defineProps<{
   node: TaskNodeModel
@@ -32,10 +32,6 @@ watch(
 
 function createDraftTitles(items: TaskItem[]): Record<string, string> {
   return Object.fromEntries(items.map((item) => [item.id, item.title]))
-}
-
-function isValidPlainText(text: string): boolean {
-  return text.length > 0 && text.length <= PLAIN_TEXT_MAX_LENGTH && !/[<>]/.test(text)
 }
 
 function setInputRef(itemId: string, element: HTMLInputElement | null): void {
@@ -68,8 +64,15 @@ function createNextTaskId(items: TaskItem[]): string {
   return `task-${index}`
 }
 
-function cloneItems(): TaskItem[] {
-  return props.node.data.items.map((item) => ({ ...item }))
+function draftTitleFor(item: TaskItem): string {
+  return (draftTitles.value[item.id] ?? item.title).trim()
+}
+
+function createDraftItems(): TaskItem[] {
+  return props.node.data.items.map((item) => ({
+    ...item,
+    title: draftTitleFor(item)
+  }))
 }
 
 function commitItems(nextItems: TaskItem[]): void {
@@ -85,7 +88,7 @@ function addTaskItem(): void {
   const nextId = createNextTaskId(props.node.data.items)
   pendingFocusId.value = nextId
   commitItems([
-    ...cloneItems(),
+    ...createDraftItems(),
     {
       id: nextId,
       title: 'New task',
@@ -99,15 +102,15 @@ function deleteTaskItem(itemId: string): void {
     return
   }
 
-  commitItems(cloneItems().filter((item) => item.id !== itemId))
+  commitItems(createDraftItems().filter((item) => item.id !== itemId))
 }
 
 function toggleTaskItem(itemId: string, done: boolean): void {
-  commitItems(cloneItems().map((item) => (item.id === itemId ? { ...item, done } : item)))
+  commitItems(createDraftItems().map((item) => (item.id === itemId ? { ...item, done } : item)))
 }
 
 function commitTaskTitle(item: TaskItem): void {
-  const title = (draftTitles.value[item.id] ?? '').trim()
+  const title = draftTitleFor(item)
   if (!isValidPlainText(title)) {
     editError.value = 'Use non-empty plain text.'
     draftTitles.value = {
@@ -122,7 +125,7 @@ function commitTaskTitle(item: TaskItem): void {
     return
   }
 
-  commitItems(cloneItems().map((candidate) => (candidate.id === item.id ? { ...candidate, title } : candidate)))
+  commitItems(createDraftItems().map((candidate) => (candidate.id === item.id ? { ...candidate, title } : candidate)))
 }
 
 function cancelTaskTitleEdit(item: TaskItem): void {
