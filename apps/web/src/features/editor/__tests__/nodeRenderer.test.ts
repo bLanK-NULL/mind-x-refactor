@@ -9,6 +9,14 @@ function readNodeRendererSource(): string {
   return readFileSync(new URL('../components/canvas/NodeRenderer.vue', import.meta.url), 'utf8')
 }
 
+function readTopicNodeContentSource(): string {
+  return readFileSync(new URL('../components/canvas/node-content/TopicNodeContent.vue', import.meta.url), 'utf8')
+}
+
+function readNodeContentSource(fileName: string): string {
+  return readFileSync(new URL(`../components/canvas/node-content/${fileName}.vue`, import.meta.url), 'utf8')
+}
+
 function createImageNode(): Extract<MindNode, { type: 'image' }> {
   return {
     id: 'image-1',
@@ -54,14 +62,6 @@ function createAttachmentNode(): Extract<MindNode, { type: 'attachment' }> {
       icon: 'file'
     }
   }
-}
-
-function readTaskNodeContentSource(): string {
-  return readFileSync(new URL('../components/canvas/node-content/TaskNodeContent.vue', import.meta.url), 'utf8')
-}
-
-function readCodeNodeContentSource(): string {
-  return readFileSync(new URL('../components/canvas/node-content/CodeNodeContent.vue', import.meta.url), 'utf8')
 }
 
 describe('NodeRenderer', () => {
@@ -130,28 +130,72 @@ describe('NodeRenderer', () => {
     expect(html).toContain('48 KB')
   })
 
-  it('routes topic title commits and object data patch commits', () => {
+  it('forwards inspect events and content commits without owning edit state', () => {
     const source = readNodeRendererSource()
 
-    expect(source).not.toContain('getTopicContentNode')
-    expect(source).toContain("emit('editCommit', node.id, { title })")
+    expect(source).toContain('inspect: [nodeId: string]')
+    expect(source).toContain("@inspect=\"emit('inspect', $event)\"")
+    expect(source).toContain("@inspect=\"emit('inspect', node.id)\"")
     expect(source).toContain("emit('editCommit', node.id, dataPatch)")
+    expect(source).not.toContain("typeof payload === 'string'")
+    expect(source).not.toContain('finishEdit')
+    expect(source).not.toContain('handleContentCommit')
+    expect(source).not.toContain('commitEdit')
+    expect(source).not.toContain('cancelEdit')
+    expect(source).not.toContain(':editing')
   })
 
-  it('keeps task no-op edits on the cancel path', () => {
-    const source = readTaskNodeContentSource()
+  it('keeps topic inline editing inside TopicNodeContent', () => {
+    const source = readTopicNodeContentSource()
 
-    expect(source).toContain('areItemsEqual(items, props.node.data.items)')
-    expect(source).toContain("emit('cancel')")
-    expect(source).toContain("emit('commit', { items })")
+    expect(source).toContain('const editing = ref(false)')
+    expect(source).toContain('function startEditing')
+    expect(source).toMatch(/async function startEditing\(\): Promise<void> \{\s+if \(editing\.value\) \{\s+return\s+\}/)
+    expect(source).toContain("emit('inspect')")
+    expect(source).toContain('@dblclick.stop="startEditing"')
+    expect(source).toContain("emit('commit', { title })")
+    expect(source).not.toContain('editing: boolean')
   })
 
-  it('keeps oversized code edits out of commit payloads', () => {
-    const source = readCodeNodeContentSource()
+  it('keeps non-topic content read-only on the canvas', () => {
+    const readOnlyContent = [
+      'AttachmentNodeContent',
+      'CodeNodeContent',
+      'ImageNodeContent',
+      'LinkNodeContent',
+      'TaskNodeContent'
+    ]
 
-    expect(source).toContain('CODE_NODE_CODE_MAX_LENGTH')
-    expect(source).toContain('isValidCode(draftCode.value)')
-    expect(source).toContain('editError.value')
-    expect(source).toContain(':maxlength="CODE_NODE_CODE_MAX_LENGTH"')
+    for (const fileName of readOnlyContent) {
+      const source = readNodeContentSource(fileName)
+
+      expect(source).toContain('node:')
+      expect(source).not.toContain('editing: boolean')
+      expect(source).not.toContain('defineEmits')
+      expect(source).not.toContain('function commitEdit')
+      expect(source).not.toContain('function cancelEdit')
+      expect(source).not.toContain('v-if="editing"')
+      expect(source).not.toContain('@commit')
+      expect(source).not.toContain("@keydown.esc.prevent")
+    }
+
+    expect(readNodeContentSource('AttachmentNodeContent')).toContain('@click.prevent')
+    expect(readNodeContentSource('LinkNodeContent')).toContain('@click.prevent')
+    expect(readNodeContentSource('CodeNodeContent')).not.toContain('CODE_NODE_CODE_MAX_LENGTH')
+    expect(readNodeContentSource('CodeNodeContent')).not.toContain('isValidCode')
+    expect(readNodeContentSource('TaskNodeContent')).not.toContain('type TaskItem')
+    expect(readNodeContentSource('TaskNodeContent')).not.toContain('replaceItem')
+    expect(readNodeContentSource('TaskNodeContent')).not.toContain('task-node__input')
+    expect(readNodeContentSource('TaskNodeContent')).not.toContain('task-node__done')
+    expect(readNodeContentSource('TaskNodeContent')).not.toContain('task-node__error')
+  })
+
+  it('prevents native image and link dragging from competing with canvas drag', () => {
+    for (const fileName of ['AttachmentNodeContent', 'ImageNodeContent', 'LinkNodeContent']) {
+      const source = readNodeContentSource(fileName)
+
+      expect(source).toContain('draggable="false"')
+      expect(source).toContain('@dragstart.prevent')
+    }
   })
 })

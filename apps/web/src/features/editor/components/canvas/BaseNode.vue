@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MindNode, Point } from '@mind-x/shared'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { resolveNodeShellClass, resolveNodeShellStyle } from '../../utils/objectStyles'
 
 const props = defineProps<{
@@ -9,19 +9,17 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  cancelEdit: [nodeId: string]
   drag: [nodeId: string, delta: Point]
   dragEnd: []
-  editCommit: [nodeId: string, payload: unknown]
+  inspect: [nodeId: string]
   resize: [nodeId: string, delta: { width: number; height: number }]
   resizeEnd: []
   select: [nodeId: string]
 }>()
 
-const editing = ref(false)
-const draggingPointerId = ref<number | null>(null)
-const resizingPointerId = ref<number | null>(null)
-const lastPointer = ref<Point | null>(null)
+let draggingPointerId: number | null = null
+let resizingPointerId: number | null = null
+let lastPointer: Point | null = null
 
 const nodeStyle = computed(() => ({
   ...resolveNodeShellStyle(props.node.shellStyle),
@@ -35,91 +33,69 @@ const nodeClass = computed(() => [
   { 'topic-node--selected': props.selected }
 ])
 
-function startEditing(): void {
-  editing.value = true
-}
-
-function commitEdit(payload: unknown): void {
-  editing.value = false
-  emit('editCommit', props.node.id, payload)
-}
-
-function cancelEdit(): void {
-  editing.value = false
-  emit('cancelEdit', props.node.id)
-}
-
 function onPointerDown(event: PointerEvent): void {
-  if (editing.value) {
-    return
-  }
-
   event.stopPropagation()
   emit('select', props.node.id)
-  draggingPointerId.value = event.pointerId
-  lastPointer.value = { x: event.clientX, y: event.clientY }
+  draggingPointerId = event.pointerId
+  lastPointer = { x: event.clientX, y: event.clientY }
   ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
 }
 
 function onPointerMove(event: PointerEvent): void {
-  if (draggingPointerId.value !== event.pointerId || !lastPointer.value) {
+  if (draggingPointerId !== event.pointerId || !lastPointer) {
     return
   }
 
   event.stopPropagation()
   const nextPointer = { x: event.clientX, y: event.clientY }
   emit('drag', props.node.id, {
-    x: nextPointer.x - lastPointer.value.x,
-    y: nextPointer.y - lastPointer.value.y
+    x: nextPointer.x - lastPointer.x,
+    y: nextPointer.y - lastPointer.y
   })
-  lastPointer.value = nextPointer
+  lastPointer = nextPointer
 }
 
 function endDrag(event: PointerEvent): void {
-  if (draggingPointerId.value !== event.pointerId) {
+  if (draggingPointerId !== event.pointerId) {
     return
   }
 
   event.stopPropagation()
-  draggingPointerId.value = null
-  lastPointer.value = null
+  draggingPointerId = null
+  lastPointer = null
   emit('dragEnd')
 }
 
 function onResizePointerDown(event: PointerEvent): void {
-  if (editing.value) {
-    return
-  }
-
   event.stopPropagation()
   emit('select', props.node.id)
-  resizingPointerId.value = event.pointerId
-  lastPointer.value = { x: event.clientX, y: event.clientY }
+  resizingPointerId = event.pointerId
+  lastPointer = { x: event.clientX, y: event.clientY }
   ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
 }
 
 function onResizePointerMove(event: PointerEvent): void {
-  if (resizingPointerId.value !== event.pointerId || !lastPointer.value) {
+  if (resizingPointerId !== event.pointerId || !lastPointer) {
     return
   }
 
   event.stopPropagation()
   const nextPointer = { x: event.clientX, y: event.clientY }
   emit('resize', props.node.id, {
-    height: nextPointer.y - lastPointer.value.y,
-    width: nextPointer.x - lastPointer.value.x
+    height: nextPointer.y - lastPointer.y,
+    width: nextPointer.x - lastPointer.x
   })
-  lastPointer.value = nextPointer
+  lastPointer = nextPointer
 }
 
 function endResize(event: PointerEvent): void {
-  if (resizingPointerId.value !== event.pointerId) {
+  if (resizingPointerId !== event.pointerId) {
     return
   }
 
   event.stopPropagation()
-  resizingPointerId.value = null
-  lastPointer.value = null
+  resizingPointerId = null
+  lastPointer = null
   emit('resizeEnd')
 }
 </script>
@@ -131,18 +107,14 @@ function endResize(event: PointerEvent): void {
     :data-editor-node-id="node.id"
     :class="nodeClass"
     :style="nodeStyle"
-    @dblclick.stop="startEditing"
+    @dblclick.stop="emit('inspect', node.id)"
     @pointercancel="endDrag"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="endDrag"
   >
-    <div class="base-node__content" :class="{ 'base-node__content--blocked': !editing }">
-      <slot
-        :cancel-edit="cancelEdit"
-        :commit-edit="commitEdit"
-        :editing="editing"
-      />
+    <div class="base-node__content">
+      <slot />
     </div>
     <span
       aria-hidden="true"
@@ -186,10 +158,6 @@ function endResize(event: PointerEvent): void {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-.base-node__content--blocked {
-  pointer-events: none;
 }
 
 .base-node__resize-handle {

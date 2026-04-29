@@ -24,6 +24,10 @@ const emit = defineEmits<{
   save: [document: MindDocument]
 }>()
 
+type InspectionTarget =
+  | { id: string; type: 'edge' }
+  | { id: string; type: 'node' }
+
 const editor = useEditorStore()
 const editorRootRef = ref<HTMLElement | null>(null)
 const viewportPaneRef = ref<{ getExportRoot: () => HTMLElement | null } | null>(null)
@@ -34,25 +38,26 @@ const contextMenu = reactive({
   y: 0
 })
 const inspectorPosition = ref<Point>(readStoredInspectorPosition())
+const inspectionTarget = ref<InspectionTarget | null>(null)
 
 const documentState = computed(() => editor.document)
 const hasDocument = computed(() => documentState.value !== null)
 const hasNodes = computed(() => (documentState.value?.nodes.length ?? 0) > 0)
 const hasSelection = computed(() => editor.selectedNodeIds.length > 0)
 const hasDeletableSelection = computed(() => hasSelection.value || editor.selectedEdgeId !== null)
-const selectedNode = computed<MindNode | null>(() => {
-  if (!documentState.value || editor.selectedNodeIds.length !== 1) {
+const inspectedNode = computed<MindNode | null>(() => {
+  if (!documentState.value || inspectionTarget.value?.type !== 'node') {
     return null
   }
 
-  return documentState.value.nodes.find((node) => node.id === editor.selectedNodeIds[0]) ?? null
+  return documentState.value.nodes.find((node) => node.id === inspectionTarget.value?.id) ?? null
 })
-const selectedEdge = computed<MindEdge | null>(() => {
-  if (!documentState.value || !editor.selectedEdgeId) {
+const inspectedEdge = computed<MindEdge | null>(() => {
+  if (!documentState.value || inspectionTarget.value?.type !== 'edge') {
     return null
   }
 
-  return documentState.value.edges.find((edge) => edge.id === editor.selectedEdgeId) ?? null
+  return documentState.value.edges.find((edge) => edge.id === inspectionTarget.value?.id) ?? null
 })
 
 watch(
@@ -60,6 +65,27 @@ watch(
   (document) => editor.load(document),
   { immediate: true }
 )
+
+watch([documentState, () => editor.revision], () => {
+  const target = inspectionTarget.value
+  if (!target) {
+    return
+  }
+
+  if (!documentState.value) {
+    inspectionTarget.value = null
+    return
+  }
+
+  const targetExists =
+    target.type === 'node'
+      ? documentState.value.nodes.some((node) => node.id === target.id)
+      : documentState.value.edges.some((edge) => edge.id === target.id)
+
+  if (!targetExists) {
+    inspectionTarget.value = null
+  }
+})
 
 function addTopic(type: MindNodeType = 'topic'): void {
   editor.addRootNode({ type })
@@ -126,10 +152,27 @@ function selectEdge(edgeId: string): void {
   editor.selectEdge(edgeId)
 }
 
+function inspectNode(nodeId: string): void {
+  closeContextMenu()
+  editor.selectOnly(nodeId)
+  inspectionTarget.value = { id: nodeId, type: 'node' }
+}
+
+function inspectEdge(edgeId: string): void {
+  closeContextMenu()
+  editor.selectEdge(edgeId)
+  inspectionTarget.value = { id: edgeId, type: 'edge' }
+}
+
+function closeInspector(): void {
+  inspectionTarget.value = null
+}
+
 function clearSelectionFromCanvas(event: PointerEvent): void {
   const target = event.target
   if (!(target instanceof Element)) {
     editor.clearSelection()
+    inspectionTarget.value = null
     return
   }
 
@@ -138,6 +181,7 @@ function clearSelectionFromCanvas(event: PointerEvent): void {
   }
 
   editor.clearSelection()
+  inspectionTarget.value = null
 }
 
 function setInspectorPosition(position: Point): void {
@@ -145,28 +189,45 @@ function setInspectorPosition(position: Point): void {
   writeStoredInspectorPosition(position)
 }
 
-function setSelectedNodeContent(dataPatch: Record<string, unknown>): void {
-  if (!selectedNode.value) {
+function setInspectedNodeContent(dataPatch: Record<string, unknown>): void {
+  if (!inspectedNode.value) {
     return
   }
 
-  editor.updateNodeData(selectedNode.value.id, dataPatch)
+  editor.updateNodeData(inspectedNode.value.id, dataPatch)
 }
 
-function setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void {
-  editor.setSelectedNodeShellStyle(stylePatch)
+function setInspectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void {
+  if (!inspectedNode.value) {
+    return
+  }
+
+  editor.setNodeShellStyle(inspectedNode.value.id, stylePatch)
 }
 
-function setSelectedNodeContentStyle(stylePatch: Record<string, unknown>): void {
-  editor.setSelectedNodeContentStyle(stylePatch)
+function setInspectedNodeContentStyle(stylePatch: Record<string, unknown>): void {
+  if (!inspectedNode.value) {
+    return
+  }
+
+  editor.setNodeContentStyle(inspectedNode.value.id, stylePatch)
 }
 
-function setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void {
-  editor.setSelectedEdgeStyle(stylePatch)
+function setInspectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void {
+  if (!inspectedEdge.value) {
+    return
+  }
+
+  editor.setEdgeStyle(inspectedEdge.value.id, stylePatch)
 }
 
-function deleteSelectedEdgeFromInspector(): void {
-  editor.deleteSelected()
+function deleteInspectedEdgeFromInspector(): void {
+  if (!inspectedEdge.value) {
+    return
+  }
+
+  editor.deleteEdge(inspectedEdge.value.id)
+  inspectionTarget.value = null
 }
 
 function addChildFromContextMenu(type: MindNodeType): void {
@@ -241,6 +302,7 @@ onUnmounted(() => {
         :edges="documentState.edges"
         :nodes="documentState.nodes"
         :selected-edge-id="editor.selectedEdgeId"
+        @inspect="inspectEdge"
         @select="selectEdge"
       />
       <SelectionLayer :nodes="documentState.nodes" :selected-node-ids="editor.selectedNodeIds" />
@@ -250,6 +312,7 @@ onUnmounted(() => {
         @drag="moveNode"
         @drag-end="editor.finishInteraction"
         @edit-commit="editor.updateNodeData"
+        @inspect="inspectNode"
         @resize="resizeNode"
         @resize-end="editor.finishInteraction"
         @select="editor.selectOnly"
@@ -257,31 +320,31 @@ onUnmounted(() => {
     </ViewportPane>
 
     <InspectorPanel
-      v-if="selectedNode"
+      v-if="inspectedNode"
       :position="inspectorPosition"
       title="Node"
-      @close="editor.clearSelection"
+      @close="closeInspector"
       @position-change="setInspectorPosition"
     >
       <NodeInspector
-        :node="selectedNode"
-        @content-change="setSelectedNodeContent"
-        @content-style-change="setSelectedNodeContentStyle"
-        @shell-style-change="setSelectedNodeShellStyle"
+        :node="inspectedNode"
+        @content-change="setInspectedNodeContent"
+        @content-style-change="setInspectedNodeContentStyle"
+        @shell-style-change="setInspectedNodeShellStyle"
       />
     </InspectorPanel>
 
     <InspectorPanel
-      v-if="selectedEdge"
+      v-if="inspectedEdge"
       :position="inspectorPosition"
       title="Edge"
-      @close="editor.clearSelection"
+      @close="closeInspector"
       @position-change="setInspectorPosition"
     >
       <EdgeInspector
-        :style="selectedEdge.style"
-        @delete="deleteSelectedEdgeFromInspector"
-        @style-change="setSelectedEdgeStyle"
+        :style="inspectedEdge.style"
+        @delete="deleteInspectedEdgeFromInspector"
+        @style-change="setInspectedEdgeStyle"
       />
     </InspectorPanel>
 

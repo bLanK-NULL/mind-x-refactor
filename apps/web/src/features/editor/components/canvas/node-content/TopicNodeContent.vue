@@ -6,15 +6,15 @@ import { resolveTopicContentClass } from '../../../utils/objectStyles'
 type TopicNodeModel = Extract<MindNode, { type: 'topic' }>
 
 const props = defineProps<{
-  editing: boolean
   node: TopicNodeModel
 }>()
 
 const emit = defineEmits<{
-  cancel: []
-  commit: [title: string]
+  commit: [dataPatch: { title: string }]
+  inspect: []
 }>()
 
+const editing = ref(false)
 const draftTitle = ref(props.node.data.title)
 const editError = ref('')
 const titleInputRef = ref<HTMLInputElement | null>(null)
@@ -24,24 +24,9 @@ const contentClass = computed(() => resolveTopicContentClass(props.node.contentS
 watch(
   () => props.node.data.title,
   (title) => {
-    if (!props.editing) {
+    if (!editing.value) {
       draftTitle.value = title
     }
-  }
-)
-
-watch(
-  () => props.editing,
-  async (editing) => {
-    if (!editing) {
-      return
-    }
-
-    editError.value = ''
-    draftTitle.value = props.node.data.title
-    await nextTick()
-    titleInputRef.value?.focus()
-    titleInputRef.value?.select()
   }
 )
 
@@ -50,6 +35,20 @@ function validateTitle(title: string): string {
     return 'Use non-empty plain text.'
   }
   return ''
+}
+
+async function startEditing(): Promise<void> {
+  if (editing.value) {
+    return
+  }
+
+  editError.value = ''
+  draftTitle.value = props.node.data.title
+  editing.value = true
+  emit('inspect')
+  await nextTick()
+  titleInputRef.value?.focus()
+  titleInputRef.value?.select()
 }
 
 async function commitEdit(): Promise<void> {
@@ -63,23 +62,23 @@ async function commitEdit(): Promise<void> {
   }
 
   editError.value = ''
+  editing.value = false
   if (title.length > 0 && title !== props.node.data.title) {
-    emit('commit', title)
+    emit('commit', { title })
   } else {
     draftTitle.value = props.node.data.title
-    emit('cancel')
   }
 }
 
 function cancelEdit(): void {
   editError.value = ''
+  editing.value = false
   draftTitle.value = props.node.data.title
-  emit('cancel')
 }
 </script>
 
 <template>
-  <div class="topic-node__content" :class="contentClass">
+  <div class="topic-node__content" :class="contentClass" @dblclick.stop="startEditing">
     <template v-if="editing">
       <input
         ref="titleInputRef"

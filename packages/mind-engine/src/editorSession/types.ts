@@ -45,6 +45,10 @@ export type EditorSession = {
   resizeSelectedByDelta(delta: { width: number; height: number }): void
   selectEdge(edgeId: string): void
   selectOnly(nodeId: string): void
+  deleteEdge(edgeId: string): void
+  setEdgeStyle(edgeId: string, stylePatch: Partial<EdgeStyle>): void
+  setNodeContentStyle(nodeId: string, stylePatch: Record<string, unknown>): void
+  setNodeShellStyle(nodeId: string, stylePatch: Partial<NodeShellStyle>): void
   setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>): void
   setSelectedNodeContentStyle(stylePatch: Record<string, unknown>): void
   setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void

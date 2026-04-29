@@ -215,6 +215,118 @@ export function createEditorSession(): EditorSession {
     return id
   }
 
+  function deleteEdge(edgeId: string): void {
+    if (!state.document) {
+      return
+    }
+
+    const edge = state.document.edges.find((documentEdge) => documentEdge.id === edgeId)
+    if (!edge) {
+      if (state.selectedEdgeId === edgeId) {
+        setState((draft) => {
+          draft.selectedEdgeId = null
+          draft.revision += 1
+        })
+      }
+      return
+    }
+
+    finalizePendingPreview()
+    if (state.selectedEdgeId === edge.id) {
+      setState((draft) => {
+        draft.selectedEdgeId = null
+      })
+    }
+    commitCommandResult(executeCommand(cloneDocument(state.document), deleteEdgeDetachChildCommand, { edgeId: edge.id }))
+  }
+
+  function setEdgeStyle(edgeId: string, stylePatch: Partial<EdgeStyle>): void {
+    if (!state.document) {
+      return
+    }
+
+    const edge = state.document.edges.find((documentEdge) => documentEdge.id === edgeId)
+    if (!edge) {
+      if (state.selectedEdgeId === edgeId) {
+        setState((draft) => {
+          draft.selectedEdgeId = null
+          draft.revision += 1
+        })
+      }
+      return
+    }
+
+    if (isStylePatchNoop(edge.style, stylePatch)) {
+      return
+    }
+
+    finalizePendingPreview()
+    commitCommandResult(
+      executeCommand(cloneDocument(state.document), setEdgeStyleCommand, {
+        edgeId,
+        stylePatch
+      })
+    )
+  }
+
+  function setNodeShellStyle(nodeId: string, stylePatch: Partial<NodeShellStyle>): void {
+    if (!state.document) {
+      return
+    }
+
+    const node = state.document.nodes.find((documentNode) => documentNode.id === nodeId)
+    if (!node) {
+      if (state.selectedNodeIds.includes(nodeId)) {
+        setState((draft) => {
+          draft.selectedNodeIds = draft.selectedNodeIds.filter((selectedNodeId) => selectedNodeId !== nodeId)
+          draft.revision += 1
+        })
+      }
+      return
+    }
+
+    if (isStylePatchNoop(node.shellStyle, stylePatch)) {
+      return
+    }
+
+    finalizePendingPreview()
+    commitCommandResult(
+      executeCommand(cloneDocument(state.document), setNodeShellStyleCommand, {
+        nodeId,
+        stylePatch
+      })
+    )
+  }
+
+  function setNodeContentStyle(nodeId: string, stylePatch: Record<string, unknown>): void {
+    if (!state.document) {
+      return
+    }
+
+    const node = state.document.nodes.find((documentNode) => documentNode.id === nodeId)
+    if (!node) {
+      if (state.selectedNodeIds.includes(nodeId)) {
+        setState((draft) => {
+          draft.selectedNodeIds = draft.selectedNodeIds.filter((selectedNodeId) => selectedNodeId !== nodeId)
+          draft.revision += 1
+        })
+      }
+      return
+    }
+
+    if (isStylePatchNoop(node.contentStyle, stylePatch)) {
+      return
+    }
+
+    finalizePendingPreview()
+    commitCommandResult(
+      executeCommand(cloneDocument(state.document), setNodeContentStyleCommand, {
+        nodeId,
+        stylePatch
+      })
+    )
+  }
+
   return {
     addChildNode: addChildNodeThroughSession,
     addChildTopic(input: AddChildTopicInput = {}) {
@@ -253,6 +365,7 @@ export function createEditorSession(): EditorSession {
       const current = history?.current() ?? state.document ?? next
       commitCommandResult(replaceWithPatchResult(current, next))
     },
+    deleteEdge,
     deleteSelected() {
       if (!state.document) {
         return
@@ -376,86 +489,29 @@ export function createEditorSession(): EditorSession {
         draft.revision += 1
       })
     },
+    setEdgeStyle,
+    setNodeContentStyle,
+    setNodeShellStyle,
     setSelectedEdgeStyle(stylePatch: Partial<EdgeStyle>) {
-      if (!state.document || !state.selectedEdgeId) {
+      if (!state.selectedEdgeId) {
         return
       }
 
-      const edgeId = state.selectedEdgeId
-      const selectedEdge = state.document.edges.find((edge) => edge.id === edgeId)
-      if (!selectedEdge) {
-        setState((draft) => {
-          draft.selectedEdgeId = null
-          draft.revision += 1
-        })
-        return
-      }
-
-      if (isStylePatchNoop(selectedEdge.style, stylePatch)) {
-        return
-      }
-
-      finalizePendingPreview()
-      commitCommandResult(
-        executeCommand(cloneDocument(state.document), setEdgeStyleCommand, {
-          edgeId,
-          stylePatch
-        })
-      )
+      setEdgeStyle(state.selectedEdgeId, stylePatch)
     },
     setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>) {
-      if (!state.document || state.selectedNodeIds.length !== 1) {
+      if (state.selectedNodeIds.length !== 1) {
         return
       }
 
-      const nodeId = state.selectedNodeIds[0]
-      const selectedNode = state.document.nodes.find((node) => node.id === nodeId)
-      if (!selectedNode) {
-        setState((draft) => {
-          draft.selectedNodeIds = []
-          draft.revision += 1
-        })
-        return
-      }
-
-      if (isStylePatchNoop(selectedNode.shellStyle, stylePatch)) {
-        return
-      }
-
-      finalizePendingPreview()
-      commitCommandResult(
-        executeCommand(cloneDocument(state.document), setNodeShellStyleCommand, {
-          nodeId,
-          stylePatch
-        })
-      )
+      setNodeShellStyle(state.selectedNodeIds[0], stylePatch)
     },
     setSelectedNodeContentStyle(stylePatch: Record<string, unknown>) {
-      if (!state.document || state.selectedNodeIds.length !== 1) {
+      if (state.selectedNodeIds.length !== 1) {
         return
       }
 
-      const nodeId = state.selectedNodeIds[0]
-      const selectedNode = state.document.nodes.find((node) => node.id === nodeId)
-      if (!selectedNode) {
-        setState((draft) => {
-          draft.selectedNodeIds = []
-          draft.revision += 1
-        })
-        return
-      }
-
-      if (isStylePatchNoop(selectedNode.contentStyle, stylePatch)) {
-        return
-      }
-
-      finalizePendingPreview()
-      commitCommandResult(
-        executeCommand(cloneDocument(state.document), setNodeContentStyleCommand, {
-          nodeId,
-          stylePatch
-        })
-      )
+      setNodeContentStyle(state.selectedNodeIds[0], stylePatch)
     },
     setSelection(nodeIds: string[]) {
       setState((draft) => {

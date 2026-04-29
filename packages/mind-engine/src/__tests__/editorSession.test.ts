@@ -46,6 +46,18 @@ function documentWithEdge(): MindDocument {
   return emptyDocument({
     nodes: [
       topicNode('root', 'Root', { x: 0, y: 0 }),
+      topicNode('child', 'Child', { x: 240, y: 0 })
+    ],
+    edges: [
+      { id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }
+    ]
+  })
+}
+
+function documentWithEdgeChain(): MindDocument {
+  return emptyDocument({
+    nodes: [
+      topicNode('root', 'Root', { x: 0, y: 0 }),
       topicNode('child', 'Child', { x: 240, y: 0 }),
       topicNode('leaf', 'Leaf', { x: 480, y: 0 })
     ],
@@ -141,7 +153,7 @@ describe('editor session', () => {
 
   it('deletes a selected edge, clears edge selection, and keeps the child node as a root', () => {
     const session = createEditorSession()
-    session.load(documentWithEdge())
+    session.load(documentWithEdgeChain())
 
     session.selectEdge('root->child')
     session.deleteSelected()
@@ -204,6 +216,41 @@ describe('editor session', () => {
     expect(session.getState().dirty).toBe(false)
     expect(session.getState().canUndo).toBe(false)
     expect(session.getState().canRedo).toBe(true)
+  })
+
+  it('updates node styles by id without relying on current selection', () => {
+    const session = createEditorSession()
+    session.load(documentWithEdge())
+    session.selectOnly('child')
+
+    session.setNodeShellStyle('root', { colorToken: 'purple' })
+    session.setNodeContentStyle('root', { textWeight: 'bold' })
+
+    const root = session.getState().document?.nodes.find((node) => node.id === 'root')
+    expect(root?.shellStyle.colorToken).toBe('purple')
+    expect(root?.contentStyle).toMatchObject({ textWeight: 'bold' })
+    expect(session.getState().selectedNodeIds).toEqual(['child'])
+    expect(session.getState().selectedEdgeId).toBeNull()
+    expect(session.getState().canUndo).toBe(true)
+  })
+
+  it('updates and deletes edges by id without relying on current selection', () => {
+    const session = createEditorSession()
+    session.load(documentWithEdge())
+    session.selectOnly('root')
+
+    session.setEdgeStyle('root->child', { colorToken: 'warning' })
+
+    expect(session.getState().document?.edges[0].style.colorToken).toBe('warning')
+    expect(session.getState().selectedNodeIds).toEqual(['root'])
+    expect(session.getState().selectedEdgeId).toBeNull()
+
+    session.deleteEdge('root->child')
+
+    expect(session.getState().document?.edges).toEqual([])
+    expect(session.getState().document?.nodes.map((node) => node.id)).toEqual(['root', 'child'])
+    expect(session.getState().selectedNodeIds).toEqual(['root'])
+    expect(session.getState().selectedEdgeId).toBeNull()
   })
 
   it('previews repeated drag moves as one undoable history entry when the interaction ends', () => {
