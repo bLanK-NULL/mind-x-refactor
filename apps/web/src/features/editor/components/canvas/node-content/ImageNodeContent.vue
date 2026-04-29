@@ -16,6 +16,7 @@ const previewLabel = computed(() => {
 })
 const previewOpen = ref(false)
 const previewRootRef = ref<HTMLElement | null>(null)
+const previewDialogRef = ref<HTMLElement | null>(null)
 const closeButtonRef = ref<HTMLButtonElement | null>(null)
 
 watch(
@@ -38,11 +39,24 @@ watch(previewOpen, async (open) => {
 })
 
 function openPreview(): void {
+  if (!props.selected) {
+    return
+  }
+
   previewOpen.value = true
 }
 
 function closePreview(): void {
   previewOpen.value = false
+}
+
+function keepPreviewFocus(event: KeyboardEvent): void {
+  if (!previewOpen.value || event.key !== 'Tab') {
+    return
+  }
+
+  event.preventDefault()
+  closeButtonRef.value?.focus()
 }
 </script>
 
@@ -51,9 +65,10 @@ function closePreview(): void {
     ref="previewRootRef"
     class="image-node__content"
     role="button"
-    tabindex="0"
+    :tabindex="selected ? 0 : -1"
     :aria-label="previewLabel"
     @keydown.space.prevent.stop="openPreview"
+    @keydown.enter.prevent.stop="openPreview"
   >
     <img
       class="image-node__image"
@@ -66,12 +81,14 @@ function closePreview(): void {
     <Teleport to="body">
       <div
         v-if="previewOpen"
+        ref="previewDialogRef"
         class="image-node-preview"
         role="dialog"
         aria-modal="true"
         :aria-label="previewLabel"
         @click.self="closePreview"
         @keydown.esc.prevent.stop="closePreview"
+        @keydown.tab="keepPreviewFocus"
       >
         <button
           ref="closeButtonRef"
