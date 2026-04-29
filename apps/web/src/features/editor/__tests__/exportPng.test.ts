@@ -9,9 +9,14 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const html2canvasMock = vi.hoisted(() => vi.fn())
+const prepareExportCloneMock = vi.hoisted(() => vi.fn())
 
 vi.mock('html2canvas', () => ({
   default: html2canvasMock
+}))
+
+vi.mock('@/features/editor/services/exportClone', () => ({
+  prepareExportClone: prepareExportCloneMock
 }))
 
 function document(overrides: Partial<MindDocument> = {}): MindDocument {
@@ -130,19 +135,30 @@ describe('exportPng', () => {
       })
     ).resolves.toBe('Project-One.png')
 
-    expect(html2canvasMock).toHaveBeenCalledWith(root, {
-      backgroundColor: '#ffffff',
+    expect(html2canvasMock).toHaveBeenCalledWith(root, expect.objectContaining({
+      backgroundColor: null,
       height: 104,
-      onclone: expect.any(Function),
+      imageTimeout: 8000,
       scale: 2,
+      useCORS: true,
       width: 228,
       x: 96,
       y: 56
-    })
+    }))
     const options = html2canvasMock.mock.calls[0]?.[1]
-    const clonedRoot = { style: { transform: 'translate(50px, 20px) scale(0.5)' } } as HTMLElement
-    options.onclone(globalThis.document, clonedRoot)
-    expect(clonedRoot.style.transform).toBe('none')
+    const clonedDocument = {} as Document
+    const clonedRoot = {} as HTMLElement
+
+    options.onclone(clonedDocument, clonedRoot)
+
+    expect(prepareExportCloneMock).toHaveBeenCalledWith(clonedDocument, clonedRoot, {
+      height: 104,
+      maxX: 300,
+      maxY: 136,
+      minX: 120,
+      minY: 80,
+      width: 228
+    })
     expect(link.download).toBe('Project-One.png')
     expect(link.href).toBe('blob:mind-map')
     expect(click).toHaveBeenCalled()
@@ -151,6 +167,37 @@ describe('exportPng', () => {
     expect(revokeObjectURL).not.toHaveBeenCalled()
     vi.runOnlyPendingTimers()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mind-map')
+  })
+
+  it('does not blur active editing controls before export', async () => {
+    const blur = vi.fn()
+    const click = vi.fn()
+    const appendChild = vi.fn()
+    const removeChild = vi.fn()
+    const link = { click, download: '', href: '' }
+    const canvas = {
+      toBlob: vi.fn((callback: BlobCallback) => callback(new Blob(['png'], { type: 'image/png' })))
+    }
+
+    html2canvasMock.mockResolvedValueOnce(canvas)
+    vi.stubGlobal('document', {
+      activeElement: { blur },
+      body: { appendChild, removeChild },
+      createElement: vi.fn(() => link)
+    })
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:mind-map'), revokeObjectURL: vi.fn() })
+
+    const { exportDocumentAsPng } = await import('@/features/editor/services/exportPng')
+    await exportDocumentAsPng({
+      document: document({
+        nodes: [
+          topicNode('root', 'Root', { x: 120, y: 80 })
+        ]
+      }),
+      root: {} as HTMLElement
+    })
+
+    expect(blur).not.toHaveBeenCalled()
   })
 
   it('uses negative bounds origins when exporting documents with negative-positioned nodes', async () => {

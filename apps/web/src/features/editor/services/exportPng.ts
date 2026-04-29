@@ -4,11 +4,12 @@ import {
   calculateDocumentBounds,
   EXPORT_PADDING
 } from './exportBounds'
+import { prepareExportClone } from './exportClone'
 
 export { calculateDocumentBounds } from './exportBounds'
 export type { DocumentBounds } from './exportBounds'
 
-const EXPORT_BACKGROUND = '#ffffff'
+const EXPORT_IMAGE_TIMEOUT = 8000
 
 export type ExportPngInput = {
   document: MindDocument
@@ -36,12 +37,14 @@ export async function exportDocumentAsPng(input: ExportPngInput): Promise<string
   }
 
   const canvas = await html2canvas(input.root, {
-    backgroundColor: EXPORT_BACKGROUND,
+    backgroundColor: null,
     height: bounds.height,
-    onclone: (_clonedDocument, clonedRoot) => {
-      clonedRoot.style.transform = 'none'
+    imageTimeout: EXPORT_IMAGE_TIMEOUT,
+    onclone: (clonedDocument, clonedRoot) => {
+      prepareExportClone(clonedDocument, clonedRoot, bounds)
     },
     scale: 2,
+    useCORS: true,
     width: bounds.width,
     x: bounds.minX - EXPORT_PADDING,
     y: bounds.minY - EXPORT_PADDING
