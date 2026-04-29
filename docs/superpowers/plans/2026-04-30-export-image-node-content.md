@@ -471,7 +471,17 @@ git commit -m "feat(web): prepare cloned canvas for png export"
 
 - [ ] **Step 1: Update the html2canvas options assertion to fail against current exportPng**
 
-In `apps/web/src/features/editor/__tests__/exportPng.test.ts`, replace the `expect(html2canvasMock).toHaveBeenCalledWith(root, { ... })` block inside `renders the document export root from the document bounds origin and triggers a PNG download` with:
+In `apps/web/src/features/editor/__tests__/exportPng.test.ts`, add a mock for the clone-preparation helper near the existing `html2canvasMock`:
+
+```ts
+const prepareExportCloneMock = vi.hoisted(() => vi.fn())
+
+vi.mock('@/features/editor/services/exportClone', () => ({
+  prepareExportClone: prepareExportCloneMock
+}))
+```
+
+Replace the `expect(html2canvasMock).toHaveBeenCalledWith(root, { ... })` block inside `renders the document export root from the document bounds origin and triggers a PNG download` with:
 
 ```ts
 expect(html2canvasMock).toHaveBeenCalledWith(root, expect.objectContaining({
@@ -499,18 +509,19 @@ with:
 
 ```ts
 const options = html2canvasMock.mock.calls[0]?.[1]
-const clonedDocument = originalDocument.implementation.createHTMLDocument('export clone')
-const clonedRoot = clonedDocument.createElement('div')
-const selectedNode = clonedDocument.createElement('div')
-selectedNode.className = 'base-node topic-node--selected'
-clonedRoot.style.transform = 'translate(50px, 20px) scale(0.5)'
-clonedRoot.appendChild(selectedNode)
+const clonedDocument = {} as Document
+const clonedRoot = {} as HTMLElement
 
 options.onclone(clonedDocument, clonedRoot)
 
-expect(clonedRoot.style.transform).toBe('none')
-expect(clonedRoot.querySelector('[data-editor-export-background="true"]')).not.toBeNull()
-expect(selectedNode.classList.contains('topic-node--selected')).toBe(false)
+expect(prepareExportCloneMock).toHaveBeenCalledWith(clonedDocument, clonedRoot, {
+  height: 104,
+  maxX: 300,
+  maxY: 136,
+  minX: 120,
+  minY: 80,
+  width: 228
+})
 ```
 
 - [ ] **Step 2: Add the active-element regression test**
