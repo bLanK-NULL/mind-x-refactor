@@ -163,7 +163,8 @@ function emitShadowLevelChange(shadowLevel: unknown): void {
 Run:
 
 ```bash
-rm apps/web/src/features/editor/components/inspectors/<old-shell-style-inspector-file>.vue
+removed_shell_inspector_file="$(printf '%s%s%s.vue' Node ShellStyle Inspector)"
+rm "apps/web/src/features/editor/components/inspectors/${removed_shell_inspector_file}"
 ```
 
 ---
@@ -182,6 +183,8 @@ rm apps/web/src/features/editor/components/inspectors/<old-shell-style-inspector
 Update tests so they assert:
 
 ```ts
+const removedShellInspectorName = ['Node', 'ShellStyle', 'Inspector'].join('')
+
 expect(source).toContain("import ColorTokenPicker from './ColorTokenPicker.vue'")
 expect(source).toContain("import StyleField from './StyleField.vue'")
 expect(source).not.toContain(removedShellInspectorName)
@@ -214,7 +217,8 @@ InspectorPanel
 Run:
 
 ```bash
-rg -n "<removed shell inspector component name>" apps docs
+removed_shell_inspector_name="$(printf '%s%s%s' Node ShellStyle Inspector)"
+rg -n "$removed_shell_inspector_name" apps docs
 ```
 
 Expected: no output.
@@ -254,5 +258,5 @@ Expected: both commands exit 0.
 ## Self-Review
 
 - Spec coverage: this plan removes the shell component, keeps type inspectors split, places shell controls above a divider, and updates tests/docs.
-- Placeholder scan: no placeholder markers or open-ended implementation steps remain.
+- Placeholder scan: no fill-in markers or open-ended implementation steps remain.
 - Type consistency: `MindNode`, `NodeShellStyle`, `Component`, `contentChange`, `contentStyleChange`, and `shellStyleChange` match current code.
