@@ -99,14 +99,14 @@ describe('node inspector architecture', () => {
     const source = readEditorSource('../components/inspectors/node-inspectors/TaskNodeInspector.vue')
 
     expect(source).toContain("type TaskNodeModel = Extract<MindNode, { type: 'task' }>")
-    expect(source).toContain("type TaskItem = TaskNodeModel['data']['items'][number]")
     expect(source).toContain('node: TaskNodeModel')
-    expect(source).toContain('isValidPlainText')
-    expect(source).toContain('label="Tasks"')
     expect(source).toContain('label="Density"')
-    expect(source).toContain('replaceTaskItem')
-    expect(source).toContain("emit('contentChange', { items })")
     expect(source).toContain("emit('contentStyleChange', { density: density as TaskContentStyle['density'] })")
+    expect(source).not.toContain('label="Tasks"')
+    expect(source).not.toContain('contentChange')
+    expect(source).not.toContain('replaceTaskItem')
+    expect(source).not.toContain('<a-input')
+    expect(source).not.toContain('<a-checkbox')
   })
 
   it('keeps NodeInspector as the shell style host and exhaustive type dispatcher', () => {

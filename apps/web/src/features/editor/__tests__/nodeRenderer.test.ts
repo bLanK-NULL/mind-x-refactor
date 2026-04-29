@@ -17,6 +17,10 @@ function readNodeContentSource(fileName: string): string {
   return readFileSync(new URL(`../components/canvas/node-content/${fileName}.vue`, import.meta.url), 'utf8')
 }
 
+function readEditorSource(path: string): string {
+  return readFileSync(new URL(path, import.meta.url), 'utf8')
+}
+
 function createImageNode(): Extract<MindNode, { type: 'image' }> {
   return {
     id: 'image-1',
@@ -157,13 +161,42 @@ describe('NodeRenderer', () => {
     expect(source).not.toContain('editing: boolean')
   })
 
+  it('keeps task item interactions inside TaskNodeContent instead of the inspector pane', () => {
+    const taskContentSource = readNodeContentSource('TaskNodeContent')
+    const taskInspectorSource = readEditorSource('../components/inspectors/node-inspectors/TaskNodeInspector.vue')
+
+    expect(taskContentSource).toContain("type TaskItem = TaskNodeModel['data']['items'][number]")
+    expect(taskContentSource).toContain('commit: [dataPatch: Record<string, unknown>]')
+    expect(taskContentSource).toContain('function createNextTaskId')
+    expect(taskContentSource).toContain('function commitItems')
+    expect(taskContentSource).toContain('function addTaskItem')
+    expect(taskContentSource).toContain('function deleteTaskItem')
+    expect(taskContentSource).toContain('function toggleTaskItem')
+    expect(taskContentSource).toContain('function commitTaskTitle')
+    expect(taskContentSource).toContain("emit('commit', { items: nextItems })")
+    expect(taskContentSource).toContain('task-node__input')
+    expect(taskContentSource).toContain('task-node__add')
+    expect(taskContentSource).toContain('task-node__delete')
+    expect(taskContentSource).toContain('@pointerdown.stop')
+    expect(taskContentSource).toContain('@keydown.enter.prevent')
+    expect(taskContentSource).toContain('@keydown.esc.prevent')
+
+    expect(taskInspectorSource).not.toContain("type TaskItem = TaskNodeModel['data']['items'][number]")
+    expect(taskInspectorSource).not.toContain('contentChange')
+    expect(taskInspectorSource).not.toContain('replaceTaskItem')
+    expect(taskInspectorSource).not.toContain('label="Tasks"')
+    expect(taskInspectorSource).not.toContain('<a-input')
+    expect(taskInspectorSource).not.toContain('<a-checkbox')
+    expect(taskInspectorSource).toContain('label="Density"')
+    expect(taskInspectorSource).toContain('contentStyleChange')
+  })
+
   it('keeps non-topic content read-only on the canvas', () => {
     const readOnlyContent = [
       'AttachmentNodeContent',
       'CodeNodeContent',
       'ImageNodeContent',
-      'LinkNodeContent',
-      'TaskNodeContent'
+      'LinkNodeContent'
     ]
 
     for (const fileName of readOnlyContent) {

@@ -76,6 +76,7 @@ describe('editor multi-type controls', () => {
 
   it('keeps NodeInspector as the selected node editing boundary', () => {
     const source = readEditorSource('../components/inspectors/NodeInspector.vue')
+    const taskInspectorSource = readEditorSource('../components/inspectors/node-inspectors/TaskNodeInspector.vue')
 
     expect(source).toContain("import type { MindNode, NodeShellStyle } from '@mind-x/shared'")
     expect(source).toContain('node: MindNode')
@@ -99,5 +100,9 @@ describe('editor multi-type controls', () => {
     expect(source).not.toContain('isValidCode')
     expect(source).not.toContain('isValidPlainText')
     expect(source).not.toContain('replaceTaskItem')
+
+    expect(taskInspectorSource).toContain('contentStyleChange')
+    expect(taskInspectorSource).not.toContain('contentChange')
+    expect(taskInspectorSource).not.toContain('replaceTaskItem')
   })
 })
