@@ -15,10 +15,10 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  cancelEdit: [nodeId: string]
   drag: [nodeId: string, delta: Point]
   dragEnd: []
   editCommit: [nodeId: string, dataPatch: Record<string, unknown>]
+  inspect: [nodeId: string]
   resize: [nodeId: string, delta: { width: number; height: number }]
   resizeEnd: []
   select: [nodeId: string]
@@ -41,23 +41,11 @@ function isDataPatch(payload: unknown): payload is Record<string, unknown> {
   return !!payload && typeof payload === 'object' && !Array.isArray(payload)
 }
 
-function onContentCommit(node: MindNode, payload: unknown, finishEdit: (payload: unknown) => void): void {
-  if (node.type === 'topic' && typeof payload === 'string') {
-    const title = payload
-    finishEdit(title)
-    emit('editCommit', node.id, { title })
-    return
-  }
-
+function onContentCommit(node: MindNode, payload: unknown): void {
   if (isDataPatch(payload)) {
     const dataPatch = payload
-    finishEdit(dataPatch)
     emit('editCommit', node.id, dataPatch)
   }
-}
-
-function handleContentCommit(node: MindNode, finishEdit: (payload: unknown) => void, payload: unknown): void {
-  onContentCommit(node, payload, finishEdit)
 }
 </script>
 
@@ -68,20 +56,17 @@ function handleContentCommit(node: MindNode, finishEdit: (payload: unknown) => v
       :selected="selectedNodeIds.includes(node.id)"
       @drag="(nodeId, delta) => emit('drag', nodeId, delta)"
       @drag-end="emit('dragEnd')"
-      @cancel-edit="emit('cancelEdit', $event)"
+      @inspect="emit('inspect', $event)"
       @resize="(nodeId, delta) => emit('resize', nodeId, delta)"
       @resize-end="emit('resizeEnd')"
       @select="emit('select', $event)"
     >
-      <template #default="{ editing, commitEdit, cancelEdit }">
-        <component
-          :is="getContentComponent(node)"
-          :editing="editing"
-          :node="node"
-          @cancel="cancelEdit"
-          @commit="handleContentCommit(node, commitEdit, $event)"
-        />
-      </template>
+      <component
+        :is="getContentComponent(node)"
+        :node="node"
+        @commit="onContentCommit(node, $event)"
+        @inspect="emit('inspect', node.id)"
+      />
     </BaseNode>
   </template>
 </template>
