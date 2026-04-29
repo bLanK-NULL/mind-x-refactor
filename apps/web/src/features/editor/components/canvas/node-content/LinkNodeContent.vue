@@ -54,7 +54,7 @@ defineProps<{
 
 .link-node__url {
   overflow: hidden;
-  color: color-mix(in srgb, currentColor 68%, transparent);
+  color: var(--color-text-subtle);
   font-size: 11px;
   line-height: 1.25;
   text-overflow: ellipsis;

@@ -51,7 +51,7 @@ defineProps<{
 .attachment-node__icon {
   flex: 0 0 auto;
   border-radius: 3px;
-  color: color-mix(in srgb, currentColor 72%, transparent);
+  color: var(--color-text-subtle);
   font-size: 10px;
   font-weight: 750;
   line-height: 1;
@@ -76,7 +76,7 @@ defineProps<{
 .attachment-node__size,
 .attachment-node__url {
   overflow: hidden;
-  color: color-mix(in srgb, currentColor 68%, transparent);
+  color: var(--color-text-subtle);
   font-size: 11px;
   line-height: 1.25;
   text-overflow: ellipsis;

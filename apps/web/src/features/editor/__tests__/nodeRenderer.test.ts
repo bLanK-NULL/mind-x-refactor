@@ -309,6 +309,19 @@ describe('NodeRenderer', () => {
     }
   })
 
+  it('uses html2canvas-compatible color syntax in node content styles', () => {
+    for (const fileName of [
+      'AttachmentNodeContent',
+      'CodeNodeContent',
+      'ImageNodeContent',
+      'LinkNodeContent',
+      'TaskNodeContent',
+      'TopicNodeContent'
+    ]) {
+      expect(readNodeContentSource(fileName)).not.toContain('color-mix(')
+    }
+  })
+
   it('prevents native image and link dragging from competing with canvas drag', () => {
     for (const fileName of ['AttachmentNodeContent', 'ImageNodeContent', 'LinkNodeContent']) {
       const source = readNodeContentSource(fileName)

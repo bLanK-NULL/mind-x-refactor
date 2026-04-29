@@ -230,7 +230,7 @@ function cancelTaskTitleEdit(item: TaskItem): void {
 }
 
 .task-node__input--done {
-  color: color-mix(in srgb, currentColor 58%, transparent);
+  color: var(--color-text-subtle);
   text-decoration: line-through;
 }
 
