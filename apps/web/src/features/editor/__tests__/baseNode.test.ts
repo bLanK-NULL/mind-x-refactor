@@ -16,6 +16,7 @@ describe('BaseNode', () => {
     expect(source).toContain('inspect: [nodeId: string]')
     expect(source).toContain("@dblclick.stop=\"emit('inspect', node.id)\"")
     expect(source).toContain('base-node__resize-handle')
+    expect(source).toContain('data-editor-export-ignore="true"')
     expect(source).toContain("emit('resize'")
     expect(source).toContain("emit('drag'")
     expect(source).toContain("emit('select', props.node.id)")

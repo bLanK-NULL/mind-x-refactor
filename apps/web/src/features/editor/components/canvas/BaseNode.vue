@@ -119,6 +119,7 @@ function endResize(event: PointerEvent): void {
     <span
       aria-hidden="true"
       class="base-node__resize-handle"
+      data-editor-export-ignore="true"
       @pointercancel="endResize"
       @pointerdown="onResizePointerDown"
       @pointermove="onResizePointerMove"

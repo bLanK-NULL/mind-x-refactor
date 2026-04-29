@@ -291,6 +291,24 @@ describe('NodeRenderer', () => {
     expect(source).not.toContain('background: transparent')
   })
 
+  it('keeps export-specific concerns out of node content components', () => {
+    for (const fileName of [
+      'AttachmentNodeContent',
+      'CodeNodeContent',
+      'ImageNodeContent',
+      'LinkNodeContent',
+      'TaskNodeContent',
+      'TopicNodeContent'
+    ]) {
+      const source = readNodeContentSource(fileName)
+
+      expect(source).not.toContain('exportMode')
+      expect(source).not.toContain('data-editor-export')
+      expect(source).not.toContain('html2canvas')
+      expect(source).not.toContain('prepareExportClone')
+    }
+  })
+
   it('prevents native image and link dragging from competing with canvas drag', () => {
     for (const fileName of ['AttachmentNodeContent', 'ImageNodeContent', 'LinkNodeContent']) {
       const source = readNodeContentSource(fileName)
