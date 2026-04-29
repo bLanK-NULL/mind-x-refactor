@@ -186,8 +186,15 @@ describe('NodeRenderer', () => {
     expect(source).toMatch(/async function startEditing\(\): Promise<void> \{\s+if \(editing\.value\) \{\s+return\s+\}/)
     expect(source).toContain("emit('inspect')")
     expect(source).toContain('@dblclick.stop="startEditing"')
+    expect(source).toContain('validateTitle')
+    expect(source).toContain('titleInputRef')
+    expect(source).toContain('@keydown.enter.prevent="commitEdit"')
+    expect(source).toContain('@keydown.esc.prevent="cancelEdit"')
+    expect(source).toContain('@pointerdown.stop')
     expect(source).toContain("emit('commit', { title })")
     expect(source).not.toContain('editing: boolean')
+    expect(source).not.toContain('selected?: boolean')
+    expect(source).not.toContain('previewOpen')
   })
 
   it('keeps task item interactions inside TaskNodeContent instead of the inspector pane', () => {
