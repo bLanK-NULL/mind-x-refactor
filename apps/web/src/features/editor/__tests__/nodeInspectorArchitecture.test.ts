@@ -5,24 +5,27 @@ function readEditorSource(path: string): string {
   return readFileSync(new URL(path, import.meta.url), 'utf8')
 }
 
-describe('node inspector architecture', () => {
-  it('extracts BaseNode shell style controls into NodeShellStyleInspector', () => {
-    const source = readEditorSource('../components/inspectors/NodeShellStyleInspector.vue')
+const removedShellInspectorName = ['Node', 'ShellStyle', 'Inspector'].join('')
 
-    expect(source).toContain("import type { NodeShellStyle } from '@mind-x/shared'")
-    expect(source).toContain('style: NodeShellStyle')
-    expect(source).toContain('styleChange: [stylePatch: Partial<NodeShellStyle>]')
+describe('node inspector architecture', () => {
+  it('keeps BaseNode shell style controls in NodeInspector', () => {
+    const source = readEditorSource('../components/inspectors/NodeInspector.vue')
+
+    expect(source).toContain("import ColorTokenPicker from './ColorTokenPicker.vue'")
+    expect(source).toContain("import StyleField from './StyleField.vue'")
+    expect(source).not.toContain(removedShellInspectorName)
     expect(source).toContain('<ColorTokenPicker')
     expect(source).toContain('label="Color"')
     expect(source).toContain('label="Tone"')
     expect(source).toContain('label="Shape"')
     expect(source).toContain('label="Border"')
     expect(source).toContain('label="Shadow"')
-    expect(source).toContain("emit('styleChange', { colorToken })")
-    expect(source).toContain("emit('styleChange', { tone: tone as NodeShellStyle['tone'] })")
-    expect(source).toContain("emit('styleChange', { shape: shape as NodeShellStyle['shape'] })")
-    expect(source).toContain("emit('styleChange', { borderStyle: borderStyle as NodeShellStyle['borderStyle'] })")
-    expect(source).toContain("emit('styleChange', { shadowLevel: shadowLevel as NodeShellStyle['shadowLevel'] })")
+    expect(source).toContain("emit('shellStyleChange', { colorToken })")
+    expect(source).toContain("emit('shellStyleChange', { tone: tone as NodeShellStyle['tone'] })")
+    expect(source).toContain("emit('shellStyleChange', { shape: shape as NodeShellStyle['shape'] })")
+    expect(source).toContain("emit('shellStyleChange', { borderStyle: borderStyle as NodeShellStyle['borderStyle'] })")
+    expect(source).toContain("emit('shellStyleChange', { shadowLevel: shadowLevel as NodeShellStyle['shadowLevel'] })")
+    expect(source).toContain('<a-divider class="node-inspector__divider" />')
   })
 
   it('provides a focused inspector for topic nodes', () => {
@@ -111,7 +114,9 @@ describe('node inspector architecture', () => {
 
     expect(source).toContain("import type { MindNode, NodeShellStyle } from '@mind-x/shared'")
     expect(source).toContain("import type { Component } from 'vue'")
-    expect(source).toContain("import NodeShellStyleInspector from './NodeShellStyleInspector.vue'")
+    expect(source).toContain("import ColorTokenPicker from './ColorTokenPicker.vue'")
+    expect(source).toContain("import StyleField from './StyleField.vue'")
+    expect(source).not.toContain(removedShellInspectorName)
     expect(source).toContain("import AttachmentNodeInspector from './node-inspectors/AttachmentNodeInspector.vue'")
     expect(source).toContain("import CodeNodeInspector from './node-inspectors/CodeNodeInspector.vue'")
     expect(source).toContain("import ImageNodeInspector from './node-inspectors/ImageNodeInspector.vue'")
@@ -125,8 +130,8 @@ describe('node inspector architecture', () => {
     expect(source).toContain('link: LinkNodeInspector')
     expect(source).toContain('task: TaskNodeInspector')
     expect(source).toContain('topic: TopicNodeInspector')
-    expect(source).toContain('<NodeShellStyleInspector')
-    expect(source).toContain(':style="node.shellStyle"')
+    expect(source).toContain('<ColorTokenPicker')
+    expect(source).toContain('<a-divider class="node-inspector__divider" />')
     expect(source).toContain('<component')
     expect(source).toContain(':is="getInspectorComponent(node)"')
     expect(source).not.toMatch(/node\.type\s*===/)

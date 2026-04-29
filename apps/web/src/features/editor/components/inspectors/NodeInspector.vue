@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { MindNode, NodeShellStyle } from '@mind-x/shared'
 import type { Component } from 'vue'
-import NodeShellStyleInspector from './NodeShellStyleInspector.vue'
+import ColorTokenPicker from './ColorTokenPicker.vue'
+import StyleField from './StyleField.vue'
 import AttachmentNodeInspector from './node-inspectors/AttachmentNodeInspector.vue'
 import CodeNodeInspector from './node-inspectors/CodeNodeInspector.vue'
 import ImageNodeInspector from './node-inspectors/ImageNodeInspector.vue'
@@ -31,14 +32,71 @@ const inspectorComponentByType = {
 function getInspectorComponent(node: MindNode): Component {
   return inspectorComponentByType[node.type]
 }
+
+function emitToneChange(tone: unknown): void {
+  emit('shellStyleChange', { tone: tone as NodeShellStyle['tone'] })
+}
+
+function emitShapeChange(shape: unknown): void {
+  emit('shellStyleChange', { shape: shape as NodeShellStyle['shape'] })
+}
+
+function emitBorderStyleChange(borderStyle: unknown): void {
+  emit('shellStyleChange', { borderStyle: borderStyle as NodeShellStyle['borderStyle'] })
+}
+
+function emitShadowLevelChange(shadowLevel: unknown): void {
+  emit('shellStyleChange', { shadowLevel: shadowLevel as NodeShellStyle['shadowLevel'] })
+}
 </script>
 
 <template>
   <section class="node-inspector" aria-label="Node inspector">
-    <NodeShellStyleInspector
-      :style="node.shellStyle"
-      @style-change="(stylePatch: Partial<NodeShellStyle>) => emit('shellStyleChange', stylePatch)"
-    />
+    <StyleField label="Color">
+      <ColorTokenPicker
+        :value="node.shellStyle.colorToken"
+        @change="(colorToken) => emit('shellStyleChange', { colorToken })"
+      />
+    </StyleField>
+    <StyleField label="Tone">
+      <a-segmented
+        :options="['soft', 'solid', 'outline']"
+        :value="node.shellStyle.tone"
+        size="small"
+        @change="emitToneChange"
+      />
+    </StyleField>
+    <StyleField label="Shape">
+      <a-select
+        :value="node.shellStyle.shape"
+        size="small"
+        @change="emitShapeChange"
+      >
+        <a-select-option value="rounded">Rounded</a-select-option>
+        <a-select-option value="rectangle">Rectangle</a-select-option>
+        <a-select-option value="pill">Pill</a-select-option>
+      </a-select>
+    </StyleField>
+    <StyleField label="Border">
+      <a-select
+        :value="node.shellStyle.borderStyle"
+        size="small"
+        @change="emitBorderStyleChange"
+      >
+        <a-select-option value="none">None</a-select-option>
+        <a-select-option value="solid">Solid</a-select-option>
+        <a-select-option value="dashed">Dashed</a-select-option>
+      </a-select>
+    </StyleField>
+    <StyleField label="Shadow">
+      <a-segmented
+        :options="['none', 'sm', 'md']"
+        :value="node.shellStyle.shadowLevel"
+        size="small"
+        @change="emitShadowLevelChange"
+      />
+    </StyleField>
+    <a-divider class="node-inspector__divider" />
     <component
       :is="getInspectorComponent(node)"
       :node="node"
@@ -52,5 +110,9 @@ function getInspectorComponent(node: MindNode): Component {
 .node-inspector {
   display: grid;
   gap: 10px;
+}
+
+.node-inspector__divider {
+  margin: 2px 0;
 }
 </style>

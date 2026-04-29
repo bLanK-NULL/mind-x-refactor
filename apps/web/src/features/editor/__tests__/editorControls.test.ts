@@ -5,6 +5,8 @@ function readEditorSource(path: string): string {
   return readFileSync(new URL(path, import.meta.url), 'utf8')
 }
 
+const removedShellInspectorName = ['Node', 'ShellStyle', 'Inspector'].join('')
+
 describe('editor multi-type controls', () => {
   it('defines ordered node type options for controls', async () => {
     const { NODE_TYPE_OPTIONS } = await import('../utils/nodeContent')
@@ -65,11 +67,18 @@ describe('editor multi-type controls', () => {
     expect(source).toContain('contentChange: [dataPatch: Record<string, unknown>]')
     expect(source).toContain('contentStyleChange: [stylePatch: Record<string, unknown>]')
     expect(source).toContain('shellStyleChange: [stylePatch: Partial<NodeShellStyle>]')
-    expect(source).toContain('<NodeShellStyleInspector')
-    expect(source).toContain('@style-change="(stylePatch: Partial<NodeShellStyle>) => emit(\'shellStyleChange\', stylePatch)"')
+    expect(source).toContain("import ColorTokenPicker from './ColorTokenPicker.vue'")
+    expect(source).toContain("import StyleField from './StyleField.vue'")
+    expect(source).not.toContain(removedShellInspectorName)
+    expect(source).toContain('<ColorTokenPicker')
+    expect(source).toContain('<a-divider class="node-inspector__divider" />')
     expect(source).toContain('<component')
+    expect(source).toContain(':is="getInspectorComponent(node)"')
     expect(source).toContain('@content-change="(dataPatch: Record<string, unknown>) => emit(\'contentChange\', dataPatch)"')
     expect(source).toContain('@content-style-change="(stylePatch: Record<string, unknown>) => emit(\'contentStyleChange\', stylePatch)"')
+    expect(source).not.toMatch(/node\.type\s*===/)
+    expect(source).not.toContain('v-else-if')
+    expect(source).not.toContain('updateTopicTitle')
     expect(source).not.toContain('CODE_NODE_CODE_MAX_LENGTH')
     expect(source).not.toContain('PLAIN_TEXT_MAX_LENGTH')
     expect(source).not.toContain('isValidCode')

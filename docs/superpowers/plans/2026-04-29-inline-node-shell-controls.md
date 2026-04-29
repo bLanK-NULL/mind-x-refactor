@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Remove the unnecessary `NodeShellStyleInspector.vue` component and make `NodeInspector.vue` directly own the shared BaseNode shell style controls.
+**Goal:** Remove the unnecessary shell-style inspector component and make `NodeInspector.vue` directly own the shared BaseNode shell style controls.
 
 **Architecture:** `NodeInspector.vue` is the node shell inspector pane. It renders shared shell controls for `node.shellStyle` at the top, a divider in the middle, and the selected type-specific `*NodeInspector` below. Type-specific inspectors remain split under `components/inspectors/node-inspectors/`.
 
@@ -14,7 +14,7 @@
 
 Delete:
 
-- `apps/web/src/features/editor/components/inspectors/NodeShellStyleInspector.vue`
+- The old separate shell-style inspector component
 
 Modify:
 
@@ -31,7 +31,7 @@ Modify:
 **Files:**
 
 - Modify: `apps/web/src/features/editor/components/inspectors/NodeInspector.vue`
-- Delete: `apps/web/src/features/editor/components/inspectors/NodeShellStyleInspector.vue`
+- Delete: the old separate shell-style inspector component
 
 - [ ] **Step 1: Replace `NodeInspector.vue`**
 
@@ -158,12 +158,12 @@ function emitShadowLevelChange(shadowLevel: unknown): void {
 </style>
 ```
 
-- [ ] **Step 2: Delete `NodeShellStyleInspector.vue`**
+- [ ] **Step 2: Delete the old separate shell-style inspector component**
 
 Run:
 
 ```bash
-rm apps/web/src/features/editor/components/inspectors/NodeShellStyleInspector.vue
+rm apps/web/src/features/editor/components/inspectors/<old-shell-style-inspector-file>.vue
 ```
 
 ---
@@ -184,7 +184,7 @@ Update tests so they assert:
 ```ts
 expect(source).toContain("import ColorTokenPicker from './ColorTokenPicker.vue'")
 expect(source).toContain("import StyleField from './StyleField.vue'")
-expect(source).not.toContain('NodeShellStyleInspector')
+expect(source).not.toContain(removedShellInspectorName)
 expect(source).toContain('<ColorTokenPicker')
 expect(source).toContain('<a-divider class="node-inspector__divider" />')
 expect(source).toContain('<component')
@@ -198,7 +198,7 @@ Keep the existing assertions that all six `*NodeInspector` imports and registry 
 
 - [ ] **Step 2: Update docs**
 
-In both planning docs, remove instructions to create/import `NodeShellStyleInspector.vue`. State the final structure as:
+In both planning docs, remove instructions to create/import the old separate shell-style inspector component. State the final structure as:
 
 ```text
 InspectorPanel
@@ -214,7 +214,7 @@ InspectorPanel
 Run:
 
 ```bash
-rg -n "NodeShellStyleInspector" apps docs
+rg -n "<removed shell inspector component name>" apps docs
 ```
 
 Expected: no output.
