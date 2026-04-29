@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PLAIN_TEXT_MAX_LENGTH, type ImageContentStyle, type MindNode } from '@mind-x/shared'
-import { isValidOptionalPlainText, isValidWebUrl } from '../../../utils/nodeValidation'
+import { isValidOptionalPlainText, isValidWebUrl } from '@mind-x/mind-engine'
 import StyleField from '../StyleField.vue'
 
 type ImageNodeModel = Extract<MindNode, { type: 'image' }>

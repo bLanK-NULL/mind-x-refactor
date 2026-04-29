@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PLAIN_TEXT_MAX_LENGTH, type MindNode } from '@mind-x/shared'
-import { isValidPlainText } from '../../../utils/nodeValidation'
+import { isValidPlainText } from '@mind-x/mind-engine'
 import StyleField from '../StyleField.vue'
 
 type TopicNodeModel = Extract<MindNode, { type: 'topic' }>

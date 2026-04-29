@@ -203,7 +203,7 @@ describe('NodeRenderer', () => {
 
     expect(taskContentSource).toContain("type TaskItem = TaskNodeModel['data']['items'][number]")
     expect(taskContentSource).toContain("import { PLAIN_TEXT_MAX_LENGTH, type MindNode } from '@mind-x/shared'")
-    expect(taskContentSource).toContain("import { isValidPlainText } from '../../../utils/nodeValidation'")
+    expect(taskContentSource).toContain("import { isValidPlainText } from '@mind-x/mind-engine'")
     expect(taskContentSource).toContain('commit: [dataPatch: Record<string, unknown>]')
     expect(taskContentSource).toContain('function createNextTaskId')
     expect(taskContentSource).toContain('function draftTitleFor')

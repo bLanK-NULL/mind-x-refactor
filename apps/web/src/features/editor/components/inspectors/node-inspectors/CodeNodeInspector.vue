@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CODE_NODE_CODE_MAX_LENGTH, type MindNode } from '@mind-x/shared'
 import { computed } from 'vue'
-import { isValidCode } from '../../../utils/nodeValidation'
+import { isValidCode } from '@mind-x/mind-engine'
 import {
   CODE_THEME_OPTIONS,
   resolveCodeTheme

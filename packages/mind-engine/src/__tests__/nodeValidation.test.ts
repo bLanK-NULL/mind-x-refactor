@@ -1,6 +1,6 @@
 import { CODE_NODE_CODE_MAX_LENGTH, PLAIN_TEXT_MAX_LENGTH } from '@mind-x/shared'
 import { describe, expect, it } from 'vitest'
-import { isValidCode, isValidOptionalPlainText, isValidPlainText, isValidWebUrl } from '../utils/nodeValidation'
+import { isValidCode, isValidOptionalPlainText, isValidPlainText, isValidWebUrl } from '../nodeValidation.js'
 
 describe('nodeValidation', () => {
   it('rejects plain text values that strict document parsing would reject', () => {
