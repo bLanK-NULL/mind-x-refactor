@@ -1,41 +1,18 @@
 import type { MindDocument } from '@mind-x/shared'
 import html2canvas from 'html2canvas'
+import {
+  calculateDocumentBounds,
+  EXPORT_PADDING
+} from './exportBounds'
 
-const EXPORT_PADDING = 24
+export { calculateDocumentBounds } from './exportBounds'
+export type { DocumentBounds } from './exportBounds'
+
 const EXPORT_BACKGROUND = '#ffffff'
-
-export type DocumentBounds = {
-  height: number
-  maxX: number
-  maxY: number
-  minX: number
-  minY: number
-  width: number
-}
 
 export type ExportPngInput = {
   document: MindDocument
   root: HTMLElement
-}
-
-export function calculateDocumentBounds(document: MindDocument): DocumentBounds | null {
-  if (document.nodes.length === 0) {
-    return null
-  }
-
-  const minX = Math.min(...document.nodes.map((node) => node.position.x))
-  const minY = Math.min(...document.nodes.map((node) => node.position.y))
-  const maxX = Math.max(...document.nodes.map((node) => node.position.x + node.size.width))
-  const maxY = Math.max(...document.nodes.map((node) => node.position.y + node.size.height))
-
-  return {
-    height: Math.ceil(maxY - minY + EXPORT_PADDING * 2),
-    maxX,
-    maxY,
-    minX,
-    minY,
-    width: Math.ceil(maxX - minX + EXPORT_PADDING * 2)
-  }
 }
 
 export function createPngFilename(title: string): string {

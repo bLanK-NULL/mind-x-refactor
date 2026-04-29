@@ -63,7 +63,7 @@ describe('exportPng', () => {
   })
 
   it('calculates document bounds from explicit v3 node sizes and padding', async () => {
-    const { calculateDocumentBounds } = await import('@/features/editor/services/exportPng')
+    const { calculateDocumentBounds } = await import('@/features/editor/services/exportBounds')
     const bounds = calculateDocumentBounds(
       document({
         nodes: [
