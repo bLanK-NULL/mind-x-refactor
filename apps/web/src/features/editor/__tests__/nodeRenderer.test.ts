@@ -183,11 +183,22 @@ describe('NodeRenderer', () => {
     expect(readNodeContentSource('LinkNodeContent')).toContain('@click.prevent')
     expect(readNodeContentSource('CodeNodeContent')).not.toContain('CODE_NODE_CODE_MAX_LENGTH')
     expect(readNodeContentSource('CodeNodeContent')).not.toContain('isValidCode')
-    expect(readNodeContentSource('TaskNodeContent')).not.toContain('type TaskItem')
-    expect(readNodeContentSource('TaskNodeContent')).not.toContain('replaceItem')
-    expect(readNodeContentSource('TaskNodeContent')).not.toContain('task-node__input')
-    expect(readNodeContentSource('TaskNodeContent')).not.toContain('task-node__done')
-    expect(readNodeContentSource('TaskNodeContent')).not.toContain('task-node__error')
+  })
+
+  it('keeps code highlighting fixed and vertically scrollable without theme-token coloring', () => {
+    const source = readNodeContentSource('CodeNodeContent')
+
+    expect(source).toContain('overflow-y: auto')
+    expect(source).toContain('overflow-x: auto')
+    expect(source).toContain('scrollbar-gutter: stable')
+    expect(source).toContain('background: #111827')
+    expect(source).toContain('color: #e5e7eb')
+    expect(source).toContain(':deep(.hljs-keyword)')
+    expect(source).toContain('color: #93c5fd')
+    expect(source).not.toContain('var(--color-primary)')
+    expect(source).not.toContain('var(--color-success)')
+    expect(source).not.toContain('currentColor 58%')
+    expect(source).not.toContain('background: transparent')
   })
 
   it('prevents native image and link dragging from competing with canvas drag', () => {

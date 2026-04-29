@@ -35,13 +35,16 @@ const wrapClass = computed(() => ({ 'code-node__code--wrap': props.node.contentS
   height: 100%;
   min-height: 0;
   margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  overflow-y: auto;
+  border-radius: 4px;
+  background: #111827;
+  color: #e5e7eb;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 12px;
   line-height: 1.45;
-}
-
-.code-node__pre {
-  overflow: hidden;
+  scrollbar-gutter: stable;
   white-space: pre;
 }
 
@@ -52,8 +55,7 @@ const wrapClass = computed(() => ({ 'code-node__code--wrap': props.node.contentS
 
 .hljs {
   display: block;
-  color: inherit;
-  background: transparent;
+  color: #e5e7eb;
 }
 
 :deep(.hljs-keyword),
@@ -61,16 +63,16 @@ const wrapClass = computed(() => ({ 'code-node__code--wrap': props.node.contentS
 :deep(.hljs-title),
 :deep(.hljs-title.function_),
 :deep(.hljs-attr) {
-  color: var(--color-primary);
+  color: #93c5fd;
 }
 
 :deep(.hljs-string),
 :deep(.hljs-number),
 :deep(.hljs-literal) {
-  color: var(--color-success);
+  color: #86efac;
 }
 
 :deep(.hljs-comment) {
-  color: color-mix(in srgb, currentColor 58%, transparent);
+  color: #9ca3af;
 }
 </style>
