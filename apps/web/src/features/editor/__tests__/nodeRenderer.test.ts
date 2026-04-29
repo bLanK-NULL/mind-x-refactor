@@ -119,6 +119,28 @@ describe('NodeRenderer', () => {
     expect(html).not.toContain('node-fallback')
   })
 
+  it('supports selected image node preview from the Space key', () => {
+    const rendererSource = readNodeRendererSource()
+    const imageSource = readNodeContentSource('ImageNodeContent')
+
+    expect(rendererSource).toContain('const props = defineProps')
+    expect(rendererSource).toContain('function getContentProps(node: MindNode)')
+    expect(rendererSource).toContain("node.type === 'image'")
+    expect(rendererSource).toContain('selected: props.selectedNodeIds.includes(node.id)')
+    expect(rendererSource).toContain('v-bind="getContentProps(node)"')
+
+    expect(imageSource).toContain('selected?: boolean')
+    expect(imageSource).toContain('const previewOpen = ref(false)')
+    expect(imageSource).toContain('const previewRootRef = ref<HTMLElement | null>(null)')
+    expect(imageSource).toContain('function openPreview')
+    expect(imageSource).toContain('function closePreview')
+    expect(imageSource).toContain('@keydown.space.prevent.stop="openPreview"')
+    expect(imageSource).toContain('<Teleport to="body">')
+    expect(imageSource).toContain('role="dialog"')
+    expect(imageSource).toContain('aria-modal="true"')
+    expect(imageSource).toContain('@keydown.esc.prevent.stop="closePreview"')
+  })
+
   it('renders attachment nodes with file name and visible URL', async () => {
     const html = await renderToString(
       createSSRApp(NodeRenderer, {
@@ -205,7 +227,6 @@ describe('NodeRenderer', () => {
     const readOnlyContent = [
       'AttachmentNodeContent',
       'CodeNodeContent',
-      'ImageNodeContent',
       'LinkNodeContent'
     ]
 

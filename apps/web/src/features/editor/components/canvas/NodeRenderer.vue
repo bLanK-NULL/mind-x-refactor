@@ -9,7 +9,7 @@ import LinkNodeContent from './node-content/LinkNodeContent.vue'
 import TaskNodeContent from './node-content/TaskNodeContent.vue'
 import TopicNodeContent from './node-content/TopicNodeContent.vue'
 
-defineProps<{
+const props = defineProps<{
   nodes: MindNode[]
   selectedNodeIds: string[]
 }>()
@@ -35,6 +35,17 @@ const contentComponentByType = {
 
 function getContentComponent(node: MindNode): Component {
   return contentComponentByType[node.type]
+}
+
+function getContentProps(node: MindNode): { node: MindNode; selected?: boolean } {
+  if (node.type === 'image') {
+    return {
+      node,
+      selected: props.selectedNodeIds.includes(node.id)
+    }
+  }
+
+  return { node }
 }
 
 function isDataPatch(payload: unknown): payload is Record<string, unknown> {
@@ -63,7 +74,7 @@ function onContentCommit(node: MindNode, payload: unknown): void {
     >
       <component
         :is="getContentComponent(node)"
-        :node="node"
+        v-bind="getContentProps(node)"
         @commit="onContentCommit(node, $event)"
         @inspect="emit('inspect', node.id)"
       />
