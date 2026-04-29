@@ -6,4 +6,4 @@
 1. 合并后不允许删除分支
 
 # 使用superpowers进行到以下流程时, 不需要询问我: 
-1. subagent-driven-development or executing-plans: 选择subagent-driven-development,并且subagent使用gpt-5.5且超高智能.
+1. subagent-driven-development or executing-plans: 选择subagent-driven-development
