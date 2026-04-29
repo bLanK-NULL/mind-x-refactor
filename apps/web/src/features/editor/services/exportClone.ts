@@ -1,5 +1,4 @@
-import type { DocumentBounds } from './exportBounds'
-import { EXPORT_PADDING } from './exportBounds'
+import { EXPORT_PADDING, type DocumentBounds } from '@mind-x/mind-engine'
 
 const CANVAS_GRID_BACKGROUND =
   'linear-gradient(var(--color-grid) 1px, transparent 1px), ' +

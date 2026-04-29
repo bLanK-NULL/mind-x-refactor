@@ -1,4 +1,4 @@
-import type { DocumentBounds } from '@/features/editor/services/exportBounds'
+import type { DocumentBounds } from '@mind-x/mind-engine'
 import { describe, expect, it } from 'vitest'
 import { prepareExportClone } from '@/features/editor/services/exportClone'
 

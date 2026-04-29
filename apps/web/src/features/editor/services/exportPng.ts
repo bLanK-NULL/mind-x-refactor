@@ -3,11 +3,8 @@ import html2canvas from 'html2canvas'
 import {
   calculateDocumentBounds,
   EXPORT_PADDING
-} from './exportBounds'
+} from '@mind-x/mind-engine'
 import { prepareExportClone } from './exportClone'
-
-export { calculateDocumentBounds } from './exportBounds'
-export type { DocumentBounds } from './exportBounds'
 
 const EXPORT_IMAGE_TIMEOUT = 8000
 

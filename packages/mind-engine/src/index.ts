@@ -1,5 +1,6 @@
 export * from './commands.js'
 export * from './documentFactory.js'
+export * from './documentBounds.js'
 export * from './editorSession.js'
 export * from './graph.js'
 export * from './patches.js'

@@ -67,27 +67,6 @@ describe('exportPng', () => {
     })
   })
 
-  it('calculates document bounds from explicit v3 node sizes and padding', async () => {
-    const { calculateDocumentBounds } = await import('@/features/editor/services/exportBounds')
-    const bounds = calculateDocumentBounds(
-      document({
-        nodes: [
-          topicNode('root', 'Root', { x: -20, y: 10 }, { height: 56, width: 180 }),
-          topicNode('child', 'Child', { x: 220, y: -30 }, { height: 80, width: 200 })
-        ]
-      })
-    )
-
-    expect(bounds).toEqual({
-      height: 144,
-      maxX: 420,
-      maxY: 66,
-      minX: -20,
-      minY: -30,
-      width: 488
-    })
-  })
-
   it('sanitizes unsafe document titles for png filenames', async () => {
     const { createPngFilename } = await import('@/features/editor/services/exportPng')
 
