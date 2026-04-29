@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CODE_BLOCK_THEMES,
   DEFAULT_ATTACHMENT_CONTENT_STYLE,
   DEFAULT_CODE_CONTENT_STYLE,
+  DEFAULT_CODE_THEME,
   DEFAULT_EDGE_STYLE,
   DEFAULT_IMAGE_CONTENT_STYLE,
   DEFAULT_LINK_CONTENT_STYLE,
@@ -11,6 +13,7 @@ import {
   DEFAULT_TOPIC_CONTENT_STYLE,
   DEFAULT_TOPIC_STYLE,
   apiErrorBodySchema,
+  codeBlockThemeSchema,
   createProjectRequestSchema,
   migrateMindDocument,
   migrateMindDocumentToV3,
@@ -117,6 +120,31 @@ function v1Document(overrides: Record<string, unknown> = {}) {
 }
 
 describe('mind document versions', () => {
+  it('defines the code block theme defaults', () => {
+    expect(DEFAULT_CODE_THEME).toBe('vscode-dark')
+    expect(DEFAULT_CODE_CONTENT_STYLE).toEqual({
+      wrap: true,
+      theme: 'vscode-dark'
+    })
+  })
+
+  it('accepts the supported code block themes', () => {
+    expect(CODE_BLOCK_THEMES).toEqual([
+      'github-light',
+      'github-dark',
+      'vscode-dark',
+      'dracula',
+      'monokai',
+      'nord',
+      'solarized-light',
+      'solarized-dark'
+    ])
+
+    for (const theme of CODE_BLOCK_THEMES) {
+      expect(codeBlockThemeSchema.parse(theme)).toBe(theme)
+    }
+  })
+
   it('accepts a v3 document with explicit object styles and no document theme', () => {
     const parsed = mindDocumentSchema.parse(v3Document())
 
@@ -398,6 +426,30 @@ describe('mind document versions', () => {
     expect(migrateMindDocumentToV3(document)).toEqual(mindDocumentV3Schema.parse(document))
   })
 
+  it('migrates historical v3 code nodes missing themes to vscode dark', () => {
+    const historicalV3 = v3Document({
+      nodes: [
+        {
+          id: 'code',
+          type: 'code',
+          position: { x: 0, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.code,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { code: 'const value = 1', language: 'typescript' },
+          contentStyle: { wrap: false }
+        }
+      ]
+    })
+
+    expect(migrateMindDocumentToV3(historicalV3).nodes[0]).toMatchObject({
+      type: 'code',
+      contentStyle: {
+        wrap: false,
+        theme: 'vscode-dark'
+      }
+    })
+  })
+
   it('migrates v2 topic sizes as fresh objects', () => {
     const explicitSize = { width: 222, height: 66 }
     const migrated = migrateMindDocumentToV3(
@@ -552,6 +604,42 @@ describe('mind document versions', () => {
               shellStyle: DEFAULT_NODE_SHELL_STYLE,
               data: { title: 'Root' },
               contentStyle: { ...DEFAULT_TOPIC_CONTENT_STYLE, textWeight: 'heavy' }
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
+
+    expect(
+      mindDocumentV3Schema.safeParse(
+        v3Document({
+          nodes: [
+            {
+              id: 'code',
+              type: 'code',
+              position: { x: 0, y: 0 },
+              size: DEFAULT_NODE_SIZE_BY_TYPE.code,
+              shellStyle: DEFAULT_NODE_SHELL_STYLE,
+              data: { code: 'const value = 1', language: 'typescript' },
+              contentStyle: { wrap: true }
+            }
+          ]
+        })
+      ).success
+    ).toBe(false)
+
+    expect(
+      mindDocumentV3Schema.safeParse(
+        v3Document({
+          nodes: [
+            {
+              id: 'code',
+              type: 'code',
+              position: { x: 0, y: 0 },
+              size: DEFAULT_NODE_SIZE_BY_TYPE.code,
+              shellStyle: DEFAULT_NODE_SHELL_STYLE,
+              data: { code: 'const value = 1', language: 'typescript' },
+              contentStyle: { ...DEFAULT_CODE_CONTENT_STYLE, theme: 'unknown-theme' }
             }
           ]
         })

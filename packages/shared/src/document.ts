@@ -143,6 +143,18 @@ export const DEFAULT_EDGE_STYLE = {
 
 export const NODE_TYPES = ['topic', 'image', 'link', 'attachment', 'code', 'task'] as const
 export const mindNodeTypeSchema = z.enum(NODE_TYPES)
+export const CODE_BLOCK_THEMES = [
+  'github-light',
+  'github-dark',
+  'vscode-dark',
+  'dracula',
+  'monokai',
+  'nord',
+  'solarized-light',
+  'solarized-dark'
+] as const
+export const codeBlockThemeSchema = z.enum(CODE_BLOCK_THEMES)
+export type CodeBlockTheme = z.infer<typeof codeBlockThemeSchema>
 
 export const nodeShellStyleSchema = z.object({
   colorToken: objectColorTokenSchema,
@@ -169,7 +181,8 @@ export const attachmentContentStyleSchema = z.object({
 }).strict()
 
 export const codeContentStyleSchema = z.object({
-  wrap: z.boolean()
+  wrap: z.boolean(),
+  theme: codeBlockThemeSchema
 }).strict()
 
 export const taskContentStyleSchema = z.object({
@@ -200,8 +213,11 @@ export const DEFAULT_ATTACHMENT_CONTENT_STYLE = {
   icon: 'file'
 } as const satisfies z.infer<typeof attachmentContentStyleSchema>
 
+export const DEFAULT_CODE_THEME: CodeBlockTheme = 'vscode-dark'
+
 export const DEFAULT_CODE_CONTENT_STYLE = {
-  wrap: true
+  wrap: true,
+  theme: DEFAULT_CODE_THEME
 } as const satisfies z.infer<typeof codeContentStyleSchema>
 
 export const DEFAULT_TASK_CONTENT_STYLE = {
@@ -348,6 +364,37 @@ export const mindDocumentV3Schema = z.object({
   edges: z.array(mindEdgeSchema)
 }).strict()
 
+const legacyCodeContentStyleSchema = z.object({
+  wrap: z.boolean(),
+  theme: codeBlockThemeSchema.optional()
+}).strict()
+
+const legacyCodeNodeV3Schema = nodeBaseV3Schema.extend({
+  type: z.literal('code'),
+  data: z.object({
+    code: z.string().max(CODE_NODE_CODE_MAX_LENGTH),
+    language: z.string().min(1).max(64).optional()
+  }).strict(),
+  contentStyle: legacyCodeContentStyleSchema
+}).strict()
+
+const migratableMindNodeV3Schema = z.discriminatedUnion('type', [
+  topicNodeV3Schema,
+  imageNodeV3Schema,
+  linkNodeV3Schema,
+  attachmentNodeV3Schema,
+  legacyCodeNodeV3Schema,
+  taskNodeV3Schema
+])
+
+const migratableMindDocumentV3Schema = z.object({
+  version: z.literal(3),
+  meta: mindDocumentMetaSchema,
+  viewport: viewportV2Schema,
+  nodes: z.array(migratableMindNodeV3Schema),
+  edges: z.array(mindEdgeSchema)
+}).strict()
+
 export const mindDocumentV2Schema = z.object({
   version: z.literal(2),
   meta: mindDocumentMetaSchema,
@@ -426,9 +473,33 @@ function migrateV2MindDocumentToV3(v2: z.infer<typeof mindDocumentV2Schema>): z.
   }
 }
 
+function normalizeV3MindNode(node: z.infer<typeof migratableMindNodeV3Schema>): z.infer<typeof mindNodeV3Schema> {
+  if (node.type !== 'code') {
+    return node
+  }
+
+  return {
+    ...node,
+    contentStyle: {
+      ...node.contentStyle,
+      theme: node.contentStyle.theme ?? DEFAULT_CODE_THEME
+    }
+  }
+}
+
+function migrateV3MindDocumentToCurrent(
+  document: z.infer<typeof migratableMindDocumentV3Schema>
+): z.infer<typeof mindDocumentV3Schema> {
+  return mindDocumentV3Schema.parse({
+    ...document,
+    nodes: document.nodes.map(normalizeV3MindNode)
+  })
+}
+
 export function migrateMindDocumentToV3(input: unknown): z.infer<typeof mindDocumentV3Schema> {
   return z.union([
     mindDocumentV3Schema,
+    migratableMindDocumentV3Schema.transform((document) => migrateV3MindDocumentToCurrent(document)),
     mindDocumentV2Schema.transform((document) => migrateV2MindDocumentToV3(document)),
     mindDocumentV1Schema.transform((document) => migrateV2MindDocumentToV3(migrateV1MindDocument(document)))
   ]).parse(input)
@@ -436,6 +507,7 @@ export function migrateMindDocumentToV3(input: unknown): z.infer<typeof mindDocu
 
 export const migratableMindDocumentSchema = z.union([
   mindDocumentV3Schema,
+  migratableMindDocumentV3Schema.transform((document) => migrateV3MindDocumentToCurrent(document)),
   mindDocumentV2Schema.transform((document) => migrateV2MindDocumentToV3(document)),
   mindDocumentV1Schema.transform((document) => migrateV2MindDocumentToV3(migrateV1MindDocument(document)))
 ])
