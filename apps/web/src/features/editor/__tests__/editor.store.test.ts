@@ -101,6 +101,35 @@ describe('editor store adapter', () => {
     expect(store.canUndo).toBe(true)
   })
 
+  it('delegates target-specific style and edge delete actions', () => {
+    const store = useEditorStore()
+    store.load(
+      emptyDocument({
+        nodes: [
+          topicNode('root', 'Root', { x: 0, y: 0 }),
+          topicNode('child', 'Child', { x: 240, y: 0 })
+        ],
+        edges: [{ id: 'root->child', source: 'root', target: 'child', type: 'mind-parent', style: DEFAULT_EDGE_STYLE }]
+      })
+    )
+    store.selectOnly('child')
+
+    store.setNodeShellStyle('root', { colorToken: 'purple' })
+    store.setNodeContentStyle('root', { textWeight: 'bold' })
+    store.setEdgeStyle('root->child', { colorToken: 'warning' })
+
+    const root = store.document?.nodes.find((node) => node.id === 'root')
+    expect(root?.shellStyle.colorToken).toBe('purple')
+    expect(root?.contentStyle).toMatchObject({ textWeight: 'bold' })
+    expect(store.document?.edges[0].style.colorToken).toBe('warning')
+    expect(store.selectedNodeIds).toEqual(['child'])
+
+    store.deleteEdge('root->child')
+
+    expect(store.document?.edges).toEqual([])
+    expect(store.document?.nodes.map((node) => node.id)).toEqual(['root', 'child'])
+  })
+
   it('keeps selection actions as thin session delegates', () => {
     const store = useEditorStore()
     store.load(

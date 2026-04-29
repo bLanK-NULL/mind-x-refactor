@@ -157,6 +157,26 @@ export const useEditorStore = defineStore('editor', () => {
     syncFromSession()
   }
 
+  function deleteEdge(edgeId: string): void {
+    session.deleteEdge(edgeId)
+    syncFromSession()
+  }
+
+  function setEdgeStyle(edgeId: string, stylePatch: Partial<EdgeStyle>): void {
+    session.setEdgeStyle(edgeId, stylePatch)
+    syncFromSession()
+  }
+
+  function setNodeShellStyle(nodeId: string, stylePatch: Partial<NodeShellStyle>): void {
+    session.setNodeShellStyle(nodeId, stylePatch)
+    syncFromSession()
+  }
+
+  function setNodeContentStyle(nodeId: string, stylePatch: Record<string, unknown>): void {
+    session.setNodeContentStyle(nodeId, stylePatch)
+    syncFromSession()
+  }
+
   function setSelectedNodeShellStyle(stylePatch: Partial<NodeShellStyle>): void {
     session.setSelectedNodeShellStyle(stylePatch)
     syncFromSession()
@@ -202,6 +222,7 @@ export const useEditorStore = defineStore('editor', () => {
     canUndo,
     clearSelection,
     commit,
+    deleteEdge,
     deleteSelected,
     dirty,
     document,
@@ -222,6 +243,9 @@ export const useEditorStore = defineStore('editor', () => {
     selectedEdgeId,
     selectedNodeIds,
     selectOnly,
+    setEdgeStyle,
+    setNodeContentStyle,
+    setNodeShellStyle,
     setSelectedEdgeStyle,
     setSelectedNodeContentStyle,
     setSelectedNodeShellStyle,
