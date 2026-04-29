@@ -1,7 +1,7 @@
 import type { MindDocument } from '@mind-x/shared'
-import { createEmptyDocument } from '@mind-x/mind-engine'
+import { createEmptyDocument } from '../documentFactory.js'
 import { describe, expect, it } from 'vitest'
-import { selectFailedSaveDraftDocument } from '@/features/editor/services/saveFailureDraft'
+import { selectFailedSaveDraftDocument } from '../saveFailureDraft.js'
 
 function document(projectId: string, title: string): MindDocument {
   return createEmptyDocument({
