@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { CODE_NODE_CODE_MAX_LENGTH, PLAIN_TEXT_MAX_LENGTH, type MindNode, type NodeShellStyle } from '@mind-x/shared'
-import { isValidCode, isValidOptionalPlainText, isValidPlainText, isValidWebUrl } from '../../utils/nodeValidation'
-import ColorTokenPicker from './ColorTokenPicker.vue'
-import StyleField from './StyleField.vue'
+import type { MindNode, NodeShellStyle } from '@mind-x/shared'
+import type { Component } from 'vue'
+import NodeShellStyleInspector from './NodeShellStyleInspector.vue'
+import AttachmentNodeInspector from './node-inspectors/AttachmentNodeInspector.vue'
+import CodeNodeInspector from './node-inspectors/CodeNodeInspector.vue'
+import ImageNodeInspector from './node-inspectors/ImageNodeInspector.vue'
+import LinkNodeInspector from './node-inspectors/LinkNodeInspector.vue'
+import TaskNodeInspector from './node-inspectors/TaskNodeInspector.vue'
+import TopicNodeInspector from './node-inspectors/TopicNodeInspector.vue'
 
-type TaskNodeModel = Extract<MindNode, { type: 'task' }>
-type TaskItem = TaskNodeModel['data']['items'][number]
-
-const props = defineProps<{
+defineProps<{
   node: MindNode
 }>()
 
@@ -17,225 +19,32 @@ const emit = defineEmits<{
   shellStyleChange: [stylePatch: Partial<NodeShellStyle>]
 }>()
 
-function emitToneChange(tone: unknown): void {
-  emit('shellStyleChange', { tone: tone as NodeShellStyle['tone'] })
-}
+const inspectorComponentByType = {
+  attachment: AttachmentNodeInspector,
+  code: CodeNodeInspector,
+  image: ImageNodeInspector,
+  link: LinkNodeInspector,
+  task: TaskNodeInspector,
+  topic: TopicNodeInspector
+} satisfies Record<MindNode['type'], Component>
 
-function emitShapeChange(shape: unknown): void {
-  emit('shellStyleChange', { shape: shape as NodeShellStyle['shape'] })
-}
-
-function emitBorderStyleChange(borderStyle: unknown): void {
-  emit('shellStyleChange', { borderStyle: borderStyle as NodeShellStyle['borderStyle'] })
-}
-
-function emitShadowLevelChange(shadowLevel: unknown): void {
-  emit('shellStyleChange', { shadowLevel: shadowLevel as NodeShellStyle['shadowLevel'] })
-}
-
-function emitTextWeightChange(textWeight: unknown): void {
-  emit('contentStyleChange', { textWeight })
-}
-
-function textValue(event: Event): string {
-  return (event.target as HTMLInputElement | HTMLTextAreaElement).value
-}
-
-function checkedValue(event: Event): boolean {
-  return (event.target as HTMLInputElement).checked
-}
-
-function updateTopicTitle(event: Event): void {
-  const title = textValue(event).trim()
-  if (isValidPlainText(title)) {
-    emit('contentChange', { title })
-  }
-}
-
-function updateImageUrl(event: Event): void {
-  const url = textValue(event).trim()
-  if (isValidWebUrl(url)) {
-    emit('contentChange', { url, alt: props.node.type === 'image' ? props.node.data.alt : undefined })
-  }
-}
-
-function updateImageAlt(event: Event): void {
-  const alt = textValue(event).trim()
-  if (props.node.type === 'image' && isValidOptionalPlainText(alt)) {
-    emit('contentChange', { url: props.node.data.url, alt: alt || undefined })
-  }
-}
-
-function updateLinkTitle(event: Event): void {
-  const title = textValue(event).trim()
-  if (props.node.type === 'link' && isValidPlainText(title)) {
-    emit('contentChange', { title, url: props.node.data.url })
-  }
-}
-
-function updateLinkUrl(event: Event): void {
-  const url = textValue(event).trim()
-  if (props.node.type === 'link' && isValidWebUrl(url)) {
-    const title = props.node.data.title
-    emit('contentChange', { title, url })
-  }
-}
-
-function updateAttachmentFileName(event: Event): void {
-  const fileName = textValue(event).trim()
-  if (props.node.type === 'attachment' && isValidPlainText(fileName)) {
-    emit('contentChange', { fileName, url: props.node.data.url })
-  }
-}
-
-function updateAttachmentUrl(event: Event): void {
-  const url = textValue(event).trim()
-  if (props.node.type === 'attachment' && isValidWebUrl(url)) {
-    const fileName = props.node.data.fileName
-    emit('contentChange', { fileName, url })
-  }
-}
-
-function updateCode(event: Event): void {
-  const code = textValue(event)
-  if (isValidCode(code)) {
-    emit('contentChange', { code })
-  }
-}
-
-function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
-  if (props.node.type !== 'task') {
-    return
-  }
-
-  const items = props.node.data.items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : { ...item }))
-  if (items.every((item) => isValidPlainText(item.title))) {
-    emit('contentChange', { items })
-  }
+function getInspectorComponent(node: MindNode): Component {
+  return inspectorComponentByType[node.type]
 }
 </script>
 
 <template>
   <section class="node-inspector" aria-label="Node inspector">
-    <StyleField label="Color">
-      <ColorTokenPicker
-        :value="node.shellStyle.colorToken"
-        @change="(colorToken) => emit('shellStyleChange', { colorToken })"
-      />
-    </StyleField>
-    <StyleField label="Tone">
-      <a-segmented
-        :options="['soft', 'solid', 'outline']"
-        :value="node.shellStyle.tone"
-        size="small"
-        @change="emitToneChange"
-      />
-    </StyleField>
-    <StyleField label="Shape">
-      <a-select
-        :value="node.shellStyle.shape"
-        size="small"
-        @change="emitShapeChange"
-      >
-        <a-select-option value="rounded">Rounded</a-select-option>
-        <a-select-option value="rectangle">Rectangle</a-select-option>
-        <a-select-option value="pill">Pill</a-select-option>
-      </a-select>
-    </StyleField>
-    <StyleField label="Border">
-      <a-select
-        :value="node.shellStyle.borderStyle"
-        size="small"
-        @change="emitBorderStyleChange"
-      >
-        <a-select-option value="none">None</a-select-option>
-        <a-select-option value="solid">Solid</a-select-option>
-        <a-select-option value="dashed">Dashed</a-select-option>
-      </a-select>
-    </StyleField>
-    <StyleField label="Shadow">
-      <a-segmented
-        :options="['none', 'sm', 'md']"
-        :value="node.shellStyle.shadowLevel"
-        size="small"
-        @change="emitShadowLevelChange"
-      />
-    </StyleField>
-
-    <template v-if="node.type === 'topic'">
-      <StyleField label="Title">
-        <a-input :maxlength="PLAIN_TEXT_MAX_LENGTH" :value="node.data.title" size="small" @change="updateTopicTitle" />
-      </StyleField>
-      <StyleField label="Text">
-        <a-select
-          :value="node.contentStyle.textWeight"
-          size="small"
-          @change="emitTextWeightChange"
-        >
-          <a-select-option value="regular">Regular</a-select-option>
-          <a-select-option value="medium">Medium</a-select-option>
-          <a-select-option value="bold">Bold</a-select-option>
-        </a-select>
-      </StyleField>
-    </template>
-
-    <template v-else-if="node.type === 'image'">
-      <StyleField label="URL">
-        <a-input :value="node.data.url" size="small" type="url" @change="updateImageUrl" />
-      </StyleField>
-      <StyleField label="Alt">
-        <a-input :maxlength="PLAIN_TEXT_MAX_LENGTH" :value="node.data.alt" size="small" @change="updateImageAlt" />
-      </StyleField>
-    </template>
-
-    <template v-else-if="node.type === 'link'">
-      <StyleField label="Title">
-        <a-input :maxlength="PLAIN_TEXT_MAX_LENGTH" :value="node.data.title" size="small" @change="updateLinkTitle" />
-      </StyleField>
-      <StyleField label="URL">
-        <a-input :value="node.data.url" size="small" type="url" @change="updateLinkUrl" />
-      </StyleField>
-    </template>
-
-    <template v-else-if="node.type === 'attachment'">
-      <StyleField label="File">
-        <a-input :maxlength="PLAIN_TEXT_MAX_LENGTH" :value="node.data.fileName" size="small" @change="updateAttachmentFileName" />
-      </StyleField>
-      <StyleField label="URL">
-        <a-input :value="node.data.url" size="small" type="url" @change="updateAttachmentUrl" />
-      </StyleField>
-    </template>
-
-    <template v-else-if="node.type === 'code'">
-      <StyleField label="Code">
-        <a-textarea
-          :maxlength="CODE_NODE_CODE_MAX_LENGTH"
-          :value="node.data.code"
-          :auto-size="{ minRows: 5, maxRows: 8 }"
-          size="small"
-          @change="updateCode"
-        />
-      </StyleField>
-    </template>
-
-    <template v-else-if="node.type === 'task'">
-      <StyleField label="Tasks">
-        <div class="node-inspector__tasks">
-          <label v-for="(item, index) in node.data.items" :key="item.id" class="node-inspector__task">
-            <a-checkbox
-              :checked="item.done"
-              @change="(event: Event) => replaceTaskItem(index, { done: checkedValue(event) })"
-            />
-            <a-input
-              :maxlength="PLAIN_TEXT_MAX_LENGTH"
-              :value="item.title"
-              size="small"
-              @change="(event: Event) => replaceTaskItem(index, { title: textValue(event).trim() })"
-            />
-          </label>
-        </div>
-      </StyleField>
-    </template>
+    <NodeShellStyleInspector
+      :style="node.shellStyle"
+      @style-change="(stylePatch: Partial<NodeShellStyle>) => emit('shellStyleChange', stylePatch)"
+    />
+    <component
+      :is="getInspectorComponent(node)"
+      :node="node"
+      @content-change="(dataPatch: Record<string, unknown>) => emit('contentChange', dataPatch)"
+      @content-style-change="(stylePatch: Record<string, unknown>) => emit('contentStyleChange', stylePatch)"
+    />
   </section>
 </template>
 
@@ -243,17 +52,5 @@ function replaceTaskItem(index: number, patch: Partial<TaskItem>): void {
 .node-inspector {
   display: grid;
   gap: 10px;
-}
-
-.node-inspector__tasks {
-  display: grid;
-  gap: 6px;
-}
-
-.node-inspector__task {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 6px;
 }
 </style>
