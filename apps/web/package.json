@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:deps": "npm run build -w @mind-x/mind-engine",
+    "prebuild": "npm run build:deps",
+    "pretypecheck": "npm run build:deps",
+    "pretest": "npm run build:deps",
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vue-tsc -p tsconfig.json --noEmit && vite build",
     "preview": "vite preview",
