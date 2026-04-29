@@ -24,4 +24,85 @@ describe('node inspector architecture', () => {
     expect(source).toContain("emit('styleChange', { borderStyle: borderStyle as NodeShellStyle['borderStyle'] })")
     expect(source).toContain("emit('styleChange', { shadowLevel: shadowLevel as NodeShellStyle['shadowLevel'] })")
   })
+
+  it('provides a focused inspector for topic nodes', () => {
+    const source = readEditorSource('../components/inspectors/node-inspectors/TopicNodeInspector.vue')
+
+    expect(source).toContain("type TopicNodeModel = Extract<MindNode, { type: 'topic' }>")
+    expect(source).toContain('node: TopicNodeModel')
+    expect(source).toContain('isValidPlainText')
+    expect(source).toContain('label="Title"')
+    expect(source).toContain('label="Text"')
+    expect(source).toContain("emit('contentChange', { title })")
+    expect(source).toContain("emit('contentStyleChange', { textWeight })")
+  })
+
+  it('provides a focused inspector for image nodes', () => {
+    const source = readEditorSource('../components/inspectors/node-inspectors/ImageNodeInspector.vue')
+
+    expect(source).toContain("type ImageNodeModel = Extract<MindNode, { type: 'image' }>")
+    expect(source).toContain('node: ImageNodeModel')
+    expect(source).toContain('isValidWebUrl')
+    expect(source).toContain('isValidOptionalPlainText')
+    expect(source).toContain('label="URL"')
+    expect(source).toContain('label="Alt"')
+    expect(source).toContain('label="Fit"')
+    expect(source).toContain("emit('contentChange', { url, alt: props.node.data.alt })")
+    expect(source).toContain("emit('contentStyleChange', { objectFit: objectFit as ImageContentStyle['objectFit'] })")
+  })
+
+  it('provides a focused inspector for link nodes', () => {
+    const source = readEditorSource('../components/inspectors/node-inspectors/LinkNodeInspector.vue')
+
+    expect(source).toContain("type LinkNodeModel = Extract<MindNode, { type: 'link' }>")
+    expect(source).toContain('node: LinkNodeModel')
+    expect(source).toContain('isValidPlainText')
+    expect(source).toContain('isValidWebUrl')
+    expect(source).toContain('label="Title"')
+    expect(source).toContain('label="URL"')
+    expect(source).toContain("emit('contentChange', { title, url: props.node.data.url })")
+    expect(source).toContain("emit('contentChange', { title: props.node.data.title, url })")
+    expect(source).not.toContain('label="Layout"')
+  })
+
+  it('provides a focused inspector for attachment nodes', () => {
+    const source = readEditorSource('../components/inspectors/node-inspectors/AttachmentNodeInspector.vue')
+
+    expect(source).toContain("type AttachmentNodeModel = Extract<MindNode, { type: 'attachment' }>")
+    expect(source).toContain('node: AttachmentNodeModel')
+    expect(source).toContain('isValidPlainText')
+    expect(source).toContain('isValidWebUrl')
+    expect(source).toContain('label="File"')
+    expect(source).toContain('label="URL"')
+    expect(source).toContain("emit('contentChange', { fileName, url: props.node.data.url })")
+    expect(source).toContain("emit('contentChange', { fileName: props.node.data.fileName, url })")
+    expect(source).not.toContain('label="Icon"')
+  })
+
+  it('provides a focused inspector for code nodes', () => {
+    const source = readEditorSource('../components/inspectors/node-inspectors/CodeNodeInspector.vue')
+
+    expect(source).toContain("type CodeNodeModel = Extract<MindNode, { type: 'code' }>")
+    expect(source).toContain('node: CodeNodeModel')
+    expect(source).toContain('CODE_NODE_CODE_MAX_LENGTH')
+    expect(source).toContain('isValidCode')
+    expect(source).toContain('label="Code"')
+    expect(source).toContain('label="Wrap"')
+    expect(source).toContain("emit('contentChange', { code })")
+    expect(source).toContain("emit('contentStyleChange', { wrap: checkedValue(event) })")
+  })
+
+  it('provides a focused inspector for task nodes', () => {
+    const source = readEditorSource('../components/inspectors/node-inspectors/TaskNodeInspector.vue')
+
+    expect(source).toContain("type TaskNodeModel = Extract<MindNode, { type: 'task' }>")
+    expect(source).toContain("type TaskItem = TaskNodeModel['data']['items'][number]")
+    expect(source).toContain('node: TaskNodeModel')
+    expect(source).toContain('isValidPlainText')
+    expect(source).toContain('label="Tasks"')
+    expect(source).toContain('label="Density"')
+    expect(source).toContain('replaceTaskItem')
+    expect(source).toContain("emit('contentChange', { items })")
+    expect(source).toContain("emit('contentStyleChange', { density: density as TaskContentStyle['density'] })")
+  })
 })
