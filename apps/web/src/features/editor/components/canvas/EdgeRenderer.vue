@@ -14,6 +14,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  inspect: [edgeId: string]
   select: [edgeId: string]
 }>()
 
@@ -157,6 +158,7 @@ function getPath(edge: MindEdge): string | null {
             class="edge-renderer__hit-path"
             :d="getPath(edge) ?? undefined"
             @click.stop="emit('select', edge.id)"
+            @dblclick.stop="emit('inspect', edge.id)"
             @pointerdown.stop
             @pointerenter="hoveredEdgeId = edge.id"
             @pointerleave="hoveredEdgeId = hoveredEdgeId === edge.id ? null : hoveredEdgeId"

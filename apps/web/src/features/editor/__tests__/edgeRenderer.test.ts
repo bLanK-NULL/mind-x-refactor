@@ -15,6 +15,15 @@ function readEdgeRendererSections(): { styles: string; template: string } {
 }
 
 describe('EdgeRenderer', () => {
+  it('selects edges on click and inspects edges on double-click', () => {
+    const { template } = readEdgeRendererSections()
+
+    expect(template).toContain("@click.stop=\"emit('select', edge.id)\"")
+    expect(template).toContain("@dblclick.stop=\"emit('inspect', edge.id)\"")
+    expect(template).toContain('data-editor-edge')
+    expect(template).toContain(':data-editor-edge-id="edge.id"')
+  })
+
   it('keeps edge layer positioning off the serialized SVG root', () => {
     const { styles, template } = readEdgeRendererSections()
 
