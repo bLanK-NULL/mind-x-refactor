@@ -141,6 +141,7 @@ function cancelTaskTitleEdit(item: TaskItem): void {
   <div class="task-node__content" :class="`task-node__content--${node.contentStyle.density}`">
     <div v-for="item in node.data.items" :key="item.id" class="task-node__item">
       <input
+        :aria-label="`Mark ${draftTitles[item.id] ?? item.title} complete`"
         class="task-node__checkbox"
         :checked="item.done"
         type="checkbox"
@@ -150,6 +151,7 @@ function cancelTaskTitleEdit(item: TaskItem): void {
       <input
         :ref="(element) => setInputRef(item.id, element as HTMLInputElement | null)"
         v-model="draftTitles[item.id]"
+        :aria-label="`Edit task ${draftTitles[item.id] ?? item.title}`"
         class="task-node__input"
         :class="{ 'task-node__input--done': item.done }"
         :maxlength="PLAIN_TEXT_MAX_LENGTH"
@@ -159,7 +161,7 @@ function cancelTaskTitleEdit(item: TaskItem): void {
         @pointerdown.stop
       />
       <button
-        aria-label="Delete task"
+        :aria-label="`Delete task ${draftTitles[item.id] ?? item.title}`"
         class="task-node__delete"
         :disabled="node.data.items.length <= 1"
         type="button"
