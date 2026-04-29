@@ -14,21 +14,21 @@
 
 Modify:
 
-- `apps/web/src/features/editor/components/canvas/node-content/CodeNodeContent.vue`  
+- `apps/web/src/features/editor/components/canvas/node-content/CodeNodeContent.vue`
   Remove theme-token-driven syntax colors and make the code viewport vertically scrollable.
-- `apps/web/src/features/editor/components/canvas/node-content/TaskNodeContent.vue`  
+- `apps/web/src/features/editor/components/canvas/node-content/TaskNodeContent.vue`
   Add task item add/delete/toggle/title editing UI and emit `commit` data patches.
-- `apps/web/src/features/editor/components/canvas/node-content/ImageNodeContent.vue`  
+- `apps/web/src/features/editor/components/canvas/node-content/ImageNodeContent.vue`
   Add focusable Space-key preview behavior and a lightweight teleported image preview overlay.
-- `apps/web/src/features/editor/components/canvas/NodeRenderer.vue`  
+- `apps/web/src/features/editor/components/canvas/NodeRenderer.vue`
   Pass selection state only to image content so selected image nodes can receive Space.
-- `apps/web/src/features/editor/components/inspectors/node-inspectors/TaskNodeInspector.vue`  
+- `apps/web/src/features/editor/components/inspectors/node-inspectors/TaskNodeInspector.vue`
   Remove task item data editing controls; keep density style control only.
-- `apps/web/src/features/editor/__tests__/nodeRenderer.test.ts`  
+- `apps/web/src/features/editor/__tests__/nodeRenderer.test.ts`
   Update content ownership tests for interactive tasks and image preview.
-- `apps/web/src/features/editor/__tests__/nodeInspectorArchitecture.test.ts`  
+- `apps/web/src/features/editor/__tests__/nodeInspectorArchitecture.test.ts`
   Update task inspector architecture expectations.
-- `apps/web/src/features/editor/__tests__/editorControls.test.ts`  
+- `apps/web/src/features/editor/__tests__/editorControls.test.ts`
   Keep the generic NodeInspector boundary test aligned with the new task ownership.
 
 Do not modify:
