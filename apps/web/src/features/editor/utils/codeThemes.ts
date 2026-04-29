@@ -148,7 +148,7 @@ export const CODE_THEME_OPTIONS: CodeThemeOption[] = CODE_BLOCK_THEMES.map(
 )
 
 export function resolveCodeTheme(theme: unknown): CodeBlockTheme {
-  return typeof theme === 'string' && theme in CODE_THEME_STYLES
+  return typeof theme === 'string' && CODE_BLOCK_THEMES.includes(theme as CodeBlockTheme)
     ? (theme as CodeBlockTheme)
     : DEFAULT_CODE_THEME
 }

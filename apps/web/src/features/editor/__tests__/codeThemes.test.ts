@@ -34,7 +34,12 @@ describe('codeThemes', () => {
   it('resolves unsupported values to the default theme', () => {
     expect(resolveCodeTheme('dracula')).toBe('dracula')
     expect(resolveCodeTheme('missing')).toBe(DEFAULT_CODE_THEME)
+    expect(resolveCodeTheme('toString')).toBe(DEFAULT_CODE_THEME)
     expect(resolveCodeTheme(undefined)).toBe(DEFAULT_CODE_THEME)
+  })
+
+  it('falls back to default theme styles for inherited object keys', () => {
+    expect(resolveCodeThemeStyle('toString')).toEqual(resolveCodeThemeStyle(DEFAULT_CODE_THEME))
   })
 
   it('returns the CSS variables required by the code renderer', () => {
