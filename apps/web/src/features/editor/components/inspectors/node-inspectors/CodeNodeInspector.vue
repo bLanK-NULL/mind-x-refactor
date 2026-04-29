@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { CODE_NODE_CODE_MAX_LENGTH, type MindNode } from '@mind-x/shared'
+import { computed } from 'vue'
 import { isValidCode } from '../../../utils/nodeValidation'
+import {
+  CODE_THEME_OPTIONS,
+  resolveCodeTheme
+} from '../../../utils/codeThemes'
 import StyleField from '../StyleField.vue'
 
 type CodeNodeModel = Extract<MindNode, { type: 'code' }>
 
-defineProps<{
+const props = defineProps<{
   node: CodeNodeModel
 }>()
 
@@ -28,6 +33,13 @@ function updateCode(event: Event): void {
     emit('contentChange', { code })
   }
 }
+
+const selectedTheme = computed(() => resolveCodeTheme(props.node.contentStyle.theme))
+
+function emitThemeChange(value: unknown): void {
+  const theme = resolveCodeTheme(value)
+  emit('contentStyleChange', { theme })
+}
 </script>
 
 <template>
@@ -40,6 +52,32 @@ function updateCode(event: Event): void {
         size="small"
         @change="updateCode"
       />
+    </StyleField>
+    <StyleField label="Theme">
+      <a-select
+        :value="selectedTheme"
+        size="small"
+        class="code-node-inspector__theme-select"
+        @change="emitThemeChange"
+      >
+        <a-select-option
+          v-for="option in CODE_THEME_OPTIONS"
+          :key="option.value"
+          :value="option.value"
+        >
+          <span class="code-node-inspector__theme-option">
+            <span>{{ option.label }}</span>
+            <span class="code-node-inspector__theme-swatches" aria-hidden="true">
+              <span
+                v-for="swatch in option.swatches"
+                :key="swatch.label"
+                class="code-node-inspector__theme-swatch"
+                :style="{ backgroundColor: swatch.color }"
+              />
+            </span>
+          </span>
+        </a-select-option>
+      </a-select>
     </StyleField>
     <StyleField label="Wrap">
       <a-checkbox
@@ -56,5 +94,31 @@ function updateCode(event: Event): void {
 .code-node-inspector {
   display: grid;
   gap: 10px;
+}
+
+.code-node-inspector__theme-select {
+  width: 100%;
+}
+
+.code-node-inspector__theme-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.code-node-inspector__theme-swatches {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+}
+
+.code-node-inspector__theme-swatch {
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgb(0 0 0 / 12%);
+  border-radius: 2px;
 }
 </style>
