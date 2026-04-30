@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_CODE_CONTENT_STYLE,
@@ -68,7 +69,21 @@ function documentWithEdgeChain(): MindDocument {
   })
 }
 
+function readEditorSessionSource(): string {
+  return readFileSync(new URL('../editorSession/session.ts', import.meta.url), 'utf8')
+}
+
 describe('editor session', () => {
+  it('does not deep-clone session-owned documents before command execution', () => {
+    const source = readEditorSessionSource()
+
+    expect(source).not.toContain('executeCommand(cloneDocument(state.document)')
+    expect(source).not.toContain('moveNodes(cloneDocument(state.document)')
+    expect(source).not.toContain('resizeNodes(cloneDocument(state.document)')
+    expect(source).not.toContain('const next = cloneDocument(result.document)')
+    expect(source).toContain('const next = result.document')
+  })
+
   it('loads a clean document with empty selection and initialized history flags', () => {
     const session = createEditorSession()
     const document = documentWithRoot()

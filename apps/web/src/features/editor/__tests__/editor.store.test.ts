@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import {
   DEFAULT_CODE_CONTENT_STYLE,
   DEFAULT_EDGE_STYLE,
@@ -41,9 +42,22 @@ function documentWithRoot(): MindDocument {
   })
 }
 
+function readEditorStoreSource(): string {
+  return readFileSync(new URL('../stores/editor.ts', import.meta.url), 'utf8')
+}
+
 describe('editor store adapter', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+  })
+
+  it('delegates document ownership boundaries to the engine session', () => {
+    const source = readEditorStoreSource()
+
+    expect(source).not.toContain('function cloneForSession')
+    expect(source).not.toContain('JSON.parse(JSON.stringify(toRaw(document)))')
+    expect(source).toContain('session.load(nextDocument)')
+    expect(source).toContain('session.commit(nextDocument)')
   })
 
   it('loads session state into shallow store fields', () => {
