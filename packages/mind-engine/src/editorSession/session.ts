@@ -82,7 +82,7 @@ export function createEditorSession(): EditorSession {
   }
 
   function commitCommandResult(result: CommandResult): void {
-    const next = cloneDocument(result.document)
+    const next = result.document
     history?.push({
       document: next,
       patches: result.patches,
@@ -99,7 +99,7 @@ export function createEditorSession(): EditorSession {
 
     finalizePendingPreview()
     commitCommandResult(
-      executeCommand(cloneDocument(state.document), moveNodesCommand, {
+      executeCommand(state.document, moveNodesCommand, {
         nodeIds: state.selectedNodeIds,
         delta
       })
@@ -115,7 +115,7 @@ export function createEditorSession(): EditorSession {
       pendingPreviewBaseline = preserveUntrackedDocumentState(history?.current() ?? state.document, state.document)
     }
 
-    syncAfterDocumentChange(moveNodes(cloneDocument(state.document), { nodeIds: state.selectedNodeIds, delta }))
+    syncAfterDocumentChange(moveNodes(state.document, { nodeIds: state.selectedNodeIds, delta }))
   }
 
   function resizeSelectedByDelta(delta: { width: number; height: number }): void {
@@ -125,7 +125,7 @@ export function createEditorSession(): EditorSession {
 
     finalizePendingPreview()
     commitCommandResult(
-      executeCommand(cloneDocument(state.document), resizeNodesCommand, {
+      executeCommand(state.document, resizeNodesCommand, {
         nodeIds: state.selectedNodeIds,
         delta
       })
@@ -141,7 +141,7 @@ export function createEditorSession(): EditorSession {
       pendingPreviewBaseline = preserveUntrackedDocumentState(history?.current() ?? state.document, state.document)
     }
 
-    syncAfterDocumentChange(resizeNodes(cloneDocument(state.document), { nodeIds: state.selectedNodeIds, delta }))
+    syncAfterDocumentChange(resizeNodes(state.document, { nodeIds: state.selectedNodeIds, delta }))
   }
 
   function finalizePendingPreview(): void {
@@ -154,7 +154,7 @@ export function createEditorSession(): EditorSession {
       draft.viewport = { ...baseline.viewport }
     })
     const result = replaceWithPatchResult(baseline, trackedNext)
-    const next = cloneDocument(state.document)
+    const next = state.document
     history?.push({
       document: next,
       patches: result.patches,
@@ -172,7 +172,7 @@ export function createEditorSession(): EditorSession {
     finalizePendingPreview()
     const id = input.id ?? createNodeId(state.document)
     validate?.(id)
-    const result = executeCommand(cloneDocument(state.document), addRootMindNodeCommand, {
+    const result = executeCommand(state.document, addRootMindNodeCommand, {
       id,
       type: input.type,
       data: input.data
@@ -201,7 +201,7 @@ export function createEditorSession(): EditorSession {
 
     const id = input.id ?? createNodeId(state.document)
     validate?.(id)
-    const result = executeCommand(cloneDocument(state.document), addChildMindNodeCommand, {
+    const result = executeCommand(state.document, addChildMindNodeCommand, {
       parentId,
       id,
       type: input.type,
@@ -237,7 +237,7 @@ export function createEditorSession(): EditorSession {
         draft.selectedEdgeId = null
       })
     }
-    commitCommandResult(executeCommand(cloneDocument(state.document), deleteEdgeDetachChildCommand, { edgeId: edge.id }))
+    commitCommandResult(executeCommand(state.document, deleteEdgeDetachChildCommand, { edgeId: edge.id }))
   }
 
   function setEdgeStyle(edgeId: string, stylePatch: Partial<EdgeStyle>): void {
@@ -262,7 +262,7 @@ export function createEditorSession(): EditorSession {
 
     finalizePendingPreview()
     commitCommandResult(
-      executeCommand(cloneDocument(state.document), setEdgeStyleCommand, {
+      executeCommand(state.document, setEdgeStyleCommand, {
         edgeId,
         stylePatch
       })
@@ -291,7 +291,7 @@ export function createEditorSession(): EditorSession {
 
     finalizePendingPreview()
     commitCommandResult(
-      executeCommand(cloneDocument(state.document), setNodeShellStyleCommand, {
+      executeCommand(state.document, setNodeShellStyleCommand, {
         nodeId,
         stylePatch
       })
@@ -320,7 +320,7 @@ export function createEditorSession(): EditorSession {
 
     finalizePendingPreview()
     commitCommandResult(
-      executeCommand(cloneDocument(state.document), setNodeContentStyleCommand, {
+      executeCommand(state.document, setNodeContentStyleCommand, {
         nodeId,
         stylePatch
       })
@@ -386,7 +386,7 @@ export function createEditorSession(): EditorSession {
           draft.selectedEdgeId = null
           draft.selectedNodeIds = []
         })
-        commitCommandResult(executeCommand(cloneDocument(state.document), deleteEdgeDetachChildCommand, { edgeId }))
+        commitCommandResult(executeCommand(state.document, deleteEdgeDetachChildCommand, { edgeId }))
         return
       }
 
@@ -395,7 +395,7 @@ export function createEditorSession(): EditorSession {
       }
 
       commitCommandResult(
-        executeCommand(cloneDocument(state.document), deleteNodesPromoteChildrenCommand, {
+        executeCommand(state.document, deleteNodesPromoteChildrenCommand, {
           nodeIds: state.selectedNodeIds
         })
       )
@@ -406,7 +406,7 @@ export function createEditorSession(): EditorSession {
       }
 
       finalizePendingPreview()
-      commitCommandResult(executeCommand(cloneDocument(state.document), editNodeTitleCommand, { nodeId, title }))
+      commitCommandResult(executeCommand(state.document, editNodeTitleCommand, { nodeId, title }))
     },
     finishInteraction: finalizePendingPreview,
     getState() {
@@ -546,7 +546,7 @@ export function createEditorSession(): EditorSession {
       }
 
       finalizePendingPreview()
-      commitCommandResult(executeCommand(cloneDocument(state.document), updateNodeDataCommand, { nodeId, dataPatch }))
+      commitCommandResult(executeCommand(state.document, updateNodeDataCommand, { nodeId, dataPatch }))
     },
     updateDocumentTitle(title: string) {
       if (!state.document) {

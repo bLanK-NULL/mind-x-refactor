@@ -14,10 +14,6 @@ export function serializeMindDocument(document: MindDocument | null): string | n
   return document ? JSON.stringify(toRaw(document)) : null
 }
 
-function cloneForSession(document: MindDocument): MindDocument {
-  return JSON.parse(JSON.stringify(toRaw(document))) as MindDocument
-}
-
 export const useEditorStore = defineStore('editor', () => {
   let session: EditorSession = markRaw(createEditorSession())
   const document = shallowRef<MindDocument | null>(null)
@@ -45,12 +41,12 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function load(nextDocument: MindDocument): void {
-    session.load(cloneForSession(nextDocument))
+    session.load(nextDocument)
     syncFromSession()
   }
 
   function commit(nextDocument: MindDocument): void {
-    session.commit(cloneForSession(nextDocument))
+    session.commit(nextDocument)
     syncFromSession()
   }
 
