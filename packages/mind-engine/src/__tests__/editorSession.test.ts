@@ -73,6 +73,10 @@ function readEditorSessionSource(): string {
   return readFileSync(new URL('../editorSession/session.ts', import.meta.url), 'utf8')
 }
 
+function readEngineIndexSource(): string {
+  return readFileSync(new URL('../index.ts', import.meta.url), 'utf8')
+}
+
 describe('editor session', () => {
   it('does not deep-clone session-owned documents before command execution', () => {
     const source = readEditorSessionSource()
@@ -82,6 +86,14 @@ describe('editor session', () => {
     expect(source).not.toContain('resizeNodes(cloneDocument(state.document)')
     expect(source).not.toContain('const next = cloneDocument(result.document)')
     expect(source).toContain('const next = result.document')
+  })
+
+  it('keeps low-level history out of the package-root API', () => {
+    const source = readEngineIndexSource()
+
+    expect(source).not.toContain("export * from './history.js'")
+    expect(source).toContain("export * from './editorSession.js'")
+    expect(source).toContain("export * from './commands.js'")
   })
 
   it('loads a clean document with empty selection and initialized history flags', () => {
