@@ -408,7 +408,7 @@ Inside `describe('editor session', () => {`, after the clone-boundary source tes
   it('keeps low-level history out of the package-root API', () => {
     const source = readEngineIndexSource()
 
-    expect(source).not.toContain("export * from './history.js'")
+    expect(source).not.toMatch(/export\s+(?:type\s+)?(?:\*(?:\s+as\s+\w+)?|\{[\s\S]*?\})\s+from\s+['"]\.\/history\.js['"]/)
     expect(source).toContain("export * from './editorSession.js'")
     expect(source).toContain("export * from './commands.js'")
   })
