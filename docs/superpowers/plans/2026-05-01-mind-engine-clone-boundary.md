@@ -14,8 +14,8 @@
 
 - Modify `apps/web/src/features/editor/stores/editor.ts`
   - Remove `cloneForSession()`.
-  - Keep `toRaw` for `serializeMindDocument()`.
-  - Call `session.load()` and `session.commit()` directly.
+  - Keep `toRaw` for `serializeMindDocument()` and Vue proxy unwrapping.
+  - Call `session.load(toRaw(nextDocument))` and `session.commit(toRaw(nextDocument))` so web does not deep-clone but still hands plain objects to the engine boundary.
 
 - Modify `apps/web/src/features/editor/__tests__/editor.store.test.ts`
   - Add source-level assertions that the web adapter does not clone before passing documents to the engine session.
@@ -70,8 +70,8 @@ Inside `describe('editor store adapter', () => {`, after the `beforeEach()` bloc
 
     expect(source).not.toContain('function cloneForSession')
     expect(source).not.toContain('JSON.parse(JSON.stringify(toRaw(document)))')
-    expect(source).toContain('session.load(nextDocument)')
-    expect(source).toContain('session.commit(nextDocument)')
+    expect(source).toContain('session.load(toRaw(nextDocument))')
+    expect(source).toContain('session.commit(toRaw(nextDocument))')
   })
 ```
 
@@ -146,7 +146,7 @@ git commit -m "test: capture clone boundary expectations"
 
 - [ ] **Step 1: Remove web pre-cloning**
 
-In `apps/web/src/features/editor/stores/editor.ts`, keep this Vue import unchanged because `serializeMindDocument()` still uses `toRaw`:
+In `apps/web/src/features/editor/stores/editor.ts`, keep this Vue import unchanged because `serializeMindDocument()` and the session handoff boundary still use `toRaw`:
 
 ```ts
 import { markRaw, ref, shallowRef, toRaw } from 'vue'
@@ -173,7 +173,7 @@ to:
 
 ```ts
   function load(nextDocument: MindDocument): void {
-    session.load(nextDocument)
+    session.load(toRaw(nextDocument))
     syncFromSession()
   }
 ```
@@ -191,9 +191,44 @@ to:
 
 ```ts
   function commit(nextDocument: MindDocument): void {
-    session.commit(nextDocument)
+    session.commit(toRaw(nextDocument))
     syncFromSession()
   }
+```
+
+Add a behavior test in `apps/web/src/features/editor/__tests__/editor.store.test.ts` that imports `reactive` from `vue`, passes reactive proxy documents to `store.load()` and `store.commit()`, and verifies the store accepts them without exposing the caller-owned object:
+
+```ts
+  it('accepts reactive proxy documents at load and commit boundaries', () => {
+    const store = useEditorStore()
+    const plainDocument = documentWithRoot()
+    const reactiveDocument = reactive(plainDocument) as MindDocument
+
+    store.load(reactiveDocument)
+
+    expect(store.document).toEqual(plainDocument)
+    expect(store.document).not.toBe(plainDocument)
+    expect(store.document).not.toBe(reactiveDocument)
+
+    const plainDraft = {
+      ...documentWithRoot(),
+      nodes: [
+        {
+          ...topicNode('root', 'Root', { x: 10, y: 20 }),
+          data: { title: 'Reactive draft root' }
+        }
+      ]
+    }
+    const reactiveDraft = reactive(plainDraft) as MindDocument
+
+    store.commit(reactiveDraft)
+
+    expect(store.document).toEqual(plainDraft)
+    expect(store.document).not.toBe(plainDraft)
+    expect(store.document).not.toBe(reactiveDraft)
+    expect(store.dirty).toBe(true)
+    expect(store.canUndo).toBe(true)
+  })
 ```
 
 - [ ] **Step 2: Update `commitCommandResult()`**
@@ -339,6 +374,13 @@ Run:
 ```sh
 git add apps/web/src/features/editor/stores/editor.ts apps/web/src/features/editor/__tests__/editor.store.test.ts packages/mind-engine/src/editorSession/session.ts packages/mind-engine/src/__tests__/editorSession.test.ts
 git commit -m "refactor(engine): remove redundant session document clones"
+```
+
+If the source-level test and implementation are split into separate commits, follow with:
+
+```sh
+git add apps/web/src/features/editor/stores/editor.ts apps/web/src/features/editor/__tests__/editor.store.test.ts
+git commit -m "fix(web): unwrap editor documents before session handoff"
 ```
 
 ---
