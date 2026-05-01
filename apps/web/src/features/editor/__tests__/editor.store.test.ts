@@ -10,6 +10,7 @@ import {
 } from '@mind-x/shared'
 import { createEmptyDocument } from '@mind-x/mind-engine'
 import { createPinia, setActivePinia } from 'pinia'
+import { reactive } from 'vue'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { serializeMindDocument, useEditorStore } from '@/features/editor/stores/editor'
 
@@ -56,8 +57,8 @@ describe('editor store adapter', () => {
 
     expect(source).not.toContain('function cloneForSession')
     expect(source).not.toContain('JSON.parse(JSON.stringify(toRaw(document)))')
-    expect(source).toContain('session.load(nextDocument)')
-    expect(source).toContain('session.commit(nextDocument)')
+    expect(source).toContain('session.load(toRaw(nextDocument))')
+    expect(source).toContain('session.commit(toRaw(nextDocument))')
   })
 
   it('loads session state into shallow store fields', () => {
@@ -74,6 +75,37 @@ describe('editor store adapter', () => {
     expect(store.canUndo).toBe(false)
     expect(store.canRedo).toBe(false)
     expect(store.revision).toBeGreaterThan(0)
+  })
+
+  it('accepts reactive proxy documents at load and commit boundaries', () => {
+    const store = useEditorStore()
+    const plainDocument = documentWithRoot()
+    const reactiveDocument = reactive(plainDocument) as MindDocument
+
+    store.load(reactiveDocument)
+
+    expect(store.document).toEqual(plainDocument)
+    expect(store.document).not.toBe(plainDocument)
+    expect(store.document).not.toBe(reactiveDocument)
+
+    const plainDraft = {
+      ...documentWithRoot(),
+      nodes: [
+        {
+          ...topicNode('root', 'Root', { x: 10, y: 20 }),
+          data: { title: 'Reactive draft root' }
+        }
+      ]
+    }
+    const reactiveDraft = reactive(plainDraft) as MindDocument
+
+    store.commit(reactiveDraft)
+
+    expect(store.document).toEqual(plainDraft)
+    expect(store.document).not.toBe(plainDraft)
+    expect(store.document).not.toBe(reactiveDraft)
+    expect(store.dirty).toBe(true)
+    expect(store.canUndo).toBe(true)
   })
 
   it('delegates editing actions to the engine session and syncs fields after each action', () => {

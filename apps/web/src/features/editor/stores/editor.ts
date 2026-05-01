@@ -41,12 +41,12 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function load(nextDocument: MindDocument): void {
-    session.load(nextDocument)
+    session.load(toRaw(nextDocument))
     syncFromSession()
   }
 
   function commit(nextDocument: MindDocument): void {
-    session.commit(nextDocument)
+    session.commit(toRaw(nextDocument))
     syncFromSession()
   }
 
