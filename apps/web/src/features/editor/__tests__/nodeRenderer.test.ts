@@ -278,6 +278,24 @@ describe('NodeRenderer', () => {
     expect(source).not.toContain('highlightCode')
   })
 
+  it('renders link nodes with local favicon fallback and clickable link targets', () => {
+    const source = readNodeContentSource('LinkNodeContent')
+
+    expect(source).toContain("import { ExportOutlined, LinkOutlined } from '@ant-design/icons-vue'")
+    expect(source).toContain('function resolveFaviconUrl')
+    expect(source).toContain('new URL(url).origin')
+    expect(source).toContain('/favicon.ico')
+    expect(source).toContain('faviconFailed')
+    expect(source).toContain('@error="faviconFailed = true"')
+    expect(source).toContain('<LinkOutlined />')
+    expect(source).toContain('<ExportOutlined')
+    expect(source).toContain('target="_blank"')
+    expect(source).toContain('rel="noopener noreferrer"')
+    expect(source).toContain('@pointerdown.stop')
+    expect(source).toContain('@dragstart.prevent')
+    expect(source).not.toContain('@click.prevent')
+  })
+
   it('keeps export-specific concerns out of node content components', () => {
     for (const fileName of [
       'AttachmentNodeContent',
