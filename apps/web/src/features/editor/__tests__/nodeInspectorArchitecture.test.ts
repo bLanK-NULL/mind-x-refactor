@@ -33,11 +33,13 @@ describe('node inspector architecture', () => {
 
     expect(source).toContain("type TopicNodeModel = Extract<MindNode, { type: 'topic' }>")
     expect(source).toContain('node: TopicNodeModel')
-    expect(source).toContain('isValidPlainText')
-    expect(source).toContain('label="Title"')
     expect(source).toContain('label="Text"')
-    expect(source).toContain("emit('contentChange', { title })")
     expect(source).toContain("emit('contentStyleChange', { textWeight })")
+    expect(source).not.toContain('isValidPlainText')
+    expect(source).not.toContain('PLAIN_TEXT_MAX_LENGTH')
+    expect(source).not.toContain('label="Title"')
+    expect(source).not.toContain("emit('contentChange', { title })")
+    expect(source).not.toContain('<a-input')
   })
 
   it('provides a focused inspector for image nodes', () => {

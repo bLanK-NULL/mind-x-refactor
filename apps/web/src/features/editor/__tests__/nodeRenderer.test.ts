@@ -185,7 +185,7 @@ describe('NodeRenderer', () => {
     expect(source).toContain('function startEditing')
     expect(source).toMatch(/async function startEditing\(\): Promise<void> \{\s+if \(editing\.value\) \{\s+return\s+\}/)
     expect(source).toContain("emit('inspect')")
-    expect(source).toContain('@dblclick.stop="startEditing"')
+    expect(source).toContain('@click.stop="startEditing"')
     expect(source).toContain('validateTitle')
     expect(source).toContain('titleInputRef')
     expect(source).toContain('@keydown.enter.prevent="commitEdit"')

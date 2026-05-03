@@ -109,5 +109,10 @@ describe('editor multi-type controls', () => {
     expect(codeInspectorSource).not.toContain('label="Code"')
     expect(codeInspectorSource).not.toContain("emit('contentChange', { code })")
     expect(codeInspectorSource).toContain('label="Language"')
+
+    const topicInspectorSource = readEditorSource('../components/inspectors/node-inspectors/TopicNodeInspector.vue')
+    expect(topicInspectorSource).not.toContain('label="Title"')
+    expect(topicInspectorSource).not.toContain("emit('contentChange', { title })")
+    expect(topicInspectorSource).toContain('label="Text"')
   })
 })

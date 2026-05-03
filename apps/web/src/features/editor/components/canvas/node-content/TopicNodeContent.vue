@@ -78,7 +78,7 @@ function cancelEdit(): void {
 </script>
 
 <template>
-  <div class="topic-node__content" :class="contentClass" @dblclick.stop="startEditing">
+  <div class="topic-node__content" :class="contentClass" @click.stop="startEditing">
     <template v-if="editing">
       <input
         ref="titleInputRef"
