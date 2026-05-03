@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { MindNode } from '@mind-x/shared'
-import { isValidCode } from '@mind-x/mind-engine'
 import { Codemirror } from 'vue-codemirror'
 import { computed, ref, watch } from 'vue'
 import { createCodeEditorExtensions } from '../../../utils/codeEditor'
@@ -15,7 +14,7 @@ const emit = defineEmits<{
   commit: [dataPatch: { code: string }]
 }>()
 
-const editorCode = ref(props.node.data.code)
+const localCode = ref(props.node.data.code)
 
 const extensions = computed(() =>
   createCodeEditorExtensions({
@@ -28,34 +27,29 @@ const extensions = computed(() =>
 watch(
   () => props.node.data.code,
   (code) => {
-    if (code !== editorCode.value) {
-      editorCode.value = code
+    if (code !== localCode.value) {
+      localCode.value = code
     }
   }
 )
 
-function commitCode(): void {
-  if (editorCode.value === props.node.data.code) {
+function onCodeChange(value: string): void {
+  if (value === props.node.data.code) {
     return
   }
 
-  if (!isValidCode(editorCode.value)) {
-    editorCode.value = props.node.data.code
-    return
-  }
-
-  emit('commit', { code: editorCode.value })
+  emit('commit', { code: value })
 }
 
 function cancelCode(): void {
-  editorCode.value = props.node.data.code
+  localCode.value = props.node.data.code
 }
 </script>
 
 <template>
   <div class="code-node__content" @dblclick.stop @pointerdown.stop>
     <Codemirror
-      v-model="editorCode"
+      v-model="localCode"
       class="code-node__editor"
       :autofocus="false"
       :auto-destroy="true"
@@ -65,7 +59,7 @@ function cancelCode(): void {
       :style="{ height: '100%', width: '100%' }"
       :tab-size="2"
       data-editor-control
-      @blur="commitCode"
+      @change="onCodeChange"
       @keydown.esc.prevent.stop="cancelCode"
     />
   </div>

@@ -14,7 +14,7 @@ const emit = defineEmits<{
   commit: [dataPatch: Record<string, unknown>]
 }>()
 
-const draftTitles = ref<Record<string, string>>(createDraftTitles(props.node.data.items))
+const localTitles = ref<Record<string, string>>(createLocalTitles(props.node.data.items))
 const editError = ref('')
 const pendingFocusId = ref<string | null>(null)
 const inputRefs = new Map<string, HTMLInputElement>()
@@ -22,7 +22,7 @@ const inputRefs = new Map<string, HTMLInputElement>()
 watch(
   () => props.node.data.items,
   (items) => {
-    draftTitles.value = createDraftTitles(items)
+    localTitles.value = createLocalTitles(items)
     if (pendingFocusId.value) {
       void focusPendingInput()
     }
@@ -30,7 +30,7 @@ watch(
   { deep: true }
 )
 
-function createDraftTitles(items: TaskItem[]): Record<string, string> {
+function createLocalTitles(items: TaskItem[]): Record<string, string> {
   return Object.fromEntries(items.map((item) => [item.id, item.title]))
 }
 
@@ -64,14 +64,14 @@ function createNextTaskId(items: TaskItem[]): string {
   return `task-${index}`
 }
 
-function draftTitleFor(item: TaskItem): string {
-  return (draftTitles.value[item.id] ?? item.title).trim()
+function localTitleFor(item: TaskItem): string {
+  return (localTitles.value[item.id] ?? item.title).trim()
 }
 
-function createDraftItems(): TaskItem[] {
+function buildItemsFromLocal(): TaskItem[] {
   return props.node.data.items.map((item) => ({
     ...item,
-    title: draftTitleFor(item)
+    title: localTitleFor(item)
   }))
 }
 
@@ -88,7 +88,7 @@ function addTaskItem(): void {
   const nextId = createNextTaskId(props.node.data.items)
   pendingFocusId.value = nextId
   commitItems([
-    ...createDraftItems(),
+    ...buildItemsFromLocal(),
     {
       id: nextId,
       title: 'New task',
@@ -102,21 +102,17 @@ function deleteTaskItem(itemId: string): void {
     return
   }
 
-  commitItems(createDraftItems().filter((item) => item.id !== itemId))
+  commitItems(buildItemsFromLocal().filter((item) => item.id !== itemId))
 }
 
 function toggleTaskItem(itemId: string, done: boolean): void {
-  commitItems(createDraftItems().map((item) => (item.id === itemId ? { ...item, done } : item)))
+  commitItems(buildItemsFromLocal().map((item) => (item.id === itemId ? { ...item, done } : item)))
 }
 
-function commitTaskTitle(item: TaskItem): void {
-  const title = draftTitleFor(item)
+function onTaskInput(item: TaskItem): void {
+  const title = localTitleFor(item)
   if (!isValidPlainText(title)) {
     editError.value = 'Use non-empty plain text.'
-    draftTitles.value = {
-      ...draftTitles.value,
-      [item.id]: item.title
-    }
     return
   }
 
@@ -125,13 +121,13 @@ function commitTaskTitle(item: TaskItem): void {
     return
   }
 
-  commitItems(createDraftItems().map((candidate) => (candidate.id === item.id ? { ...candidate, title } : candidate)))
+  commitItems(buildItemsFromLocal().map((candidate) => (candidate.id === item.id ? { ...candidate, title } : candidate)))
 }
 
 function cancelTaskTitleEdit(item: TaskItem): void {
   editError.value = ''
-  draftTitles.value = {
-    ...draftTitles.value,
+  localTitles.value = {
+    ...localTitles.value,
     [item.id]: item.title
   }
 }
@@ -141,7 +137,7 @@ function cancelTaskTitleEdit(item: TaskItem): void {
   <div class="task-node__content" :class="`task-node__content--${node.contentStyle.density}`">
     <div v-for="item in node.data.items" :key="item.id" class="task-node__item">
       <input
-        :aria-label="`Mark ${draftTitles[item.id] ?? item.title} complete`"
+        :aria-label="`Mark ${localTitles[item.id] ?? item.title} complete`"
         class="task-node__checkbox"
         :checked="item.done"
         type="checkbox"
@@ -150,18 +146,17 @@ function cancelTaskTitleEdit(item: TaskItem): void {
       />
       <input
         :ref="(element) => setInputRef(item.id, element as HTMLInputElement | null)"
-        v-model="draftTitles[item.id]"
-        :aria-label="`Edit task ${draftTitles[item.id] ?? item.title}`"
+        v-model="localTitles[item.id]"
+        :aria-label="`Edit task ${localTitles[item.id] ?? item.title}`"
         class="task-node__input"
         :class="{ 'task-node__input--done': item.done }"
         :maxlength="PLAIN_TEXT_MAX_LENGTH"
-        @blur="commitTaskTitle(item)"
-        @keydown.enter.prevent="commitTaskTitle(item)"
+        @input="onTaskInput(item)"
         @keydown.esc.prevent="cancelTaskTitleEdit(item)"
         @pointerdown.stop
       />
       <button
-        :aria-label="`Delete task ${draftTitles[item.id] ?? item.title}`"
+        :aria-label="`Delete task ${localTitles[item.id] ?? item.title}`"
         class="task-node__delete"
         :disabled="node.data.items.length <= 1"
         type="button"

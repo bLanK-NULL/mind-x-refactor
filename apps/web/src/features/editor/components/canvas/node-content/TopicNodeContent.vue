@@ -15,7 +15,7 @@ const emit = defineEmits<{
 }>()
 
 const editing = ref(false)
-const draftTitle = ref(props.node.data.title)
+const localTitle = ref(props.node.data.title)
 const editError = ref('')
 const titleInputRef = ref<HTMLInputElement | null>(null)
 
@@ -24,18 +24,9 @@ const contentClass = computed(() => resolveTopicContentClass(props.node.contentS
 watch(
   () => props.node.data.title,
   (title) => {
-    if (!editing.value) {
-      draftTitle.value = title
-    }
+    localTitle.value = title
   }
 )
-
-function validateTitle(title: string): string {
-  if (title.length === 0 || /[<>]/.test(title)) {
-    return 'Use non-empty plain text.'
-  }
-  return ''
-}
 
 async function startEditing(): Promise<void> {
   if (editing.value) {
@@ -43,7 +34,7 @@ async function startEditing(): Promise<void> {
   }
 
   editError.value = ''
-  draftTitle.value = props.node.data.title
+  localTitle.value = props.node.data.title
   editing.value = true
   emit('inspect')
   await nextTick()
@@ -51,29 +42,23 @@ async function startEditing(): Promise<void> {
   titleInputRef.value?.select()
 }
 
-async function commitEdit(): Promise<void> {
-  const title = draftTitle.value.trim()
-  const error = validateTitle(title)
-  if (error) {
-    editError.value = error
-    await nextTick()
-    titleInputRef.value?.focus()
+function onInput(): void {
+  const title = localTitle.value.trim()
+  if (title.length === 0 || /[<>]/.test(title)) {
+    editError.value = 'Use non-empty plain text.'
     return
   }
 
   editError.value = ''
-  editing.value = false
-  if (title.length > 0 && title !== props.node.data.title) {
+  if (title !== props.node.data.title) {
     emit('commit', { title })
-  } else {
-    draftTitle.value = props.node.data.title
   }
 }
 
 function cancelEdit(): void {
   editError.value = ''
   editing.value = false
-  draftTitle.value = props.node.data.title
+  localTitle.value = props.node.data.title
 }
 </script>
 
@@ -82,13 +67,11 @@ function cancelEdit(): void {
     <template v-if="editing">
       <input
         ref="titleInputRef"
-        v-model="draftTitle"
+        v-model="localTitle"
         :aria-invalid="editError.length > 0"
         class="topic-node__input"
         maxlength="120"
-        @blur="commitEdit"
-        @input="editError = ''"
-        @keydown.enter.prevent="commitEdit"
+        @input="onInput"
         @keydown.esc.prevent="cancelEdit"
         @pointerdown.stop
       />
