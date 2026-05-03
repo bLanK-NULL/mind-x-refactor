@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import {
   DEFAULT_CODE_CONTENT_STYLE,
+  DEFAULT_CODE_LANGUAGE,
   DEFAULT_EDGE_STYLE,
   DEFAULT_NODE_SHELL_STYLE,
   DEFAULT_NODE_SIZE_BY_TYPE,
@@ -140,7 +141,7 @@ describe('editor store adapter', () => {
     expect(codeId).toBe('code')
     expect(store.document?.nodes.map((node) => node.type)).toEqual(['topic', 'code'])
     expect(store.document?.nodes[1]).toMatchObject({
-      data: { code: 'const a = 2' },
+      data: { code: 'const a = 2', language: DEFAULT_CODE_LANGUAGE },
       contentStyle: { ...DEFAULT_CODE_CONTENT_STYLE, wrap: false, theme: 'dracula' }
     })
     expect(store.selectedNodeIds).toEqual(['code'])

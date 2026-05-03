@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_CODE_CONTENT_STYLE,
+  DEFAULT_CODE_LANGUAGE,
   DEFAULT_EDGE_STYLE,
   DEFAULT_IMAGE_CONTENT_STYLE,
   DEFAULT_NODE_SHELL_STYLE,
@@ -153,7 +154,7 @@ describe('editor session', () => {
       DEFAULT_IMAGE_CONTENT_STYLE,
       { ...DEFAULT_CODE_CONTENT_STYLE, wrap: false, theme: 'dracula' }
     ])
-    expect(state.document?.nodes[1]).toMatchObject({ data: { code: 'const value = 2' } })
+    expect(state.document?.nodes[1]).toMatchObject({ data: { code: 'const value = 2', language: DEFAULT_CODE_LANGUAGE } })
     expect(state.selectedNodeIds).toEqual(['code-child'])
 
     session.undo()

@@ -1,6 +1,7 @@
 import {
   DEFAULT_ATTACHMENT_CONTENT_STYLE,
   DEFAULT_CODE_CONTENT_STYLE,
+  DEFAULT_CODE_LANGUAGE,
   DEFAULT_EDGE_STYLE,
   DEFAULT_IMAGE_CONTENT_STYLE,
   DEFAULT_LINK_CONTENT_STYLE,
@@ -28,6 +29,7 @@ import { assertMindTree, createParentEdge, findNode, getChildIds, getParentId } 
 import { createPatchResult, type PatchResult } from './patches.js'
 
 const CHILD_GAP_X = 80
+const CHILD_GAP_Y = 56
 const SIBLING_GAP_Y = 72
 const MIN_NODE_WIDTH = 120
 const MIN_NODE_HEIGHT = 44
@@ -136,7 +138,7 @@ function defaultNodeData(type: MindNodeType): NodeDataByType[MindNodeType] {
     return { fileName: 'attachment.pdf', url: 'https://example.com/attachment.pdf' }
   }
   if (type === 'code') {
-    return { code: '' }
+    return { code: '', language: DEFAULT_CODE_LANGUAGE }
   }
   return { items: [{ id: 'task-1', title: 'New task', done: false }] }
 }
@@ -226,7 +228,7 @@ export function addChildMindNodeCommand(draft: Draft<MindDocument>, input: AddCh
   const parentWidth = parent.size.width
   const position = {
     x: parent.position.x + parentWidth + CHILD_GAP_X,
-    y: parent.position.y + childCount * SIBLING_GAP_Y
+    y: parent.position.y + CHILD_GAP_Y + childCount * SIBLING_GAP_Y
   }
   draft.nodes.push(createNode({ ...input, position }) as Draft<MindNode>)
   draft.edges.push(createParentEdge(input.parentId, input.id))

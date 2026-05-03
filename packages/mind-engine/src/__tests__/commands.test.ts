@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_ATTACHMENT_CONTENT_STYLE,
   DEFAULT_CODE_CONTENT_STYLE,
+  DEFAULT_CODE_LANGUAGE,
   DEFAULT_EDGE_STYLE,
   DEFAULT_IMAGE_CONTENT_STYLE,
   DEFAULT_LINK_CONTENT_STYLE,
@@ -161,6 +162,18 @@ describe('commands', () => {
       DEFAULT_TASK_CONTENT_STYLE
     ])
     expect(result.nodes.map((node) => node.shellStyle)).toEqual(Array.from({ length: 7 }, () => DEFAULT_NODE_SHELL_STYLE))
+    expect(result.nodes.find((node) => node.id === 'node-4')).toMatchObject({
+      type: 'code',
+      data: {
+        code: 'const x = 1',
+        language: DEFAULT_CODE_LANGUAGE
+      },
+      contentStyle: DEFAULT_CODE_CONTENT_STYLE
+    })
+    expect(result.nodes.find((node) => node.id === 'node-1')).toMatchObject({
+      type: 'image',
+      contentStyle: DEFAULT_IMAGE_CONTENT_STYLE
+    })
     expect(getParentId(result, 'node-5')).toBe('node-4')
   })
 
@@ -380,18 +393,25 @@ describe('commands', () => {
     expect(applyPatches(result.document, result.inversePatches)).toEqual(doc)
   })
 
-  it('adds a child node to the right of its parent', () => {
+  it('adds child nodes to the right and lower than their parent', () => {
     const doc = createEmptyDocument({ projectId: 'p1', title: 'Doc', now: '2026-04-26T00:00:00.000Z' })
     doc.nodes.push(topicNode('root', 'Root', { x: 10, y: 20 }, { width: 160, height: 48 }))
 
-    const result = addChildNode(doc, {
+    const withFirstChild = addChildNode(doc, {
       parentId: 'root',
-      id: 'child',
-      title: 'Child'
+      id: 'child-1',
+      title: 'Child 1'
+    })
+    const withSecondChild = addChildNode(withFirstChild, {
+      parentId: 'root',
+      id: 'child-2',
+      title: 'Child 2'
     })
 
-    expect(result.nodes.find((node) => node.id === 'child')?.position).toEqual({ x: 250, y: 20 })
-    expect(getParentId(result, 'child')).toBe('root')
+    expect(withFirstChild.nodes.find((node) => node.id === 'child-1')?.position).toEqual({ x: 250, y: 76 })
+    expect(withSecondChild.nodes.find((node) => node.id === 'child-2')?.position).toEqual({ x: 250, y: 148 })
+    expect(getParentId(withSecondChild, 'child-1')).toBe('root')
+    expect(getParentId(withSecondChild, 'child-2')).toBe('root')
   })
 
   it('rejects an HTML child node title', () => {
