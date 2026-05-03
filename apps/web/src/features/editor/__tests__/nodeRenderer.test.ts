@@ -240,55 +240,42 @@ describe('NodeRenderer', () => {
     expect(taskInspectorSource).toContain('contentStyleChange')
   })
 
-  it('keeps non-topic content read-only on the canvas', () => {
-    const readOnlyContent = [
-      'AttachmentNodeContent',
-      'CodeNodeContent',
-      'LinkNodeContent'
-    ]
+  it('keeps attachment content read-only while code and link own their own interactions', () => {
+    const attachmentSource = readNodeContentSource('AttachmentNodeContent')
 
-    for (const fileName of readOnlyContent) {
-      const source = readNodeContentSource(fileName)
-
-      expect(source).toContain('node:')
-      expect(source).not.toContain('editing: boolean')
-      expect(source).not.toContain('defineEmits')
-      expect(source).not.toContain('function commitEdit')
-      expect(source).not.toContain('function cancelEdit')
-      expect(source).not.toContain('v-if="editing"')
-      expect(source).not.toContain('@commit')
-      expect(source).not.toContain("@keydown.esc.prevent")
-    }
-
-    expect(readNodeContentSource('AttachmentNodeContent')).toContain('@click.prevent')
-    expect(readNodeContentSource('LinkNodeContent')).toContain('@click.prevent')
-    expect(readNodeContentSource('CodeNodeContent')).not.toContain('CODE_NODE_CODE_MAX_LENGTH')
-    expect(readNodeContentSource('CodeNodeContent')).not.toContain('isValidCode')
+    expect(attachmentSource).toContain('node:')
+    expect(attachmentSource).not.toContain('editing: boolean')
+    expect(attachmentSource).not.toContain('defineEmits')
+    expect(attachmentSource).not.toContain('function commitEdit')
+    expect(attachmentSource).not.toContain('function cancelEdit')
+    expect(attachmentSource).not.toContain('v-if="editing"')
+    expect(attachmentSource).not.toContain('@commit')
+    expect(attachmentSource).not.toContain('@keydown.esc.prevent')
+    expect(attachmentSource).toContain('@click.prevent')
+    expect(readNodeContentSource('CodeNodeContent')).toContain('vue-codemirror')
+    expect(readNodeContentSource('CodeNodeContent')).toContain("emit('commit', { code: editorCode.value })")
+    expect(readNodeContentSource('CodeNodeContent')).toContain('@blur="commitCode"')
+    expect(readNodeContentSource('CodeNodeContent')).toContain('@keydown.esc')
   })
 
-  it('renders code highlighting with selected theme variables while staying scrollable', () => {
+  it('renders code nodes as an always-editable CodeMirror surface', () => {
     const source = readNodeContentSource('CodeNodeContent')
 
-    expect(source).toContain("import { resolveCodeThemeStyle } from '../../../utils/codeThemes'")
-    expect(source).toContain('resolveCodeThemeStyle(props.node.contentStyle.theme)')
-    expect(source).toContain(':style="themeStyle"')
-    expect(source).toContain('overflow-y: auto')
-    expect(source).toContain('overflow-x: auto')
-    expect(source).toContain('scrollbar-gutter: stable')
-    expect(source).toContain('background: var(--code-bg)')
-    expect(source).toContain('color: var(--code-text)')
-    expect(source).toContain(':deep(.hljs-keyword)')
-    expect(source).toContain('color: var(--code-keyword)')
-    expect(source).toContain('color: var(--code-string)')
-    expect(source).toContain('color: var(--code-number)')
-    expect(source).toContain('color: var(--code-literal)')
-    expect(source).toContain('color: var(--code-title)')
-    expect(source).toContain('color: var(--code-attr)')
-    expect(source).toContain('color: var(--code-comment)')
-    expect(source).not.toContain('var(--color-primary)')
-    expect(source).not.toContain('var(--color-success)')
-    expect(source).not.toContain('currentColor 58%')
-    expect(source).not.toContain('background: transparent')
+    expect(source).toContain("import { Codemirror } from 'vue-codemirror'")
+    expect(source).toContain("import { isValidCode } from '@mind-x/mind-engine'")
+    expect(source).toContain("import { createCodeEditorExtensions } from '../../../utils/codeEditor'")
+    expect(source).toContain('const editorCode = ref(props.node.data.code)')
+    expect(source).toContain('createCodeEditorExtensions')
+    expect(source).toContain('props.node.data.language')
+    expect(source).toContain('props.node.contentStyle.theme')
+    expect(source).toContain('props.node.contentStyle.wrap')
+    expect(source).toContain('<Codemirror')
+    expect(source).toContain('v-model="editorCode"')
+    expect(source).toContain(':extensions="extensions"')
+    expect(source).toContain('@blur="commitCode"')
+    expect(source).toContain('@pointerdown.stop')
+    expect(source).not.toContain('v-html="highlighted.html"')
+    expect(source).not.toContain('highlightCode')
   })
 
   it('keeps export-specific concerns out of node content components', () => {

@@ -104,5 +104,10 @@ describe('editor multi-type controls', () => {
     expect(taskInspectorSource).toContain('contentStyleChange')
     expect(taskInspectorSource).not.toContain('contentChange')
     expect(taskInspectorSource).not.toContain('replaceTaskItem')
+
+    const codeInspectorSource = readEditorSource('../components/inspectors/node-inspectors/CodeNodeInspector.vue')
+    expect(codeInspectorSource).not.toContain('label="Code"')
+    expect(codeInspectorSource).not.toContain("emit('contentChange', { code })")
+    expect(codeInspectorSource).toContain('label="Language"')
   })
 })

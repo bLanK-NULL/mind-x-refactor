@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { CODE_NODE_CODE_MAX_LENGTH, type MindNode } from '@mind-x/shared'
+import type { MindNode } from '@mind-x/shared'
 import { computed } from 'vue'
-import { isValidCode } from '@mind-x/mind-engine'
 import {
   CODE_THEME_OPTIONS,
   resolveCodeTheme
 } from '../../../utils/codeThemes'
+import {
+  CODE_LANGUAGE_OPTIONS,
+  resolveCodeLanguage
+} from '../../../utils/codeEditor'
 import StyleField from '../StyleField.vue'
 
 type CodeNodeModel = Extract<MindNode, { type: 'code' }>
@@ -19,22 +22,17 @@ const emit = defineEmits<{
   contentStyleChange: [stylePatch: Record<string, unknown>]
 }>()
 
-function textValue(event: Event): string {
-  return (event.target as HTMLInputElement | HTMLTextAreaElement).value
-}
-
 function checkedValue(event: Event): boolean {
   return (event.target as HTMLInputElement).checked
 }
 
-function updateCode(event: Event): void {
-  const code = textValue(event)
-  if (isValidCode(code)) {
-    emit('contentChange', { code })
-  }
-}
-
+const selectedLanguage = computed(() => resolveCodeLanguage(props.node.data.language))
 const selectedTheme = computed(() => resolveCodeTheme(props.node.contentStyle.theme))
+
+function emitLanguageChange(value: unknown): void {
+  const language = resolveCodeLanguage(value)
+  emit('contentChange', { language })
+}
 
 function emitThemeChange(value: unknown): void {
   const theme = resolveCodeTheme(value)
@@ -44,14 +42,20 @@ function emitThemeChange(value: unknown): void {
 
 <template>
   <section class="code-node-inspector" aria-label="Code node inspector">
-    <StyleField label="Code">
-      <a-textarea
-        :maxlength="CODE_NODE_CODE_MAX_LENGTH"
-        :value="node.data.code"
-        :auto-size="{ minRows: 5, maxRows: 8 }"
+    <StyleField label="Language">
+      <a-select
+        :value="selectedLanguage"
         size="small"
-        @change="updateCode"
-      />
+        @change="emitLanguageChange"
+      >
+        <a-select-option
+          v-for="option in CODE_LANGUAGE_OPTIONS"
+          :key="option.value"
+          :value="option.value"
+        >
+          {{ option.label }}
+        </a-select-option>
+      </a-select>
     </StyleField>
     <StyleField label="Theme">
       <a-select
