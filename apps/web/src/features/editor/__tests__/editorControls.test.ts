@@ -115,4 +115,14 @@ describe('editor multi-type controls', () => {
     expect(topicInspectorSource).not.toContain("emit('contentChange', { title })")
     expect(topicInspectorSource).toContain('label="Text"')
   })
+
+  it('handles save shortcuts before input-target shortcut filtering', () => {
+    const source = readEditorSource('../components/MindEditor.vue')
+
+    expect(source).toContain("import { isEditorShortcutTarget, isSaveShortcut } from '../utils/keyboardTargets'")
+    expect(source).toContain('if (isSaveShortcut(event))')
+    expect(source).toContain('event.preventDefault()')
+    expect(source).toContain('save()')
+    expect(source.indexOf('if (isSaveShortcut(event))')).toBeLessThan(source.indexOf('if (isEditorShortcutTarget(event.target))'))
+  })
 })

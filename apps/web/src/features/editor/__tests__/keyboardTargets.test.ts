@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { isEditorShortcutTarget } from '@/features/editor/utils/keyboardTargets'
+import { isEditorShortcutTarget, isSaveShortcut } from '@/features/editor/utils/keyboardTargets'
 
 class TestHTMLElement {
   constructor(readonly isContentEditable = false) {}
@@ -67,5 +67,13 @@ describe('keyboard targets', () => {
   it('ignores missing and non-element targets', () => {
     expect(isEditorShortcutTarget(null)).toBe(false)
     expect(isEditorShortcutTarget({} as EventTarget)).toBe(false)
+  })
+
+  it('detects command and control save shortcuts independently of targets', () => {
+    expect(isSaveShortcut({ key: 's', metaKey: true, ctrlKey: false })).toBe(true)
+    expect(isSaveShortcut({ key: 'S', metaKey: true, ctrlKey: false })).toBe(true)
+    expect(isSaveShortcut({ key: 's', metaKey: false, ctrlKey: true })).toBe(true)
+    expect(isSaveShortcut({ key: 'z', metaKey: true, ctrlKey: false })).toBe(false)
+    expect(isSaveShortcut({ key: 's', metaKey: false, ctrlKey: false })).toBe(false)
   })
 })

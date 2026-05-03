@@ -9,7 +9,7 @@ import EditorContextMenu from './context-menu/EditorContextMenu.vue'
 import EditorToolbar from './toolbar/EditorToolbar.vue'
 import InspectorPanel from './inspectors/InspectorPanel.vue'
 import { readStoredInspectorPosition, writeStoredInspectorPosition } from '../utils/inspectorPosition'
-import { isEditorShortcutTarget } from '../utils/keyboardTargets'
+import { isEditorShortcutTarget, isSaveShortcut } from '../utils/keyboardTargets'
 import NodeInspector from './inspectors/NodeInspector.vue'
 import NodeRenderer from './canvas/NodeRenderer.vue'
 import SelectionLayer from './canvas/SelectionLayer.vue'
@@ -241,6 +241,12 @@ function deleteFromContextMenu(): void {
 }
 
 function onKeydown(event: KeyboardEvent): void {
+  if (isSaveShortcut(event)) {
+    event.preventDefault()
+    save()
+    return
+  }
+
   if (isEditorShortcutTarget(event.target)) {
     return
   }

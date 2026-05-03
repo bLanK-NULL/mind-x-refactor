@@ -14,6 +14,16 @@ const TEXT_EDITING_INPUT_TYPES = new Set([
   'week'
 ])
 
+type KeyboardShortcutLike = {
+  ctrlKey: boolean
+  key: string
+  metaKey: boolean
+}
+
+export function isSaveShortcut(event: KeyboardShortcutLike): boolean {
+  return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's'
+}
+
 const EDITOR_SHORTCUT_PROTECTED_SELECTOR = [
   'input',
   'textarea',
