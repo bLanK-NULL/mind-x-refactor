@@ -78,6 +78,7 @@ function cancelCode(): void {
   min-width: 0;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .code-node__editor {
@@ -85,10 +86,16 @@ function cancelCode(): void {
   min-width: 0;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 :deep(.cm-editor) {
   width: 100%;
   height: 100%;
+  overflow: hidden;
+}
+
+:deep(.cm-scroller) {
+  overflow: auto !important;
 }
 </style>

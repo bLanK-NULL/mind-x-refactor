@@ -111,7 +111,6 @@ function editorThemeExtension(theme: unknown): Extension {
         lineHeight: '1.45'
       },
       '.cm-content': {
-        minHeight: '100%',
         padding: '10px 12px'
       },
       '.cm-gutters': {
