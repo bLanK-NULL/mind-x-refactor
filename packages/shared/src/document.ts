@@ -156,6 +156,21 @@ export const CODE_BLOCK_THEMES = [
 export const codeBlockThemeSchema = z.enum(CODE_BLOCK_THEMES)
 export type CodeBlockTheme = z.infer<typeof codeBlockThemeSchema>
 
+export const CODE_LANGUAGES = [
+  'plaintext',
+  'javascript',
+  'typescript',
+  'json',
+  'css',
+  'html',
+  'markdown',
+  'python',
+  'bash'
+] as const
+export const codeLanguageSchema = z.enum(CODE_LANGUAGES)
+export type CodeLanguage = z.infer<typeof codeLanguageSchema>
+export const DEFAULT_CODE_LANGUAGE: CodeLanguage = 'typescript'
+
 export const nodeShellStyleSchema = z.object({
   colorToken: objectColorTokenSchema,
   tone: z.enum(['soft', 'solid', 'outline']),
@@ -202,7 +217,7 @@ export const DEFAULT_TOPIC_CONTENT_STYLE = {
 } as const satisfies z.infer<typeof topicContentStyleSchema>
 
 export const DEFAULT_IMAGE_CONTENT_STYLE = {
-  objectFit: 'cover'
+  objectFit: 'contain'
 } as const satisfies z.infer<typeof imageContentStyleSchema>
 
 export const DEFAULT_LINK_CONTENT_STYLE = {
@@ -325,7 +340,7 @@ const codeNodeV3Schema = nodeBaseV3Schema.extend({
   type: z.literal('code'),
   data: z.object({
     code: z.string().max(CODE_NODE_CODE_MAX_LENGTH),
-    language: z.string().min(1).max(64).optional()
+    language: codeLanguageSchema
   }).strict(),
   contentStyle: codeContentStyleSchema
 }).strict()
@@ -373,7 +388,7 @@ const legacyCodeNodeV3Schema = nodeBaseV3Schema.extend({
   type: z.literal('code'),
   data: z.object({
     code: z.string().max(CODE_NODE_CODE_MAX_LENGTH),
-    language: z.string().min(1).max(64).optional()
+    language: codeLanguageSchema.optional()
   }).strict(),
   contentStyle: legacyCodeContentStyleSchema
 }).strict()
@@ -480,6 +495,10 @@ function normalizeV3MindNode(node: z.infer<typeof migratableMindNodeV3Schema>): 
 
   return {
     ...node,
+    data: {
+      ...node.data,
+      language: node.data.language ?? DEFAULT_CODE_LANGUAGE
+    },
     contentStyle: {
       ...node.contentStyle,
       theme: node.contentStyle.theme ?? DEFAULT_CODE_THEME

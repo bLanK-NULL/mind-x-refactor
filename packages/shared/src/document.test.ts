@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   CODE_BLOCK_THEMES,
+  CODE_LANGUAGES,
   DEFAULT_ATTACHMENT_CONTENT_STYLE,
   DEFAULT_CODE_CONTENT_STYLE,
+  DEFAULT_CODE_LANGUAGE,
   DEFAULT_CODE_THEME,
   DEFAULT_EDGE_STYLE,
   DEFAULT_IMAGE_CONTENT_STYLE,
@@ -14,6 +16,7 @@ import {
   DEFAULT_TOPIC_STYLE,
   apiErrorBodySchema,
   codeBlockThemeSchema,
+  codeLanguageSchema,
   createProjectRequestSchema,
   migrateMindDocument,
   migrateMindDocumentToV3,
@@ -120,11 +123,15 @@ function v1Document(overrides: Record<string, unknown> = {}) {
 }
 
 describe('mind document versions', () => {
-  it('defines the code block theme defaults', () => {
+  it('defines the code block, language, and image defaults', () => {
     expect(DEFAULT_CODE_THEME).toBe('vscode-dark')
+    expect(DEFAULT_CODE_LANGUAGE).toBe('typescript')
     expect(DEFAULT_CODE_CONTENT_STYLE).toEqual({
       wrap: true,
       theme: 'vscode-dark'
+    })
+    expect(DEFAULT_IMAGE_CONTENT_STYLE).toEqual({
+      objectFit: 'contain'
     })
   })
 
@@ -142,6 +149,24 @@ describe('mind document versions', () => {
 
     for (const theme of CODE_BLOCK_THEMES) {
       expect(codeBlockThemeSchema.parse(theme)).toBe(theme)
+    }
+  })
+
+  it('accepts the supported code languages', () => {
+    expect(CODE_LANGUAGES).toEqual([
+      'plaintext',
+      'javascript',
+      'typescript',
+      'json',
+      'css',
+      'html',
+      'markdown',
+      'python',
+      'bash'
+    ])
+
+    for (const language of CODE_LANGUAGES) {
+      expect(codeLanguageSchema.parse(language)).toBe(language)
     }
   })
 
@@ -336,7 +361,7 @@ describe('mind document versions', () => {
           position: { x: 1040, y: 0 },
           size: DEFAULT_NODE_SIZE_BY_TYPE.code,
           shellStyle: DEFAULT_NODE_SHELL_STYLE,
-          data: { code: 'const answer = 42' },
+          data: { code: 'const answer = 42', language: DEFAULT_CODE_LANGUAGE },
           contentStyle: DEFAULT_CODE_CONTENT_STYLE
         },
         {
@@ -446,6 +471,30 @@ describe('mind document versions', () => {
       contentStyle: {
         wrap: false,
         theme: 'vscode-dark'
+      }
+    })
+  })
+
+  it('migrates historical v3 code nodes missing language to the default language', () => {
+    const historicalV3 = v3Document({
+      nodes: [
+        {
+          id: 'code',
+          type: 'code',
+          position: { x: 0, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.code,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { code: 'const value = 1' },
+          contentStyle: DEFAULT_CODE_CONTENT_STYLE
+        }
+      ]
+    })
+
+    expect(migrateMindDocumentToV3(historicalV3).nodes[0]).toMatchObject({
+      type: 'code',
+      data: {
+        code: 'const value = 1',
+        language: DEFAULT_CODE_LANGUAGE
       }
     })
   })
@@ -645,6 +694,39 @@ describe('mind document versions', () => {
         })
       ).success
     ).toBe(false)
+  })
+
+  it('rejects current code nodes with missing or unknown languages', () => {
+    const missingLanguage = v3Document({
+      nodes: [
+        {
+          id: 'code',
+          type: 'code',
+          position: { x: 0, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.code,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { code: 'const value = 1' },
+          contentStyle: DEFAULT_CODE_CONTENT_STYLE
+        }
+      ]
+    })
+
+    const unknownLanguage = v3Document({
+      nodes: [
+        {
+          id: 'code',
+          type: 'code',
+          position: { x: 0, y: 0 },
+          size: DEFAULT_NODE_SIZE_BY_TYPE.code,
+          shellStyle: DEFAULT_NODE_SHELL_STYLE,
+          data: { code: 'const value = 1', language: 'ruby' },
+          contentStyle: DEFAULT_CODE_CONTENT_STYLE
+        }
+      ]
+    })
+
+    expect(mindDocumentV3Schema.safeParse(missingLanguage).success).toBe(false)
+    expect(mindDocumentV3Schema.safeParse(unknownLanguage).success).toBe(false)
   })
 
   it('rejects invalid and missing v3 edge styles', () => {
